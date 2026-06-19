@@ -14,15 +14,24 @@ Built during a 6-week internship focused on AI tools.
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/SumerSG/taste.node.git
 cd taste.node
 
-# Setup (stack TBD)
-# [Installation instructions once tooling is decided]
+# Create a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Run
-# [Run commands once project structure is in place]
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the API server
+uvicorn src.main:app --reload
+
+# Run tests
+pytest
 ```
+
+The API will be available at `http://localhost:8000`.
 
 ## Project Details
 
@@ -49,21 +58,35 @@ cd taste.node
 
 | Layer | Choice | Status |
 |-------|--------|--------|
-| Frontend | TBD | 🟡 Pending |
-| Backend | TBD | 🟡 Pending |
-| ML / Clustering | TBD | 🟡 Pending |
-| Database | TBD | 🟡 Pending |
-| Deployment | TBD | 🟡 Pending |
+| Language | Python 3.12 | ✅ Locked |
+| API Framework | FastAPI | ✅ Locked |
+| ML / Clustering | scikit-learn, scipy | ✅ Locked |
+| Frontend | Next.js (evaluating) | 🟡 Pending Week 3 |
+| Database | SQLite (MVP) | ✅ Locked |
+| Deployment | Render / Vercel | 🟡 Pending Week 5 |
 
 ## Project Structure
 
 ```
 taste.node/
-├── docs/              # Project documentation
-├── src/               # Application source code
-├── tests/             # Test suite
-├── .github/           # CI/CD workflows
-└── README.md          # This file
+├── requirements.txt    # Python dependencies
+├── pyproject.toml      # pytest config
+├── README.md           # This file
+├── docs/               # Project documentation
+│   ├── PRD.md
+│   ├── TDD.md
+│   ├── MILESTONES.md
+│   └── PROJECT_OVERVIEW.md
+├── src/                # Application source code
+│   ├── __init__.py
+│   ├── main.py         # FastAPI entry point
+│   ├── models.py       # Pydantic data models
+│   └── similarity.py   # Taste comparison logic
+├── tests/              # Test suite
+│   ├── __init__.py
+│   └── test_similarity.py
+└── .github/workflows/  # CI/CD
+    └── ci.yml
 ```
 
 ## License
