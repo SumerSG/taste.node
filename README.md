@@ -4,7 +4,9 @@
 
 ## Overview
 
-taste.node groups people by similar food preferences and recommends restaurants and cafes based on those clusters. Built during a 6-week internship focused on AI tools.
+taste.node lets users build a **ranked list of their top restaurants and cafes** — any new place they visit can be slotted into the list. The platform clusters users with similar ranked lists, then recommends new venues based on those clusters. Users can also **filter recommendations by current preferences** like location, cuisine, dietary style (meat / fish / vegetarian), healthiness, and more.
+
+Built during a 6-week internship focused on AI tools.
 
 ## Quick Start
 
@@ -27,7 +29,8 @@ See [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) for the full brief.
 ## Architecture
 
 ```
-[User Profile] → [Taste Embedding] → [Clustering Model] → [Recommendation Engine] → [Venue Suggestion]
+[User Ranked List] → [Taste Similarity Model] → [Cluster Assignment]
+    → [Live Filters: Location, Cuisine, Diet, Health] → [Recommendation Engine] → [Venue Suggestion]
 ```
 
 ## Milestones

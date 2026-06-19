@@ -4,29 +4,32 @@
 
 ## Problem
 
-Generic restaurant reviews and location-based search miss a key signal: **what people actually like**. taste.node explores whether clustering users by taste leads to better, more personal recommendations.
+Most recommendation engines rely on ratings or popularity. taste.node starts from a more personal signal: **a ranked list of a user’s favourite restaurants**. Two people with similar top lists likely share taste. The platform clusters users by this signal and surfaces new venues — while letting them apply **live filters** for what they want right now (location, cuisine, diet, healthiness, etc.).
 
 ## Goal
 
 Build a platform that:
-1. Profiles a user’s taste from ratings, preferences, and behavior.
-2. Clusters users with similar taste profiles.
-3. Recommends restaurants and cafes based on cluster affinity.
-4. Explains *why* a recommendation was made.
+1. Lets users create and maintain a **ranked list of their top restaurants/cafes**.
+2. Clusters users whose ranked lists are similar.
+3. Lets users **apply current-preference filters** (location, cuisine, diet, healthiness, etc.).
+4. Recommends new venues from the cluster that match those **live filters**.
+5. Explains *why* a recommendation was made (e.g., shared cluster + matched filters).
 
 ## Scope
 
 ### MVP (6 Weeks)
 
-- [ ] User taste profiling input
-- [ ] Clustering algorithm for taste profiles
-- [ ] Basic recommendation engine
+- [ ] Ranked-list input (users order their favourite venues)
+- [ ] Re-ranking when a new venue is visited
+- [ ] Clustering algorithm based on ranked-list similarity
+- [ ] Live preference filters (location, cuisine, diet, healthiness)
+- [ ] Recommendation engine: cluster match × filter match
 - [ ] Simple frontend to demonstrate the flow
-- [ ] Explainable recommendations (e.g., “Because people with your taste loved this”)
+- [ ] Explainable recommendations (e.g., “3 people in your taste cluster loved this after visiting [X]”)
 
 ### Out of Scope
 
-- Real-time location tracking
+- Real-time GPS / location tracking (location *filter* is in scope)
 - Booking / payment integration
 - Native mobile apps
 - Production-grade hosting
@@ -37,11 +40,12 @@ Build a platform that:
 
 ## Key Questions
 
-1. What features define “taste”?
-2. How many clusters? Fixed or dynamic?
-3. How do we handle new users (cold-start)?
-4. How do we measure recommendation quality?
-5. How do we explain cluster membership and suggestions?
+1. What similarity metric best compares ranked restaurant lists? (Kendall tau, Spearman, Jaccard, embedding-based?)
+2. How many clusters, and should the number be fixed or dynamic?
+3. How do we handle cold-start users with very short lists?
+4. How do we weight cluster similarity vs. live-filter match?
+5. How do we explain a recommendation in one sentence?
+6. What filter dimensions do users actually care about (location, cuisine, diet, health, price, etc.)?
 
 ## Success Metrics
 
@@ -59,4 +63,4 @@ Build a platform that:
 
 ---
 
-*Last updated: [Date]*
+*Last updated: 2026-06-19*
