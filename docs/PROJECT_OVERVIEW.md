@@ -42,7 +42,7 @@ Build a platform that:
 
 1. What similarity metric best compares ranked restaurant lists? (Kendall tau, Spearman, Jaccard, embedding-based?)
 2. How many clusters, and should the number be fixed or dynamic?
-3. How do we handle cold-start users with very short lists?
+3. How do initial seed clusters from scraped data translate into recommendations for the first real users?
 4. How do we weight cluster similarity vs. live-filter match?
 5. How do we explain a recommendation in one sentence?
 6. What filter dimensions do users actually care about (location, cuisine, diet, health, price, etc.)?

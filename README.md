@@ -6,6 +6,8 @@
 
 taste.node lets users build a **ranked list of their top restaurants and cafes** — any new place they visit can be slotted into the list. The platform clusters users with similar ranked lists, then recommends new venues based on those clusters. Users can also **filter recommendations by current preferences** like location, cuisine, dietary style (meat / fish / vegetarian), healthiness, and more.
 
+To bootstrap the platform before real users join, taste.node first builds **estimated clusters from scraped public rating data** (e.g., user reviews and favourites from open restaurant platforms). These seed clusters provide an initial recommendation layer that grows more accurate as real users onboard and contribute their own ranked lists.
+
 Built during a 6-week internship focused on AI tools.
 
 ## Quick Start
