@@ -26,7 +26,12 @@ cd taste.node
 
 ## Project Details
 
-See [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) for the full brief.
+| Document | What it covers |
+|----------|----------------|
+| [`docs/PRD.md`](docs/PRD.md) | Product requirements, user personas, feature specs |
+| [`docs/TDD.md`](docs/TDD.md) | Technical design, algorithms, API draft, stack |
+| [`docs/MILESTONES.md`](docs/MILESTONES.md) | 6-week timeline, weekly deliverables, exit criteria |
+| [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | One-page summary of the entire project |
 
 ## Architecture
 

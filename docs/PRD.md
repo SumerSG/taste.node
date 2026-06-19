@@ -1,0 +1,131 @@
+# Product Requirements Document (PRD) — taste.node
+
+| | |
+|:---|:---|
+| **Status** | 🟡 Draft / Planning |
+| **Author** | Sumer Gaikwad |
+| **Mentors** | [Mentor 1], [Mentor 2] |
+| **Date** | 2026-06-19 |
+| **Version** | 0.1 |
+
+---
+
+## 1. Context
+
+taste.node is a 6-week internship project exploring whether **ranked-list similarity** is a stronger signal for restaurant recommendations than generic 5-star ratings. The hypothesis is that two people with similar top-10 restaurant lists share a deeper taste affinity than two people who both gave a venue 4 stars.
+
+To avoid a dead-empty platform on day one, the system will bootstrap with **seed clusters built from scraped public rating data** (e.g., review site user profiles). As real users onboard, their ranked lists replace or augment the seed data, making clusters progressively more accurate.
+
+## 2. Problem Statement
+
+**Current state:** Discovery is broken.
+- Popular =/= personal. A 4.8-star tourist trap can outrank a 4.2-star hidden gem.
+- Filters are generic. "Italian + 1km radius" ignores that one user wants handmade pasta and another wants Neapolitan pizza.
+- Ratings are noisy. A 3-star review from a user who hates spicy food is not the same signal as a 3-star review from a chilli lover who found the dish mild.
+
+**Desired state:** A user opens the app, sees a restaurant, and thinks *"this feels like it was picked by a friend who knows me."*
+
+## 3. Goals
+
+### 3.1 Product Goals
+1. Let users maintain a **ranked list** of their favourite restaurants/cafes.
+2. Group users into **taste clusters** using list similarity (Kendall tau, embedding, or hybrid).
+3. Let users **apply live filters** (location, cuisine, diet, health) to match their *current* desire, not just their general taste.
+4. Recommend venues that score high on both **cluster affinity** and **filter match**.
+5. Explain *why* something was recommended in one human sentence.
+
+### 3.2 Success Metrics
+
+| Metric | Target | How Measured |
+|--------|--------|--------------|
+| End-to-end demo flow | < 5 minutes | Timer during demo |
+| Seed cluster coherence | Silhouette > 0.4 or visual sanity check | On scraped dataset |
+| Live filter latency | < 500ms | Stopwatch on UI interaction |
+| Recommendation explainability | 100% of recs have a sentence | Manual audit |
+| Qualitative relevance | 3/4 test users say "this makes sense" | Post-demo survey |
+
+## 4. User Personas
+
+### Primary: The Curious Explorer (Alex, 26)
+- Loves food, follows chefs on Instagram.
+- Has mental top-5 lists for burgers, ramen, and pastry.
+- Wants to discover places that match their *specific* palate, not just what’s trending.
+- Frustrated by: generic "best of" lists, review inflation.
+
+### Secondary: The Efficient Diner (Jordan, 34)
+- Doesn’t care about hype. Wants good food fast.
+- Has dietary constraints (pescatarian, low-carb倾向).
+- Wants to filter by diet + location, then trust the cluster recommendation.
+- Frustrated by: scrolling through irrelevant options, inconsistent dietary tagging.
+
+## 5. Requirements
+
+### 5.1 Functional Requirements
+
+| ID | Requirement | Priority | Notes |
+|:---|:---|:---|:---|
+| FR-1 | Users can input a ranked list of favourite venues (top N, ordered). | P0 | Drag-and-drop or sequential ranking. |
+| FR-2 | Users can insert a newly visited venue into their existing ranked list. | P0 | Re-ranking must feel instant. |
+| FR-3 | System computes taste similarity between two users based on their ranked lists. | P0 | Algorithm TBD (see TDD). |
+| FR-4 | System clusters users into taste groups using the similarity metric. | P0 | Seed clusters from scraped data; evolves with real users. |
+| FR-5 | Users can apply live filters: location (radius), cuisine type, dietary style (meat/fish/veg/vegan), healthiness, price tier. | P0 | These are **session-level**, not profile-level. |
+| FR-6 | Recommendation engine surfaces venues that are: (a) loved by the user’s cluster, and (b) match active filters. | P0 | Weighting function TBD. |
+| FR-7 | Every recommendation includes a one-sentence explanation. | P0 | e.g., "Alex, Jordan, and 4 others in your taste cluster loved this after visiting [X]." |
+| FR-8 | Scraper ingests public user rating data to build seed clusters before launch. | P1 | Legal / ToS compliance required. |
+| FR-9 | Seed cluster quality is validated against a hold-out test set. | P1 | Prevents garbage-in-garbage-out at demo time. |
+
+### 5.2 Non-Functional Requirements
+
+| ID | Requirement | Priority |
+|:---|:---|:---|
+| NFR-1 | End-to-end latency (filter applied → recs shown) < 1s. | P0 |
+| NFR-2 | Ranked list input must feel responsive (< 100ms local). | P0 |
+| NFR-3 | Seed data pipeline must be reproducible (same input → same clusters). | P1 |
+| NFR-4 | UI is demo-friendly: readable on a shared screen, no tiny text. | P0 |
+
+## 6. Data Requirements
+
+### 6.1 Seed Data (Scraped)
+- **Source:** Public review platforms (Yelp, Google Reviews, etc.) — *ToS permitting.*
+- **Schema (per user):** User ID → [venue ID, rank/position]
+- **Volume target:** 500–1,000 synthetic/seed user profiles for initial clustering.
+- **Preprocessing:** Deduplicate venues, normalise names, geocode addresses.
+
+### 6.2 Runtime Data (User-Generated)
+- **User profile:** User ID, created_at.
+- **Ranked list:** Ordered array of `{venue_id, rank, added_at}`.
+- **Venue metadata:** name, location (lat/lng), cuisines[], dietary_tags[], price_tier, health_score.
+
+## 7. UX Flow (MVP)
+
+```
+[Onboarding] → [Input Top 5 List] → [See Cluster Label]
+                                     ↓
+[Apply Filters] → [Get Recommendations] → [See Explanation + Add to List]
+                                     ↓
+[Visit New Place] → [Insert into Ranked List] → [Cluster Re-calculates]
+```
+
+## 8. Open Questions
+
+1. What is the legal/TOS status of scraping public rating lists for seed clusters?
+2. Which similarity metric is most robust for ranked lists with partial overlap?
+3. How do we map a seed-cluster user (from scraped data) to a real user who joins later?
+4. How often do clusters recalculate? Real-time, nightly, or on-demand?
+5. Do we allow users to see *who* is in their cluster (privacy concern)?
+
+## 9. Out of Scope
+
+- Real-time GPS tracking (location *filter* is in scope).
+- Booking, payment, or reservation integration.
+- Native iOS/Android apps (web-only MVP).
+- Social features (follow, chat, share).
+- Production-grade hosting, auth, or billing.
+
+## 10. Timeline
+
+See [`MILESTONES.md`](MILESTONES.md) for the detailed 6-week breakdown.
+
+---
+
+*Next review: After mentor kickoff meeting.*

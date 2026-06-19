@@ -1,5 +1,7 @@
 # Project Overview — taste.node
 
+> For full requirements see [`PRD.md`](PRD.md). For technical design see [`TDD.md`](TDD.md). For timeline see [`MILESTONES.md`](MILESTONES.md).
+
 ---
 
 ## Problem
