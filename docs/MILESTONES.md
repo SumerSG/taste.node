@@ -31,13 +31,13 @@
 | Mon | Kickoff with mentors; clarify scope and expectations | Meeting notes logged |
 | Tue | Finalise PRD (this doc) and TDD | PRD v0.2, TDD v0.2 in repo |
 | Wed | Lock tech stack; init project scaffolding | `src/` has runnable "hello world" |
-| Thu | Identify scraping source; check ToS / API docs | Seed data source documented in TDD |
-| Fri | Write scraper skeleton; test one user profile | Scraper outputs one valid JSON object |
+| Thu | Design synthetic data generator schema; persona taxonomy | Synthetic data schema documented in TDD |
+| Fri | Implement seed generator; test one profile output | Generator outputs one valid JSON object |
 
 **Week 1 Exit Criteria:**
 - [ ] Mentors have reviewed and approved PRD + TDD.
 - [ ] Repo has working dev environment (lint, run, test commands).
-- [ ] Seed data source is confirmed legal/feasible.
+- [ ] Seed data generator is deterministic and reproducible.
 
 ---
 

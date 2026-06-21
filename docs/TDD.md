@@ -13,7 +13,7 @@
 
 taste.node is a web application with three conceptual layers:
 1. **Taste Layer:** Ingests and compares ranked lists.
-2. **Cluster Layer:** Groups users by taste similarity; bootstrapped with scraped seed data.
+2. **Cluster Layer:** Groups users by taste similarity; bootstrapped with synthetic seed data.
 3. **Recs Layer:** Applies live filters to cluster preferences and returns explainable suggestions.
 
 ```
@@ -56,7 +56,7 @@ taste.node is a web application with three conceptual layers:
   "dietary_tags": ["Meat", "Vegetarian-option"],
   "price_tier": 2,
   "health_score": 3.2,
-  "source": "scraped" | "user_added"
+  "source": "synthetic" | "api" | "user_added"
 }
 ```
 
@@ -143,15 +143,16 @@ Fallback if no cluster match:
 ## 5. Seed Data Pipeline
 
 ```
-[Scraper] → [Raw HTML/API] → [Parser] → [User Profiles]
+[Synthetic Generator] → [User Profiles]
     → [Deduplicator] → [Normaliser] → [Seed DB]
     → [Cluster Trainer] → [Initial Clusters]
 ```
 
-- **Scraper:** Python + BeautifulSoup / Scrapy / API client.
-- **Constraints:** Only publicly visible data. No auth walls. Check robots.txt and ToS.
+- **Generator:** Deterministic PRNG script (`src/synthetic_data.py`).
+- **Constraints:** Fully synthetic. No legal risk. Reproducible with fixed seed.
 - **Output:** JSON lines of `{user_alias, ranked_venue_ids[]}`.
 - **Validation:** 80/20 split. Train clusters on 80%, test coherence on 20%.
+- **Production:** Only integrate real data via documented public APIs with attribution.
 
 ## 6. Tech Stack (Proposed)
 
@@ -162,14 +163,14 @@ Fallback if no cluster match:
 | Frontend | Next.js (React) or Streamlit | Next.js if we want polish; Streamlit if speed matters | 🟡 Pending |
 | ML Libraries | scikit-learn, scipy | Kendall tau, K-Means, silhouette | 🟡 Pending |
 | Database | SQLite (MVP) or PostgreSQL | SQLite for demo simplicity; Postgres if multi-user demo | 🟡 Pending |
-| Scraping | requests + BeautifulSoup | Simple, no heavy infra | 🟡 Pending |
+| Synthetic Data | src/synthetic_data.py | Deterministic, legal-safe seed dataset | ✅ Locked |
 | Deployment | Render / Vercel / Heroku | Free tier, quick setup | 🟡 Pending |
 
 ## 7. Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Scraping blocked by target site | High | Use public API endpoints where available; build synthetic backup dataset |
+| Public API rate limits or access | High | Use synthetic dataset for all demos and testing; gate production APIs behind attribution and rate-limiting |
 | Kendall Tau too slow at scale | Medium | Cache similarity matrix; use approximate methods if needed (scale is small for demo) |
 | Clusters are uninterpretable | High | Visualise with t-SNE/PCA; keep K small for demo (5–7 clusters) |
 | Live filters return zero results | Medium | Fallback: relax least-important filter first; explain fallback to user |
@@ -180,7 +181,7 @@ Fallback if no cluster match:
 1. Similarity metric (Kendall Tau vs hybrid)
 2. Frontend framework (Next.js vs Streamlit)
 3. Database (SQLite vs PostgreSQL)
-4. Exact scraping source and legal review
+4. Exact public API partner for production venue enrichment
 5. Whether to expose cluster membership to users at all
 
 ---
