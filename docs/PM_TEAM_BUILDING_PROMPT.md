@@ -1,20 +1,23 @@
 # PM Orchestration Guide: taste.node MVP
 
 > **How to use this document:**
-> You are the Founding PM. The goal is a working, demoable MVP of taste.node. This guide tells you **which role to hire (or prompt) at which phase**, and exactly **what to tell them**. Each role prompt is self-contained and assumes only the prior phases have shipped.
+> You are the Founding PM. The goal is a working, demoable MVP of taste.node. This guide tells you **which role to hire (or prompt) and when**, and exactly **what to hand off** between them. Roles are strictly sequential. Do not start Role N+1 until Role N has passed the handoff checklist.
 
 ---
 
-## Part 1: MVP Phase Plan
+## Part 1: MVP Definition & Phase Plan
 
 | Phase | Name | Duration | Goal | Primary Output |
 |---|---|---|---|---|
-| 0 | Foundation | Days 1-3 | Deterministic synthetic dataset produces coherent HDBSCAN clusters. | `synthetic_data.py` + demo script |
-| 1 | Core Engine | Days 4-7 | Contextual Kendall similarity + HDBSCAN clustering fit end-to-end. | `similarity.py` + `clustering.py` + tests |
-| 2 | API Shell | Days 8-10 | FastAPI exposes contextual endpoints for similarity, cluster assignment, and recommendations. | `main.py` + testable API |
-| 3 | Onboarding UX | Days 11-14 | User can create a TasteProfile with temporal metadata and see their cluster label. | Frontend + POST endpoints |
-| 4 | Explainability | Days 15-18 | Recommendations include one-sentence cluster-based explanations. | `recommendations` enrichment + UI |
-| 5 | Demo Lock | Days 19-21 | End-to-end demo rehearsed; no scope creep; all tests green. | Demo script + stability |
+| 0 | Foundation | 3 days | Deterministic synthetic dataset produces coherent HDBSCAN clusters. | `synthetic_data.py` + validation |
+| 1 | Similarity Engine | 4 days | Contextual Kendall similarity with temporal weighting works end-to-end. | `similarity.py` + `clustering.py` + tests |
+| 2 | API Shell | 3 days | FastAPI exposes contextual endpoints for similarity, cluster assignment, and recommendations. | `main.py` + testable API |
+| 3 | Data Model Lock | 4 days | Onboarding flow captures `visited_at` and `occasion_tag` correctly. | `DATA_CONTRACT.md` + integratable models |
+| 4 | Frontend | 4 days | User can create a TasteProfile and see their cluster label + recommendations. | Working UI against real API |
+| 5 | Explainability | 4 days | Recommendations include one-sentence cluster-based explanations. | Enriched recs + UI polish |
+| 6 | Demo Lock | 3 days | End-to-end demo rehearsed; no scope creep; all tests green. | `DEMO_SCRIPT.md` + stability |
+
+**Total: ~25 calendar days**
 
 > **Hypothesis to prove:** *Two people with similar contextual restaurant rankings are better matched by density-based clustering than by star ratings.*
 
@@ -27,32 +30,176 @@
 
 ---
 
-## Part 2: PM Orchestration Table
+## Part 2: Sequential Role Pipeline
 
-| Phase | Role to Engage | What You Need From Them | Their Input Enables... |
-|---|---|---|---|
-| 0 | **Synthetic Data Engineer** | Persona-biased dataset with realistic clusterability | Phase 1 clustering validation |
-| 1 | **Taste Similarity Engineer** | Normalized Kendall Tau distance with temporal weighting | Phase 2 HDBSCAN + API |
-| 1 | **HDBSCAN Clustering Engineer** | Non-Euclidean clustering pipeline with noise handling | Phase 2 API endpoints |
-| 2 | **Contextual API Engineer** | FastAPI endpoints that treat `context_id` as first-class | Phase 3 frontend integration |
-| 3 | **Temporal Data Model Designer** | Onboarding flow that captures `visited_at` and `occasion_tag` | Phase 4 explainability |
-| 3 | **Taste-Focused Frontend Engineer** | UI where user builds a ranked list and sees cluster label | Phase 4 recommendation surfacing |
-| 4 | **Recommendation Engineer** | Cluster-affinity scoring + one-sentence explanation generator | Phase 5 demo value prop |
-| 5 | **Demo Quality Engineer** | Rehearsal scripts, failure recovery, timeout guards | Demo day success |
+| Sequence | Role | Starts After | Phase | Duration |
+|---|---|---|---|---|
+| 1 | **Synthetic Data Engineer** | PM kickoff | 0 | 3 days |
+| 2 | **Taste Similarity Engineer** | Role 1 handoff | 1 | 2 days |
+| 3 | **HDBSCAN Clustering Engineer** | Role 2 handoff | 1 | 2 days |
+| 4 | **Contextual API Engineer** | Role 3 handoff | 2 | 3 days |
+| 5 | **Temporal Data Model Designer** | Role 4 handoff | 3 | 2 days |
+| 6 | **Taste-Focused Frontend Engineer** | Role 5 handoff | 4 | 4 days |
+| 7 | **Recommendation Engineer** | Role 6 handoff | 5 | 2 days |
+| 8 | **Demo Quality Engineer** | Role 7 handoff | 6 | 3 days |
 
-**Hiring Rule:** Do not hire Phase N+1 roles until Phase N has a green test suite and a verbal demo to you. The PM's job is to gate the pipeline.
+**PM Rule:** The pipeline is a conveyor belt, not a team sport. One person at a time. If a role is blocked, the entire pipeline stops.
 
 ---
 
-## Part 3: Role Prompt Library
+## Part 3: Handoff Policy
 
-Give the role prompt below to the person (or agent) you engage. Each prompt assumes all prior phases are complete.
+The PM is the only person who can authorize a handoff. No engineer may hand off to the next role without the PM signing the checklist.
+
+### Handoff Gate 0 → 1: PM → Synthetic Data Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| PRNG seed is configurable and documented | Can run `python src/synthetic_data.py --seed 42` and get identical output | |
+| N = 50 minimum profiles generated | Counts profiles in output | |
+| Every profile has a `default` context | Inspects JSON output | |
+| Persona taxonomy exists (≥ 4 personas) | Reads docs or inline comments | |
+| Determinism test exists | `pytest` has a test that fails if output changes between runs | |
+| Validation script reports ≥ 3 clusters | Runs script and reads stdout | |
+
+**PM Action if Blocked:** Reject deliverable. Require deterministic output before any downstream work begins.
+
+---
+
+### Handoff Gate 1 → 2: Synthetic Data Engineer → Taste Similarity Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| Synthetic data script runs without errors | PM runs it fresh in a clean env | |
+| Output is 100% deterministic | Runs twice, compares checksums | |
+| `TasteProfile` and `TasteContext` models are respected | Inspects `src/models.py` against spec | |
+| At least 2 personas produce distinct clusterable profiles | Validation script output | |
+| Data is fully synthetic (no real venue names, no scraped data) | Manual inspection | |
+
+---
+
+### Handoff Gate 2 → 3: Taste Similarity Engineer → HDBSCAN Clustering Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| All tests in `tests/test_similarity.py` pass | `pytest tests/test_similarity.py -v` | |
+| Perfect correlation → distance 0.0 | Reads test assertion | |
+| Inverse correlation → distance 1.0 | Reads test assertion | |
+| No overlap → None (not 0.0) | Reads test assertion | |
+| Temporal weights are computed | Inspects `extract_shared_venues` return signature | |
+| Distance values are in [0, 1] | Asserts range in test | |
+| Works with `context_id` parameter | Tests show contextual comparison | |
+| `src/models.py` has NOT been modified | `git diff` check | |
+
+**Blocked?** Similarity must be flawless before clustering can begin. Clustering depends on distances being correct.
+
+---
+
+### Handoff Gate 3 → 4: HDBSCAN Clustering Engineer → Contextual API Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| All tests in `tests/test_clustering.py` pass | `pytest tests/test_clustering.py -v` | |
+| HDBSCAN is the only clustering algorithm imported | `grep -r "KMeans\|kmeans\|Agglomerative" src/` returns nothing | |
+| Noise points (-1) are tested and valid | Test explicitly asserts label == -1 | |
+| Distance matrix handles None as max distance (1.0) | Test asserts no NaN and range [0, 1] | |
+| `ContextualClusterMap` can fit multiple contexts | Test runs fit_context twice with different context_ids | |
+| `src/similarity.py` has NOT been modified | `git diff` check | |
+
+**Blocked?** If clustering fails, the API has nothing to serve.
+
+---
+
+### Handoff Gate 4 → 5: Contextual API Engineer → Temporal Data Model Designer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| API starts without errors | `uvicorn src.main:app` boots successfully | |
+| `POST /similarity` returns a score or null | Hits endpoint with two profiles via curl/httpx | |
+| `POST /cluster/assign` returns an integer label | Hits endpoint and inspects JSON | |
+| `POST /recommendations` returns a list | Hits endpoint and counts array length | |
+| `context_id` query parameter works on all endpoints | Tests with and without parameter | |
+| Health check returns `{"status": "ok"}` | GET /health | |
+| `src/models.py` and `src/similarity.py` and `src/clustering.py` are unchanged | `git diff` check | |
+
+**Blocked?** The data model designer needs a working API to understand what the frontend will actually POST.
+
+---
+
+### Handoff Gate 5 → 6: Temporal Data Model Designer → Taste-Focused Frontend Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| Data contract is documented in `docs/DATA_CONTRACT.md` | File exists and is readable | |
+| JSON request shapes are copy-pasteable | PM copies an example into a curl command and it works | |
+| Every optional field has a documented default | Checked against actual API behavior | |
+| Edge cases are handled (missing context_id, unknown venue, duplicate) | PM tests each case via curl | |
+| Occasion tags are strictly from the taxonomy: solo, date, business, group, comfort | Enum or validation exists | |
+| `visited_at` defaults to `now()` when omitted | Tested with a POST missing the field | |
+| `src/main.py` and all upstream files are unchanged | `git diff` check | |
+
+**Blocked?** Frontend cannot build without knowing exactly what JSON to send.
+
+---
+
+### Handoff Gate 6 → 7: Frontend Engineer → Recommendation Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| User can onboard in < 2 minutes | PM times themselves | |
+| Cluster label is visible after onboarding | Screenshots or live demo | |
+| Recommendations are visible | UI shows at least 1 recommendation | |
+| Noise users get a graceful message | PM creates a profile with 1 item and checks UI text | |
+| UI is readable on a projector | PM views at 100% zoom on a 13" screen | |
+| UI calls the actual API (not mocked) | Network tab or backend logs show requests | |
+| `docs/DATA_CONTRACT.md` and all upstream files are unchanged | `git diff` check | |
+
+**Blocked?** Recommendations need a live UI to know where explanations appear.
+
+---
+
+### Handoff Gate 7 → 8: Recommendation Engineer → Demo Quality Engineer
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| Every recommendation has a non-empty explanation | Inspects API response or UI | |
+| Explanations are <= 120 characters | Sampled and measured | |
+| Noise fallback explanation exists | Triggered with a 1-item profile | |
+| No user-identifying data in explanations | String inspection | |
+| Explanations are tested in `tests/` | `pytest` passes | |
+| Frontend still works after explanation integration | End-to-end walkthrough | |
+
+**Blocked?** Bad explanations ruin the demo. This gate must be strict.
+
+---
+
+### Handoff Gate 8 → Final: Demo Quality Engineer → PM (Demo Day)
+
+| Checkpoint | PM Verifies | Pass / Block |
+|---|---|---|
+| Full test suite is 100% green | `pytest` output | |
+| Demo script `docs/DEMO_SCRIPT.md` exists and is rehearsed | PM runs through it once | |
+| Cold-start user (< 3 venues) handled gracefully | Tested in demo script | |
+| Backup profiles exist for guaranteed cluster assignment | PM inspects JSON files or inline seeds | |
+| Total runtime from `git clone` to final rec is < 5 minutes | Stopwatch | |
+| No external dependencies (API keys, internet) required | Airplane-mode test | |
+| All upstream files are frozen | `git diff` shows only docs changes | |
+
+**Blocked?** If any checkpoint fails, demo is not ready. Slip the date, do not demo broken code.
+
+---
+
+## Part 4: Role Prompt Library
+
+Give the role prompt below to the person (or agent) you engage. Each prompt assumes all prior phases and handoff gates are complete.
 
 ---
 
 ### Role 1: Synthetic Data Engineer
-**Engage:** Phase 0, Day 1
-**Deliver to:** Phase 1 (Taste Similarity Engineer + HDBSCAN Clustering Engineer)
+**Engage:** Phase 0, Day 1  
+**Handoff from:** PM direct kickoff  
+**Hands off to:** Taste Similarity Engineer  
+**Duration:** 3 days
 
 ```
 You are the Synthetic Data Engineer for taste.node.
@@ -76,7 +223,7 @@ Constraints:
 - Default context ('default') must exist on every profile.
 - Code goes in src/synthetic_data.py.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] Script runs with `python src/synthetic_data.py --n 100 --seed 42`
 - [ ] Output is deterministic (md5sum matches across runs)
 - [ ] A test in tests/test_synthetic_data.py verifies deterministic output
@@ -87,9 +234,10 @@ Definition of Done:
 ---
 
 ### Role 2: Taste Similarity Engineer
-**Engage:** Phase 1, Day 4
-**Handoff from:** Synthetic Data Engineer
-**Deliver to:** Contextual API Engineer
+**Engage:** Phase 1, Day 4  
+**Handoff from:** Synthetic Data Engineer (after Gate 1→2)  
+**Hands off to:** HDBSCAN Clustering Engineer  
+**Duration:** 2 days
 
 ```
 You are the Taste Similarity Engineer for taste.node.
@@ -115,8 +263,9 @@ Constraints:
 - Do not assume a global ranked list. Always index into TasteProfile.contexts.
 - Must handle < 2 shared venues gracefully (return None).
 - Code must be compatible with HDBSCAN precomputed distance matrix.
+- Do NOT modify src/models.py. Use it as-is.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] pytest tests/test_similarity.py passes 100%
 - [ ] No overlap returns None (not 0.0)
 - [ ] Temporal weights are computed and can be logged for debugging
@@ -126,9 +275,10 @@ Definition of Done:
 ---
 
 ### Role 3: HDBSCAN Clustering Engineer
-**Engage:** Phase 1, Day 4 (parallel with Role 2)
-**Handoff from:** Synthetic Data Engineer
-**Deliver to:** Contextual API Engineer
+**Engage:** Phase 1, Day 6  
+**Handoff from:** Taste Similarity Engineer (after Gate 2→3)  
+**Hands off to:** Contextual API Engineer  
+**Duration:** 2 days
 
 ```
 You are the HDBSCAN Clustering Engineer for taste.node.
@@ -150,11 +300,12 @@ Your Task:
    - Labels are integers; noise is -1
 
 Constraints:
-- min_cluster_size must be configurable and tested
+- min_cluster_size must be configurable and tested.
 - Do NOT implement K-Means. Any alternative to HDBSCAN needs PM sign-off.
+- Do NOT modify src/similarity.py or src/models.py. Import and use them as-is.
 - Code goes in src/clustering.py.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] pytest tests/test_clustering.py passes 100%
 - [ ] HDBSCAN is the only clustering algorithm shipped
 - [ ] Noise labels (-1) are tested and valid
@@ -164,9 +315,10 @@ Definition of Done:
 ---
 
 ### Role 4: Contextual API Engineer
-**Engage:** Phase 2, Day 8
-**Handoff from:** Taste Similarity Engineer + HDBSCAN Clustering Engineer
-**Deliver to:** Temporal Data Model Designer + Taste-Focused Frontend Engineer
+**Engage:** Phase 2, Day 8  
+**Handoff from:** HDBSCAN Clustering Engineer (after Gate 3→4)  
+**Hands off to:** Temporal Data Model Designer  
+**Duration:** 3 days
 
 ```
 You are the Contextual API Engineer for taste.node.
@@ -194,8 +346,9 @@ Constraints:
 - Do not add persistent DB logic for MVP. In-memory dict is fine.
 - Do not expose raw vectors or internal distance matrices to the client.
 - All Pydantic models must match src/models.py exactly.
+- Do NOT modify src/similarity.py or src/clustering.py. Import them as-is.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] API starts with `uvicorn src.main:app --reload` without errors
 - [ ] POST /similarity with two synthetic profiles returns a score in [0, 1] or null
 - [ ] POST /recommendations returns top N venues with venue model_dump()
@@ -206,9 +359,10 @@ Definition of Done:
 ---
 
 ### Role 5: Temporal Data Model Designer
-**Engage:** Phase 3, Day 11
-**Handoff from:** Contextual API Engineer
-**Deliver to:** Taste-Focused Frontend Engineer
+**Engage:** Phase 3, Day 11  
+**Handoff from:** Contextual API Engineer (after Gate 4→5)  
+**Hands off to:** Taste-Focused Frontend Engineer  
+**Duration:** 2 days
 
 ```
 You are the Temporal Data Model Designer for taste.node.
@@ -235,10 +389,11 @@ Constraints:
 - occasion_tag options: solo | date | business | group | comfort
 - visited_at must be ISO8601 string or omitted.
 - Do not design UI visuals. Define the data contract and ideal interaction flow only.
+- Do NOT modify src/main.py, src/models.py, or upstream files. You may add a docs/ file.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] Data model spec documented in docs/DATA_CONTRACT.md
-- [ ] JSON request shapes are copy-pasteable for frontend integration
+- [ ] JSON request shapes are copy-pasteable for frontend integration (PM will test with curl)
 - [ ] Default values are specified for every optional field
 - [ ] Edge cases are handled (missing context_id, unknown venue_id, duplicate venue in same context)
 ```
@@ -246,9 +401,10 @@ Definition of Done:
 ---
 
 ### Role 6: Taste-Focused Frontend Engineer
-**Engage:** Phase 3, Day 11 (parallel with Role 5)
-**Handoff from:** Contextual API Engineer
-**Deliver to:** Recommendation Engineer
+**Engage:** Phase 4, Day 13  
+**Handoff from:** Temporal Data Model Designer (after Gate 5→6)  
+**Hands off to:** Recommendation Engineer  
+**Duration:** 4 days
 
 ```
 You are the Taste-Focused Frontend Engineer for taste.node.
@@ -256,7 +412,7 @@ You are the Taste-Focused Frontend Engineer for taste.node.
 Context:
 - The MVP frontend must let a user create a ranked list of venues and see their cluster label.
 - This is not a generic CRUD app. The product sells "your taste is contextual and evolving." The UI should feel like ranking, not like filling a form.
-- Backend endpoints exist at POST /similarity, /cluster/assign, /recommendations.
+- Backend endpoints exist at POST /similarity, /cluster/assign, /recommendations. The data contract is locked in docs/DATA_CONTRACT.md.
 
 Your Task:
 1. Build a minimal web UI (Streamlit or a single-page React app) with three screens:
@@ -271,20 +427,22 @@ Constraints:
 - Do not build multi-context switching UI for MVP. Default context only.
 - Do not build login/auth. A text input for user_id is fine.
 - Focus on the single user story: create list -> see cluster -> get recs.
+- Do NOT modify backend code. Use the API as-is.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] A neutral user can onboard, get a cluster label, and see recommendations in < 2 minutes
 - [ ] Demo runs entirely locally with `uvicorn src.main:app` + frontend dev server
 - [ ] Noise users get a graceful fallback message
-- [ ] UI text is large enough for a screen-share demo
+- [ ] UI text is large enough for a screen-share demo (PM checks at 100% zoom)
 ```
 
 ---
 
 ### Role 7: Recommendation Engineer
-**Engage:** Phase 4, Day 15
-**Handoff from:** Taste-Focused Frontend Engineer
-**Deliver to:** Demo Quality Engineer
+**Engage:** Phase 5, Day 17  
+**Handoff from:** Frontend Engineer (after Gate 6→7)  
+**Hands off to:** Demo Quality Engineer  
+**Duration:** 2 days
 
 ```
 You are the Recommendation Engineer for taste.node.
@@ -309,8 +467,9 @@ Constraints:
 - Explanations must be <= 120 characters.
 - No user-identifying data in explanations (first names only if explicitly consented).
 - Template-based generation is fine. LLMs are out of scope for MVP.
+- Do NOT modify src/models.py, src/similarity.py, or src/clustering.py.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] Every /recommendations response includes a non-empty explanation
 - [ ] Explanation strings are tested in tests/
 - [ ] Noise fallback explanation is tested
@@ -320,9 +479,10 @@ Definition of Done:
 ---
 
 ### Role 8: Demo Quality Engineer
-**Engage:** Phase 5, Day 19
-**Handoff from:** Everyone
-**Deliver to:** Founding PM (you)
+**Engage:** Phase 6, Day 19  
+**Handoff from:** Recommendation Engineer (after Gate 7→8)  
+**Hands off to:** PM (Demo Day)  
+**Duration:** 3 days
 
 ```
 You are the Demo Quality Engineer for taste.node.
@@ -349,8 +509,9 @@ Constraints:
 - No live API keys. No scraped data. No internet-required steps.
 - Demo must be reproducible by a person who did not write the code.
 - Script must assume a freshly cloned repo.
+- Do NOT modify src/ logic. Fix docs and scripts only.
 
-Definition of Done:
+Definition of Done (PM will verify every item):
 - [ ] Demo script exists and has been rehearsed at least once
 - [ ] Test suite is 100% green
 - [ ] Backup profiles exist for guaranteed cluster assignment
@@ -360,29 +521,18 @@ Definition of Done:
 
 ---
 
-## Part 4: Hiring Priority Matrix
+## Part 5: PM First Principles
 
-| Phase | Role | Engage Immediately After | Urgency | Risk if Delayed |
-|---|---|---|---|---|
-| 0 | Synthetic Data Engineer | PM kickoff | CRITICAL | No data = no clustering = no demo |
-| 1 | Taste Similarity Engineer | Role 1 complete | CRITICAL | Similarity is the core algorithm |
-| 1 | HDBSCAN Clustering Engineer | Role 1 complete | CRITICAL | Without clustering, no taste groups |
-| 2 | Contextual API Engineer | Roles 2+3 green tests | HIGH | API is the bridge to frontend |
-| 3 | Temporal Data Model Designer | Role 4 API stable | HIGH | Wrong data model poisons all downstream work |
-| 3 | Taste-Focused Frontend Engineer | Role 4 API stable | HIGH | No UI = no demo |
-| 4 | Recommendation Engineer | Role 6 UI functional | MEDIUM | Value prop is not proven without explanations |
-| 5 | Demo Quality Engineer | All roles done | MEDIUM | Bad demo kills a good product |
+1. **One at a time.** The pipeline is strictly linear. Parallel work creates merge conflicts, undefined handoffs, and blame diffusion. If a role is blocked, the entire line stops until you unblock it.
 
----
+2. **You are the only handoff authority.** No engineer passes work to the next role without your checklist signature. This prevents "it works on my machine" from poisoning the demo.
 
-## Part 5: First Principles for the PM
+3. **Demo is the gate.** A phase is not "done" when the code is written. It is done when you, the PM, have watched the demo step succeed end-to-end.
 
-1. **Parallelize with caution.** Roles 2 and 3 can run in parallel because they touch different files (`similarity.py` vs `clustering.py`). Roles 5 and 6 MUST be sequential because Role 5 defines the contract Role 6 consumes.
+4. **Temporal metadata is a tax now, a moat later.** `visited_at` and `occasion_tag` make onboarding slightly heavier. Your job is to hide that tax (smart defaults) while keeping the data model correct.
 
-2. **Demo is the gate.** A phase is not "done" when the code is written. It is done when you, the PM, have watched the demo step succeed end-to-end.
+5. **Context is king.** If any role hardcodes "default" as the only context and ignores `context_id` parameter passing, reject the deliverable.
 
-3. **Temporal metadata is a tax now, a moat later.** `visited_at` and `occasion_tag` make onboarding slightly heavier. The PM's job is to hide that tax (smart defaults) while keeping the data model correct.
+6. **Noise is not failure.** A user returning cluster label -1 is valid HDBSCAN behavior. The demo script must celebrate exploration, not apologize for it.
 
-4. **Context is king.** If any role hardcodes "default" as the only context and ignores `context_id` parameter passing, reject the deliverable.
-
-5. **Noise is not failure.** A user returning cluster label -1 is valid HDBSCAN behavior. The demo script must celebrate exploration, not apologize for it.
+7. **Upstream files are frozen.** Each role may only modify files assigned to their phase. If someone changes `src/models.py` in Phase 5, roll it back. Immutability of prior work is what makes the pipeline reliable.
