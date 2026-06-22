@@ -127,19 +127,37 @@ pip install fastapi==0.115.0 uvicorn[standard]==0.32.0 pydantic==2.9.0 scipy==1.
 
 ---
 
-## Frontend MVP (React + Vite)
+## Frontend MVP (React + Vite + Tailwind v3)
 
-A lightweight web-only frontend was built in `web/` using **React 19**, **Vite**, **Tailwind CSS v4**, and **@dnd-kit** for drag-and-drop. It is fully client-side, uses `localStorage` for persistence, and wires to typed mock data that matches the real `DATA_CONTRACT.md` schemas.
+A redesigned web-only frontend lives in `web/`. It is fully client-side, persists to `localStorage`, and wires to typed mock data matching `docs/DATA_CONTRACT.md` schemas.
 
 ### Stack
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Framework | React 19 + Vite | TypeScript, fast HMR, SPA |
-| Styling | Tailwind CSS v4 | `@tailwindcss/vite` plugin, zero-config |
-| Drag & Drop | `@dnd-kit/core` + `@dnd-kit/sortable` | Accessible, mobile-friendly |
+| Framework | React 19 + Vite | TypeScript, SPA |
+| Styling | Tailwind CSS v3 | Custom design tokens (`brand`, `surface`, `card`, `btn-primary`, etc.) |
+| Drag & Drop | `@dnd-kit/core` + `@dnd-kit/sortable` | Reorder your ranked list |
 | Icons | `lucide-react` | Consistent, lightweight |
 | Static Serve | `serve` (npx) | Heroku/Build.io compatible |
+
+### Three views
+
+| View | What it does | Inspiration |
+|-------|--------|-------|
+| **Discover** | Chat-driven search + Booking.com-style filter rail + sortable recommendation cards with match scores and one-sentence "why" explanations. | Booking.com hotel search |
+| **Library** | Browsable catalog grid of all venues with cover photos, cuisine/diet chips, price & health badges. Searchable and filterable. Click opens a detail modal to add to your ranking. | MyAnimeList library grid |
+| **My Ranking** | Your personal ranked list with position numbers (#1, #2…), drag-to-reorder, status selector (want to try / visited / favourite / regular), and cover thumbnails. | Kitsu.io / MyAnimeList tracker |
+
+The cluster label appears as a dismissible banner across all views once you have ≥3 items.
+
+### Images
+
+Every venue card shows a photo. The mock data includes `image_url` on every `Venue` — a cuisine-mapped Unsplash food photo (e.g. Japanese → ramen shot, Italian → pasta shot). Real venue data from `data/venues.json` doesn't have this field yet — **this is a schema gap to fill** when real data is wired in.
+
+### Chat parser
+
+A lightweight rule-based natural-language parser (`web/src/utils/chatParser.ts`) maps free-text queries (e.g. *"vegan-friendly Italian under $$, healthy, near Shibuya"*) into the typed `Filters` schema. It extracts cuisine, diet, price tier, healthiness, and radius by keyword matching. Parsed filters visually populate the filter rail so the user sees what was understood.
 
 ### How to run locally
 
@@ -161,50 +179,41 @@ npx serve -s dist
 
 All data access is behind `web/src/data/`:
 
-- `web/src/data/types.ts` — TypeScript interfaces matching `docs/DATA_CONTRACT.md` (Venue, RankedItem, TasteProfile, Recommendation, Filters, etc.)
-- `web/src/data/mockData.ts` — The mock venue pool (`MOCK_VENUES`), synthetic user profile (`DEFAULT_PROFILE`), cluster label generator, and recommendation scorer.
-- `web/src/data/api.ts` — Thin typed functions (`loadProfile`, `saveProfile`, `addRankedItem`, `reorderRankedList`, `getRecommendations`, `getCluster`). All operate on `localStorage` so the demo survives reloads; a real backend can replace this file without touching the UI.
+- `types.ts` — TypeScript interfaces matching `docs/DATA_CONTRACT.md` + `image_url` and `RankStatus` additions for the tracker.
+- `mockData.ts` — 30 synthetic NYC venues with cuisine-mapped Unsplash images, cluster label logic, recommendation scorer, and sort helpers.
+- `api.ts` — Thin typed functions (`loadProfile`, `saveProfile`, `addRankedItem`, `reorderRankedList`, `updateItemStatus`, `getRecommendations`, `getCluster`). All operate on `localStorage`.
+- `utils/chatParser.ts` — Rule-based NL → Filters parser.
 
 ### Deploy steps (exact commands used)
 
-Build.io is a Heroku-compatible PaaS. The Node.js buildpack auto-detects `package.json`.
-
 ```bash
-# 1. Create the app
+# 1. Create the app (one-time)
 bld apps:create taste-node-frontend -t personal-sumer-aiand-com
 
-# 2. Clear old buildpacks and add Node
+# 2. Set buildpacks to Node only
 bld buildpacks:clear -a taste-node-frontend
 bld buildpacks:add heroku/nodejs -a taste-node-frontend
 
-# 3. Add the Build.io git remote
+# 3. Add remote (one-time)
 GIT_URL=$(bld apps:info -a taste-node-frontend -j | jq -r '.git_url')
 git remote add bld "$GIT_URL"
 
-# 4. Build the SPA locally and commit the static assets
-#    (the Node buildpack does not automatically run `npm run build`,
-#     so committing `web/dist` is the pragmatic path for an MVP)
+# 4. Build locally and commit dist (the buildpack doesn't auto-build)
 cd web && npm run build && cd ..
-git add web/dist && git commit -m "deploy: commit built dist"
+git add web/dist && git commit -m "deploy: built dist"
 
-# 5. Push to deploy
+# 5. Push
 git push bld main
 
-# 6. Verify (two dynos may briefly coexist; the latest one serves traffic)
-bld logs -a taste-node-frontend
+# 6. Verify
+curl -s https://taste-node-frontend-1624e477.onbld.com | head -5
 ```
 
 **Live URL:** https://taste-node-frontend-1624e477.onbld.com
 
-### Screen plan (PRD mapping)
+### Known gaps to fill when real data arrives
 
-| Screen / Section | What it does | PRD Flow step |
-|---|---|---|
-| **Ranked List Builder** (left column) | Drag-and-drop + up/down reordering of Top-N restaurants. Add new or remove. | Onboarding → Input Top-N |
-| **Cluster Label** (header badge) | Appears once list reaches 3 items. Shows a label (e.g. *Japanese & Italian Collective*) and a one-liner. | See Cluster Label |
-| **Live Filters Panel** (right column, top) | Session-level toggles: cuisine, diet, price tier, min healthiness, radius (km). | Apply Live Filters |
-| **Recommendations Feed** (right column, bottom) | Cards scored on cluster affinity + filter match, each with a one-sentence explanation. "Add to list" on every card. | Get Recommendations |
-| **Add / Insert Modal** | Adding a brand-new place (name, cuisine, price, visited date, occasion) OR inserting a recommended venue directly. | Add to List / Insert New Place |
-
-All screens are on a single scrollable dashboard so a demo on a shared screen is frictionless.
+1. **Venue photos:** Add `image_url: string` to the Pydantic `Venue` model and ingestion pipeline.
+2. **User auth:** Currently single-device `localStorage`. Replace with `POST /users` + `GET /users/{user_id}` API calls.
+3. **Chat backend:** Swap the rule parser for an LLM call once an endpoint is available.
 
