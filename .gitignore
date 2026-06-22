@@ -54,3 +54,13 @@ htmlcov/
 *.key
 secrets/
 MARKER.txt
+
+# ===== Planning-Only Enforcement (root only) =====
+# The frontend app lives in /web/ and is explicitly allowed.
+/src/
+/tests/
+/.github/workflows/
+/*.py
+/*.js
+/*.sql
+/*.ipynb
