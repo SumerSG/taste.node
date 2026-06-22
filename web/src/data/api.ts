@@ -1,12 +1,21 @@
-import type { TasteProfile, RankedItem, Filters } from "./types";
-import { DEFAULT_PROFILE, getClusterLabel, computeRecommendations } from "./mockData";
+import type { TasteProfile, RankedItem, Filters, RankStatus } from "./types";
+import { DEFAULT_PROFILE, getClusterLabel, computeRecommendations, sortRecommendations, searchVenues, ALL_VENUES } from "./mockData";
 
-const STORAGE_KEY = "taste.node.profile";
+const STORAGE_KEY = "taste.node.profile.v2";
 
 export function loadProfile(): TasteProfile {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // migrate: ensure statuses exist
+      Object.values(parsed.contexts).forEach((ctx: any) => {
+        ctx.ranked_list.forEach((item: any) => {
+          if (!item.status) item.status = "visited";
+        });
+      });
+      return parsed;
+    }
   } catch {}
   return { ...DEFAULT_PROFILE };
 }
@@ -51,6 +60,13 @@ export function reorderRankedList(profile: TasteProfile, activeId: string, overI
   return updateRankedList(profile, list);
 }
 
+export function updateItemStatus(profile: TasteProfile, venueId: string, status: RankStatus): TasteProfile {
+  const list = profile.contexts[profile.default_context].ranked_list.map((item) =>
+    item.venue.id === venueId ? { ...item, status } : item
+  );
+  return updateRankedList(profile, list);
+}
+
 export function getCluster(profile: TasteProfile) {
   return getClusterLabel(profile);
 }
@@ -58,3 +74,9 @@ export function getCluster(profile: TasteProfile) {
 export function getRecommendations(profile: TasteProfile, filters: Filters) {
   return computeRecommendations(profile, filters);
 }
+
+export function getSortedRecommendations(profile: TasteProfile, filters: Filters, sortBy: string) {
+  return sortRecommendations(computeRecommendations(profile, filters), sortBy);
+}
+
+export { searchVenues, ALL_VENUES };

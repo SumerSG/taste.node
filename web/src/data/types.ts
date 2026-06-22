@@ -1,6 +1,7 @@
 export interface Venue {
   id: string;
   name: string;
+  image_url?: string;
   location: { lat: number; lng: number } | null;
   cuisines: string[];
   dietary_tags: string[];
@@ -9,6 +10,8 @@ export interface Venue {
   source: "synthetic" | "api" | "user_added";
 }
 
+export type RankStatus = "want_to_try" | "visited" | "favourite" | "regular";
+
 export interface RankedItem {
   venue: Venue;
   visited_at: string;
@@ -16,6 +19,7 @@ export interface RankedItem {
   occasion_tag: "solo" | "date" | "business" | "group" | "comfort";
   is_classic: boolean;
   rank?: number;
+  status?: RankStatus;
 }
 
 export interface TasteContext {
@@ -45,3 +49,5 @@ export interface Filters {
   healthiness_min: number;
   radius_km: number;
 }
+
+export type SortBy = "match" | "price_asc" | "price_desc" | "health_desc" | "distance";

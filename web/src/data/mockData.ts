@@ -1,6 +1,36 @@
-import type { Venue, TasteProfile, Recommendation, Filters } from "./types";
+import type { Venue, TasteProfile, Recommendation, Filters, RankStatus } from "./types";
 
-const MOCK_VENUES: Venue[] = [
+const IMAGES: Record<string, string> = {
+  Japanese: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=400&fit=crop",
+  Italian: "https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=600&h=400&fit=crop",
+  American: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=400&fit=crop",
+  Mexican: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&h=400&fit=crop",
+  French: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop",
+  Indian: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop",
+  Vietnamese: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=600&h=400&fit=crop",
+  Korean: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop",
+  Thai: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=600&h=400&fit=crop",
+  "Middle Eastern": "https://images.unsplash.com/photo-1541557435984-1c79685a082b?w=600&h=400&fit=crop",
+  Seafood: "https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=600&h=400&fit=crop",
+  Steakhouse: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop",
+  Salad: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
+  Vegetarian: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
+  Vegan: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
+  Bakery: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&h=400&fit=crop",
+  Taiwanese: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop",
+  Nordic: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop",
+  Chinese: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop",
+  default: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
+};
+
+function pickImage(cuisines: string[]): string {
+  for (const c of cuisines) {
+    if (IMAGES[c]) return IMAGES[c];
+  }
+  return IMAGES.default;
+}
+
+const VENUE_DATA: Omit<Venue, "image_url">[] = [
   { id: "ramen_ya", name: "Ramen-Ya", location: { lat: 40.728, lng: -73.994 }, cuisines: ["Japanese"], dietary_tags: [], price_tier: 2, health_score: 0.6, source: "synthetic" },
   { id: "sushi_zen", name: "Sushi-Zen", location: { lat: 40.741, lng: -73.989 }, cuisines: ["Japanese"], dietary_tags: ["pescatarian"], price_tier: 3, health_score: 0.75, source: "synthetic" },
   { id: "burger_01", name: "Burger-No1", location: { lat: 40.705, lng: -74.013 }, cuisines: ["American"], dietary_tags: [], price_tier: 2, health_score: 0.4, source: "synthetic" },
@@ -34,8 +64,10 @@ const MOCK_VENUES: Venue[] = [
 
 const CLUSTER_PEERS = ["alex_12", "jordan_34", "sam_88", "taylor_09", "casey_22", "morgan_45"];
 
-export const ALL_CUISINES: string[] = Array.from(new Set(MOCK_VENUES.flatMap((v) => v.cuisines))).sort();
+export const MOCK_VENUES: Venue[] = VENUE_DATA.map((v) => ({ ...v, image_url: pickImage(v.cuisines) }));
 export const ALL_VENUES = MOCK_VENUES;
+
+export const ALL_CUISINES: string[] = Array.from(new Set(MOCK_VENUES.flatMap((v) => v.cuisines))).sort();
 
 export const DEFAULT_VENUES = [MOCK_VENUES[0], MOCK_VENUES[1], MOCK_VENUES[2], MOCK_VENUES[3], MOCK_VENUES[4]];
 
@@ -45,11 +77,11 @@ export const DEFAULT_PROFILE: TasteProfile = {
     default: {
       context_id: "default",
       ranked_list: [
-        { venue: MOCK_VENUES[0], visited_at: "2025-01-10T18:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "solo", is_classic: false },
-        { venue: MOCK_VENUES[1], visited_at: "2025-02-14T19:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: true },
-        { venue: MOCK_VENUES[2], visited_at: "2025-03-01T12:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "group", is_classic: false },
-        { venue: MOCK_VENUES[3], visited_at: "2025-04-20T19:30:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: false },
-        { venue: MOCK_VENUES[4], visited_at: "2025-05-15T13:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "comfort", is_classic: false },
+        { venue: MOCK_VENUES[0], visited_at: "2025-01-10T18:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "solo", is_classic: false, status: "favourite" },
+        { venue: MOCK_VENUES[1], visited_at: "2025-02-14T19:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: true, status: "favourite" },
+        { venue: MOCK_VENUES[2], visited_at: "2025-03-01T12:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "group", is_classic: false, status: "visited" },
+        { venue: MOCK_VENUES[3], visited_at: "2025-04-20T19:30:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: false, status: "visited" },
+        { venue: MOCK_VENUES[4], visited_at: "2025-05-15T13:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "comfort", is_classic: false, status: "visited" },
       ],
       created_at: "2026-06-22T10:00:00+00:00",
       updated_at: "2026-06-22T10:00:00+00:00",
@@ -114,10 +146,10 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
   });
 
   const scored = pool.map((venue) => {
-    let score = 0.5;
+    let score = 0.45;
     const sharedCuisine = venue.cuisines.filter((c) => userCuisines.has(c)).length;
-    score += Math.min(sharedCuisine * 0.15, 0.3);
-    if (venue.health_score) score += venue.health_score * 0.08;
+    score += Math.min(sharedCuisine * 0.18, 0.35);
+    if (venue.health_score) score += venue.health_score * 0.1;
     if (venue.price_tier && filters.price_tier && venue.price_tier === filters.price_tier) score += 0.07;
     score = Math.min(score, 0.98);
     const refVenue = context?.ranked_list[0]?.venue.name ?? "a similar spot";
@@ -126,4 +158,52 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
   });
 
   return scored.sort((a, b) => b.score - a.score).slice(0, 12);
+}
+
+export function sortRecommendations(recs: Recommendation[], sortBy: string): Recommendation[] {
+  const copy = [...recs];
+  switch (sortBy) {
+    case "price_asc":
+      return copy.sort((a, b) => (a.venue.price_tier ?? 99) - (b.venue.price_tier ?? 99));
+    case "price_desc":
+      return copy.sort((a, b) => (b.venue.price_tier ?? 0) - (a.venue.price_tier ?? 0));
+    case "health_desc":
+      return copy.sort((a, b) => (b.venue.health_score ?? 0) - (a.venue.health_score ?? 0));
+    case "distance":
+      return copy.sort((a, b) => {
+        const ua = a.venue.location ? haversine({ lat: 40.728, lng: -73.994 }, a.venue.location) : Infinity;
+        const ub = b.venue.location ? haversine({ lat: 40.728, lng: -73.994 }, b.venue.location) : Infinity;
+        return ua - ub;
+      });
+    default:
+      return copy.sort((a, b) => b.score - a.score);
+  }
+}
+
+export function searchVenues(query: string): Venue[] {
+  const q = query.toLowerCase().trim();
+  if (!q) return MOCK_VENUES;
+  return MOCK_VENUES.filter((v) =>
+    v.name.toLowerCase().includes(q) || v.cuisines.some((c) => c.toLowerCase().includes(q))
+  );
+}
+
+export function statusLabel(s: RankStatus | undefined): string {
+  const map: Record<string, string> = {
+    want_to_try: "Want to try",
+    visited: "Visited",
+    favourite: "Favourite",
+    regular: "Regular",
+  };
+  return map[s ?? "visited"] ?? "Visited";
+}
+
+export function statusColor(s: RankStatus | undefined): string {
+  const map: Record<string, string> = {
+    want_to_try: "bg-amber-50 text-amber-700 ring-amber-200",
+    visited: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    favourite: "bg-brand-50 text-brand-700 ring-brand-200",
+    regular: "bg-blue-50 text-blue-700 ring-blue-200",
+  };
+  return map[s ?? "visited"] ?? map.visited;
 }
