@@ -1,5 +1,11 @@
 # Cluster Architecture Planning Document — taste.node
 
+> ⚠️ **STATUS: SUPERCEDED BY TDD v0.2 (2026-06-22).**
+> This document is retained as an **exploratory archive** for Phase 6+ research. **Do not implement its algorithm recommendations (AHC, RBO, Spectral) for the MVP.** The locked algorithms are:
+> - Similarity: Normalized Kendall Tau distance (TDD v0.2 Chapter 3.1)
+> - Clustering: HDBSCAN (TDD v0.2 Chapter 3.2)
+> Venue metadata taxonomy, scoring formulas, and explanation templates may be consulted for future expansion but are not part of the API-only Phase 1–5 build.
+
 ## Table of Contents
 
 1. [Overview](#overview)

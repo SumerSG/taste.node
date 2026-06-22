@@ -48,15 +48,15 @@
 | Day | Focus | Deliverable |
 |-----|-------|-------------|
 | Mon | Implement ranked-list data model and similarity function | Two test users have a similarity score |
-| Tue | Implement seed data ingestion + initial K-Means clustering | Clusters generated from seed data |
-| Wed | Build minimal frontend: input ranked list, see cluster | UI loads in browser |
-| Thu | Wire frontend → API → clustering → recs (no filters yet) | Full flow: list input → rec output |
+| Tue | Implement seed data ingestion + initial HDBSCAN clustering (context-aware) | Clusters generated from seed data |
+| Wed | Validate DATA_CONTRACT.md against API; scaffold `tests/test_api.py` *(blocked until Role 4 handoff)* | Contract validated; test scaffold compiles |
+| Thu | End-to-end API integration test via curl: onboarding → similarity → clustering → recommendations | Full backend flow validated without UI |
 | Fri | Polish, rehearse demo, fix bugs | Demo script written; dry-run completed |
 
 **Week 2 Exit Criteria:**
 - [ ] Demo can be walked through in < 5 minutes with real seed data.
-- [ ] A user can input a ranked list and get a cluster label.
-- [ ] Cluster generates at least one recommendation.
+- [ ] A user can input a ranked list and get a cluster label **within a specific context_id**.
+- [ ] Cluster generates at least one recommendation **for the requested context**.
 - [ ] No crashes on the happy path.
 
 ---
@@ -68,7 +68,7 @@
 | Day | Focus | Deliverable |
 |-----|-------|-------------|
 | Mon | Design and implement filter schema (location, cuisine, diet, health, price) | Filters defined in API |
-| Tue | Build UI for filter controls | Filter panel renders |
+| Tue | Implement filter parameter parsing and validation in `/recommendations` endpoint | Filter params accepted and validated |
 | Wed | Implement recommendation engine: cluster affinity × filter match | Scoring function returns ranked results |
 | Thu | Add explanation generation (template-based) | Every rec has a sentence |
 | Fri | Integrate filter + explanation into demo flow | Updated demo walkthrough |
@@ -89,13 +89,13 @@
 | Mon | Implement user onboarding (create profile, input list) | New user can join without seed data collision |
 | Tue | Implement incremental cluster update (new user joins → cluster adjusts) | Cluster membership updates on new user |
 | Wed | Add "re-rank on new visit" flow | User can insert a visited venue into their list |
-| Thu | UI polish: responsive layout, loading states, error handling | Passes visual sanity check |
+| Thu | API polish: standardized `ErrorResponse` schema, edge-case handling, performance check | Passes Postman/curl sanity check |
 | Fri | Bug bash + performance check | P0 bugs fixed; no obvious slowness |
 
 **Week 4 Exit Criteria:**
 - [ ] A brand-new user can onboard and get relevant recommendations within 2 minutes.
 - [ ] Seed clusters and real-user clusters coexist or replace cleanly.
-- [ ] UI is demo-safe: readable, no layout breaks.
+- [ ] API is demo-safe: curl commands run without errors, JSON output is readable, and error responses conform to `ErrorResponse` schema.
 
 ---
 
@@ -143,7 +143,7 @@
 |------------------|---------|
 | Seed data is blocked by ToS | Switch to synthetic dataset (generate fake user profiles with realistic rankings) |
 | Clustering is too slow | Reduce seed set to 200 users; pre-compute similarities |
-| Frontend is too complex | Pivot to Streamlit for Weeks 2–4; rebuild in React only if time permits |
+| Frontend is too complex | Defer to Phase 6 per TDD Redline 5; use curl-based demo fallback |
 | Filters return empty results too often | Relax filter logic; show "closest match" with explanation |
 
 ---

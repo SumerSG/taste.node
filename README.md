@@ -37,8 +37,11 @@ The API will be available at `http://localhost:8000`.
 
 | Document | What it covers |
 |----------|----------------|
+| [`docs/AGENTS.md`](docs/AGENTS.md) | Supreme architectural constraints (Three Pillars + Scraping Policy) |
 | [`docs/PRD.md`](docs/PRD.md) | Product requirements, user personas, feature specs |
 | [`docs/TDD.md`](docs/TDD.md) | Technical design, algorithms, API draft, stack |
+| [`docs/DATA_CONTRACT.md`](docs/DATA_CONTRACT.md) | Exact JSON request/response shapes for frontend integration |
+| [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) | Step-by-step demo script with commands and recovery paths |
 | [`docs/MILESTONES.md`](docs/MILESTONES.md) | 6-week timeline, weekly deliverables, exit criteria |
 | [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | One-page summary of the entire project |
 
@@ -60,8 +63,8 @@ The API will be available at `http://localhost:8000`.
 |-------|--------|--------|
 | Language | Python 3.12 | ✅ Locked |
 | API Framework | FastAPI | ✅ Locked |
-| ML / Clustering | scikit-learn, scipy | ✅ Locked |
-| Frontend | Next.js (evaluating) | 🟡 Pending Week 3 |
+| ML / Clustering | SciPy + HDBSCAN | ✅ Locked (no sklearn clustering) |
+| Frontend | Phase 6 only (TDD Redline 5) | 🔒 Gated after API lock |
 | Database | SQLite (MVP) | ✅ Locked |
 | Deployment | Render / Vercel | 🟡 Pending Week 5 |
 
@@ -69,13 +72,19 @@ The API will be available at `http://localhost:8000`.
 
 ```
 taste.node/
-├── requirements.txt    # Python dependencies
-├── pyproject.toml      # pytest config
+├── requirements.txt    # Python dependencies (exact pinned versions)
+├── pyproject.toml      # Build system, project metadata, exact pins
+├── pytest.ini          # pytest defaults
 ├── README.md           # This file
 ├── docs/               # Project documentation
+│   ├── AGENTS.md
+│   ├── DATA_CONTRACT.md
+│   ├── DEMO_SCRIPT.md
 │   ├── PRD.md
 │   ├── TDD.md
 │   ├── MILESTONES.md
+│   ├── CLUSTER_ARCHITECTURE.md
+│   ├── PM_TEAM_BUILDING_PROMPT.md
 │   └── PROJECT_OVERVIEW.md
 ├── src/                # Application source code
 │   ├── __init__.py
@@ -83,13 +92,43 @@ taste.node/
 │   ├── models.py       # Pydantic data models (temporal + contextual)
 │   ├── similarity.py   # Contextual Kendall Tau with time decay
 │   ├── clustering.py   # HDBSCAN contextual clustering engine
+│   ├── recommendations.py # Scoring + explanation templates (Phase 5)
+│   ├── db.py           # SQLite + SQLAlchemy Core (Phase 5)
 │   └── synthetic_data.py # Seeded PRNG demo dataset generator
+├── scripts/
+│   └── generate_synthetic_data.py # TDD-compliant synthetic generator
 ├── tests/              # Test suite
 │   ├── __init__.py
-│   └── test_similarity.py
+│   ├── test_similarity.py
+│   ├── test_clustering.py
+│   ├── test_synthetic_data.py
+│   ├── test_models.py
+│   └── test_api.py
 └── .github/workflows/  # CI/CD
     └── ci.yml
 ```
+
+## Installation Notes
+
+### HDBSCAN Fallback
+`hdbscan==0.8.40` includes compiled C++ extensions. If `pip install -r requirements.txt` fails during HDBSCAN compilation, use the conda-forge wheel:
+
+```bash
+conda install -c conda-forge hdbscan
+# Then install the remaining Python packages
+pip install -r requirements.txt --no-deps
+pip install fastapi==0.115.0 uvicorn[standard]==0.32.0 pydantic==2.9.0 scipy==1.14.0 numpy==1.26.0 sqlalchemy==2.0.0 httpx==0.27.0 python-json-logger==3.0.0 pytest==9.0.0
+```
+
+### Rate Limiting
+The MVP demo API does **not** implement rate limiting. It is intended for local demonstration only. Any public deployment must add a rate-limiting layer (e.g., `slowapi`, nginx `limit_req`, or cloud WAF) before the FastAPI app.
+
+### Known Security Gaps
+- `POST /users` and `PUT /users/{user_id}/contexts/{context_id}` accept any `user_id` string with no authentication or ownership verification.
+- A malicious client could overwrite another user's profile by guessing their `user_id`.
+- These endpoints are **demo-only**; do not deploy to the public internet without adding OAuth2 / API-key auth and user-scoped authorization.
+
+---
 
 ## License
 

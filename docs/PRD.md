@@ -29,7 +29,7 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 
 ### 3.1 Product Goals
 1. Let users maintain a **ranked list** of their favourite restaurants/cafes.
-2. Group users into **taste clusters** using list similarity (Kendall tau, embedding, or hybrid).
+2. Group users into **taste clusters** using list similarity (normalized Kendall Tau distance — locked in TDD v0.2).
 3. Let users **apply live filters** (location, cuisine, diet, health) to match their *current* desire, not just their general taste.
 4. Recommend venues that score high on both **cluster affinity** and **filter match**.
 5. Explain *why* something was recommended in one human sentence.
@@ -39,7 +39,7 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 | Metric | Target | How Measured |
 |--------|--------|--------------|
 | End-to-end demo flow | < 5 minutes | Timer during demo |
-| Seed cluster coherence | Silhouette > 0.4 or visual sanity check | On synthetic dataset |
+| Seed cluster coherence | Visual sanity check or cluster count validation (silhouette analysis is prohibited per TDD v0.2 stack lock) | On synthetic dataset |
 | Live filter latency | < 500ms | Stopwatch on UI interaction |
 | Recommendation explainability | 100% of recs have a sentence | Manual audit |
 | Qualitative relevance | 3/4 test users say "this makes sense" | Post-demo survey |
@@ -66,10 +66,10 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 |:---|:---|:---|:---|
 | FR-1 | Users can input a ranked list of favourite venues (top N, ordered). | P0 | Drag-and-drop or sequential ranking. |
 | FR-2 | Users can insert a newly visited venue into their existing ranked list. | P0 | Re-ranking must feel instant. |
-| FR-3 | System computes taste similarity between two users based on their ranked lists. | P0 | Algorithm TBD (see TDD). |
+| FR-3 | System computes taste similarity between two users based on their ranked lists. | P0 | Normalized Kendall Tau distance — locked in TDD v0.2 Chapter 3.1. |
 | FR-4 | System clusters users into taste groups using the similarity metric. | P0 | Seed clusters from synthetic data; evolves with real users. |
 | FR-5 | Users can apply live filters: location (radius), cuisine type, dietary style (meat/fish/veg/vegan), healthiness, price tier. | P0 | These are **session-level**, not profile-level. |
-| FR-6 | Recommendation engine surfaces venues that are: (a) loved by the user’s cluster, and (b) match active filters. | P0 | Weighting function TBD. |
+| FR-6 | Recommendation engine surfaces venues that are: (a) loved by the user’s cluster, and (b) match active filters. | P0 | Scoring formula locked: α=0.5 cluster + β=0.3 filter + γ=0.2 temporal (TDD v0.2 Chapter 3.3). |
 | FR-7 | Every recommendation includes a one-sentence explanation. | P0 | e.g., "Alex, Jordan, and 4 others in your taste cluster loved this after visiting [X]." |
 | FR-8 | Synthetic data generator creates seed profiles for clustering before launch. | P1 | Deterministic, reproducible, no legal risk. |
 | FR-9 | Seed cluster quality is validated against a hold-out test set. | P1 | Prevents garbage-in-garbage-out at demo time. |
@@ -86,7 +86,7 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 ## 6. Data Requirements
 
 ### 6.1 Seed Data (Synthetic)
-- **Source:** Deterministic PRNG script (`src/synthetic_data.py`).
+- **Source:** Deterministic PRNG script (`scripts/generate_synthetic_data.py`).
 - **Schema (per user):** User ID → [venue ID, rank/position]
 - **Volume target:** 500–1,000 synthetic user profiles for initial clustering.
 - **Preprocessing:** Deduplicate venues, normalise names, geocode addresses.
@@ -109,7 +109,7 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 
 ## 8. Open Questions
 
-1. Which similarity metric is most robust for ranked lists with partial overlap?
+1. [RESOLVED] Similarity metric is locked to normalized Kendall Tau distance (TDD v0.2 Chapter 3.1). RBO was evaluated in CLUSTER_ARCHITECTURE.md v0.1 and rejected for the MVP.
 2. How do we map a seed-cluster user (from synthetic data) to a real user who joins later?
 3. How often do clusters recalculate? Real-time, nightly, or on-demand?
 4. Do we allow users to see *who* is in their cluster (privacy concern)?

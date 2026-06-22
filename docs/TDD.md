@@ -1,4 +1,4 @@
-# Technical Design Document (TDD) — taste.node v0.1 — AI-Executable Specification
+# Technical Design Document (TDD) — taste.node v0.2 — AI-Executable Specification
 
 | | |
 |:---|:---|
@@ -69,7 +69,7 @@ Any function signature in similarity, clustering, or recommendations that omits 
 
 ```python
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, computed_field
 
 
@@ -81,23 +81,24 @@ class Venue(BaseModel):
     dietary_tags: List[str] = Field(default_factory=list)
     price_tier: Optional[int] = None  # 1–4
     health_score: Optional[float] = None
-    source: str = "synthetic"  # enum: "synthetic" | "api" | "user_added"
+    source: Literal["synthetic", "api", "user_added"] = "synthetic"
 
 
 class RankedItem(BaseModel):
     venue: Venue
     visited_at: datetime  # timezone-aware UTC
     added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    occasion_tag: str = "solo"  # enum: "solo", "date", "business", "group", "comfort"
+    occasion_tag: Literal["solo", "date", "business", "group", "comfort"] = "solo"
     is_classic: bool = False  # future-proofing: bypasses time-decay
 
     @computed_field
-    def rank(self, reference_time: Optional[datetime] = None) -> float:
+    @property
+    def rank(self) -> float:
         """Derived rank: time-decayed, context-boosted score.
         Higher = more important. No raw integer rank is stored in the DB.
+        Stub in Phase 1; real logic arrives in Phase 2 via similarity.py.
         """
-        # (Implementation delegated to scoring utility; defined in Chapter 3)
-        pass
+        return 0.0
 
 
 class TasteContext(BaseModel):
@@ -134,7 +135,7 @@ class ClusterResult(BaseModel):
 | `dietary_tags` | `List[str]` | Non-empty strings | `[]` | Enables diet-based filtering. |
 | `price_tier` | `int \| None` | 1–4 inclusive | `None` | Structured price filter; `None` allows fallback scoring. |
 | `health_score` | `float \| None` | Non-negative | `None` | Enables health-conscious scoring in future phases. |
-| `source` | `str` | Enum: `synthetic`, `api`, `user_added` | `"synthetic"` | Legal provenance for data lineage. |
+| `source` | `Literal["synthetic", "api", "user_added"]` | Enum enforced by type system | `"synthetic"` | Legal provenance for data lineage. |
 
 **RankedItem**
 
@@ -143,8 +144,9 @@ class ClusterResult(BaseModel):
 | `venue` | `Venue` | Required | — | The subject of the taste entry; fully embedded to avoid DB joins. |
 | `visited_at` | `datetime` | Timezone-aware UTC, `<= now()` | — | Biological reality: when the user physically ate there. |
 | `added_at` | `datetime` | Timezone-aware UTC | `datetime.now(timezone.utc)` | System audit timestamp for list mutation tracking. |
-| `occasion_tag` | `str` | Enum: `solo`, `date`, `business`, `group`, `comfort` | `"solo"` | Social context for contextual boost and explanation generation. |
+| `occasion_tag` | `Literal["solo", "date", "business", "group", "comfort"]` | Enum enforced by type system | `"solo"` | Social context for contextual boost and explanation generation. |
 | `is_classic` | `bool` | — | `False` | Pins a venue as permanent favorite, bypassing temporal decay. |
+| `rank` | `float` | `@computed_field` + `@property`, zero arguments | `0.0` (stub) | Derived score; no raw integer stored in DB. |
 
 **TasteContext**
 
@@ -184,10 +186,12 @@ class ClusterResult(BaseModel):
 def compute_similarity(
     a: TasteProfile,
     b: TasteProfile,
-    context_id: str | None,
+    context_id: str,
 ) -> float:
     ...
 ```
+
+`context_id` is **mandatory `str`**. It MUST NOT be typed as `Optional`, `str | None`, or given a default value. Any signature allowing `None` is architecturally invalid per Redline 1.
 
 **Distance Formula:**
 ```
@@ -250,7 +254,7 @@ class ContextClusterMap:
 
 **Noise Policy:** Users labeled `-1` are excluded from recommendation aggregation but retained in the dataset for future re-clustering.
 
-**Justification:** HDBSCAN is chosen over Spectral Clustering because taste similarity forms non-convex, density-varying manifolds in rank space, and HDBSCAN discovers clusters of arbitrary shape without prescribing a cluster count `K`.
+**Justification:** HDBSCAN is chosen over Spectral Clustering because taste similarity forms non-convex, density-varying manifolds in rank space. HDBSCAN discovers clusters of arbitrary shape without prescribing a cluster count `K`, making it superior for taste data where Euclidean geometry does not apply.
 
 ### 3.3 Recommendation Scoring (Contextual)
 
@@ -306,6 +310,8 @@ Where:
 | `POST` | `/clusters/recalculate` | `{ "context_id": str }` | `ClusterResult` | `202` (async accepted) |
 | `GET` | `/recommendations?user={id}&context_id={id}&lat={float}&lng={float}&cuisine={str}&diet={str}&price_tier={int}&n={int}` | — | `List[Recommendation]` | `404` (user or context not found) |
 
+*API Layer Note:* `context_id` is shown as a query parameter on `/similarity` and `/recommendations`. It is optional at the endpoint; if omitted, the server falls back to `TasteProfile.default_context`. This does not violate Redline 1 because the engine functions (`compute_similarity`, `ContextualClusterMap.fit_context`, `score`) receive a resolved mandatory `str` internally.
+
 ### 4.2 JSON Schemas
 
 **RankedItemInput** (used in `PUT /users/{user_id}/contexts/{context_id}`)
@@ -349,6 +355,17 @@ Where:
 }
 ```
 
+**ErrorResponse** (every error response from `main.py`)
+```json
+{
+  "error": "string (snake_case error code)",
+  "message": "string (human-readable description)",
+  "detail": "object or null (additional structured data, e.g., invalid fields)"
+}
+```
+
+Every error response from `main.py` MUST conform to this shape. The AI coder must not invent ad-hoc error formats per route.
+
 ---
 
 ## Chapter 5: File Tree & Module Boundaries
@@ -362,7 +379,7 @@ taste.node/
 │   ├── similarity.py        # compute_similarity and time_decay utils.
 │   ├── clustering.py        # ContextualClusterEngine (HDBSCAN wrapper).
 │   ├── recommendations.py   # scoring and explanation templates.
-│   └── db.py                # SQLite/PostgreSQL connection (MVP: SQLite).
+│   └── db.py                # SQLite file DB + SQLAlchemy Core table definitions ONLY.
 ├── tests/
 │   ├── __init__.py
 │   ├── test_models.py       # Pydantic validation and round-trip serialization.
@@ -374,53 +391,144 @@ taste.node/
 ├── docs/
 │   ├── TDD.md               # This document.
 │   └── AGENTS.md            # Supreme architecture (immutable reference).
-├── pyproject.toml           # Locked stack.
-└── requirements.txt         # Locked versions.
+├── pyproject.toml           # Exact pinned deps + build system.
+├── pytest.ini               # Test path and default flags.
+└── requirements.txt         # Mirror of pyproject.toml for legacy installs.
 ```
 
 **Strict Boundary Rules:**
 1. `main.py` has no business logic. It delegates to `similarity.py`, `clustering.py`, `recommendations.py`, and `db.py` via FastAPI dependency injection.
 2. `models.py` has no DB logic. No SQLAlchemy ORM definitions inside model classes.
-3. `similarity.py` has no FastAPI imports.
-4. `clustering.py` has no route definitions.
-5. Any boundary violation is invalid and must be rejected in code review.
+3. `db.py` MUST expose an async `get_db()` dependency generator and define exact SQLAlchemy Core tables (`users`, `contexts`, `ranked_items`) matching the Pydantic models. No ORM magic; columns must map 1:1 to model fields.
+4. `similarity.py` has no FastAPI imports.
+5. `clustering.py` has no route definitions.
+6. Any boundary violation is invalid and must be rejected in code review.
 
 ---
 
-## Chapter 6: Tech Stack Lock
+## Chapter 6: Tech Stack Lock & Scaffold Artifacts
 
 | Library | Version | Role | Forbidden Alternative |
 |---|---|---|---|
-| Python | 3.14.6 | Runtime | < 3.12 |
-| FastAPI | ^0.115 | API Framework | Flask, Django |
-| Pydantic | ^2.0 | Validation | dataclasses-only, Pydantic v1 |
-| HDBSCAN | ^0.8.40 | Clustering | K-Means, DBSCAN (primary), Hierarchical |
-| SciPy | ^1.14 | Kendall Tau | Manual implementation |
-| pytest | ^9.0 | Testing | unittest |
-| SQLAlchemy | ^2.0 | ORM (if DB layer added) | Raw SQL strings in app code |
-| Uvicorn | ^0.32 | ASGI | Gunicorn sync workers |
+| Python | 3.12.x | Runtime | < 3.12, >=3.14 (bleeding-edge) |
+| FastAPI | 0.115.0 | API Framework | Flask, Django |
+| Pydantic | 2.9.0 | Validation | dataclasses-only, Pydantic v1 |
+| HDBSCAN | 0.8.40 | Clustering | K-Means, DBSCAN (primary), Hierarchical |
+| SciPy | 1.14.0 | Kendall Tau | Manual implementation |
+| pytest | 9.0.0 | Testing | unittest |
+| SQLAlchemy | 2.0.0 | DB Connection & Schema | Raw SQL strings in app code |
+| Uvicorn | 0.32.0 | ASGI | Gunicorn sync workers |
+| python-json-logger | 3.0.0 | Structured Logging | print statements in production routes |
 
 **Lock Enforcement:** `requirements.txt` and `pyproject.toml` must pin exact versions. No unpinned dependencies. No transitive dependency overrides without TDD amendment.
+
+### 6.1 Scaffold Appendix: Exact File Contents
+
+**`pyproject.toml`**
+```toml
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taste-node"
+version = "0.2.0"
+description = "AI-executable taste similarity and recommendation API"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.32.0",
+    "pydantic==2.9.0",
+    "scipy==1.14.0",
+    "hdbscan==0.8.40",
+    "numpy==1.26.0",
+    "sqlalchemy==2.0.0",
+    "httpx==0.27.0",
+    "python-json-logger==3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+```
+
+**`pytest.ini`**
+```ini
+[pytest]
+testpaths = tests
+addopts = -v --tb=short
+```
+
+**SQLite Schema (SQLAlchemy Core)**
+```python
+from sqlalchemy import Table, Column, String, DateTime, Integer, Float, Boolean, MetaData, ForeignKey, JSON
+
+metadata = MetaData()
+
+users_table = Table(
+    "users",
+    metadata,
+    Column("user_id", String, primary_key=True),
+    Column("default_context", String, nullable=False, default="default"),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+contexts_table = Table(
+    "contexts",
+    metadata,
+    Column("context_id", String, primary_key=True),
+    Column("user_id", String, ForeignKey("users.user_id"), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+ranked_items_table = Table(
+    "ranked_items",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("context_id", String, ForeignKey("contexts.context_id"), nullable=False),
+    Column("venue_id", String, nullable=False),
+    Column("venue_name", String, nullable=False),
+    Column("venue_location", JSON, nullable=True),  # {"lat": float, "lng": float}
+    Column("venue_cuisines", JSON, nullable=False, default=list),
+    Column("venue_dietary_tags", JSON, nullable=False, default=list),
+    Column("venue_price_tier", Integer, nullable=True),
+    Column("venue_health_score", Float, nullable=True),
+    Column("venue_source", String, nullable=False, default="synthetic"),
+    Column("visited_at", DateTime(timezone=True), nullable=False),
+    Column("added_at", DateTime(timezone=True), nullable=False),
+    Column("occasion_tag", String, nullable=False, default="solo"),  # Literal enforced at app layer
+    Column("is_classic", Boolean, nullable=False, default=False),
+)
+```
 
 ---
 
 ## Chapter 7: Anti-Hallucination Guardrails & Redlines
 
-- **Redline 1:** If `context_id` is omitted from any similarity, clustering, or recommendation function signature, the design is invalid.
-- **Redline 2:** If `rank` is stored as a raw integer in the database instead of derived from `visited_at` and `occasion_tag`, the design is invalid.
+- **Redline 1:** In the **engine layer** (`src/similarity.py`, `src/clustering.py`, `src/recommendations.py`), `context_id` is a **mandatory** `str` parameter. Omitting it or typing it as `Optional` / `str | None` in an engine function is invalid. At the **API layer**, FastAPI endpoints may accept `context_id` as an optional query parameter, falling back to `TasteProfile.default_context` when omitted.
+- **Redline 2:** If `rank` is stored as a raw integer in the database instead of derived from `visited_at`, the design is invalid.
 - **Redline 3:** If the clustering engine uses `sklearn.cluster.KMeans` or any algorithm assuming Euclidean/Gaussian geometry, the design is invalid.
 - **Redline 4:** If the document describes a scraper module, pipeline, or dependency, the design is invalid.
-- **Redline 5:** If the document proposes frontend frameworks (Next.js, Streamlit, React) without an explicit Phase 6 expansion, the design is invalid. Phase 1–5 is API-only.
+- **Redline 5:** If the document proposes frontend frameworks (Next.js, Streamlit, React) without an explicit Phase 6 expansion, the design is invalid. Phase 1-5 is API-only.
+- **Redline 6:** If `RankedItem.rank` accepts any parameters inside `@computed_field`, or if `occasion_tag` / `source` are typed as plain `str` instead of `Literal[...]`, the design is invalid.
 
 ---
 
 ## Chapter 8: Modular Execution Chain (The "Vibe Code" Prompts)
 
-### Phase 1: Schema & Models
-**Deliverable:** `src/models.py` and `tests/test_models.py`
+### Phase 1: Environment, Scaffold & Schema
+**Deliverable:** `pyproject.toml`, `pytest.ini`, `src/models.py`, and `tests/test_models.py`. Must validate backward compat migration path (if any).
 
+- Emit exact `pyproject.toml` and `pytest.ini` contents with pinned versions.
 - Implement `Venue`, `RankedItem`, `TasteContext`, `TasteProfile`, `ClusterResult` exactly as defined in Chapter 2.
-- `RankedItem` must expose a `@computed_field` named `rank` that returns a `float`. It is a stub in Phase 1; the real logic arrives in Phase 2.
+- `RankedItem` must expose a `@computed_field` + `@property` named `rank` that returns `float`. It is a stub (`return 0.0`) in Phase 1; the real logic arrives in Phase 2.
 - `tests/test_models.py` must validate:
   - Pydantic serialization round-trip (`.model_dump()` → re-instantiate)
   - `occasion_tag` enum rejection (invalid tag raises `ValidationError`)
@@ -428,7 +536,7 @@ taste.node/
 - Backward compat migration path: **N/A** — no persistent storage schema exists prior to Phase 1.
 
 ### Phase 2: Similarity Engine
-**Deliverable:** `src/similarity.py` and `tests/test_similarity.py`
+**Deliverable:** `src/similarity.py` and `tests/test_similarity.py`. Must pass: perfect correlation, inverse correlation, no overlap (sentinel `-1.0`), and time-decay.
 
 - Implement `compute_similarity(a, b, context_id) -> float`
 - Implement `time_decay_weight(visited_at, reference_time, halflife_days=365.0, is_classic=False) -> float`
@@ -439,7 +547,7 @@ taste.node/
   4. Time-decay weight for a 730-day-old visit ≈ `0.5`; weight for a classic venue = `1.0`
 
 ### Phase 3: Clustering Engine
-**Deliverable:** `src/clustering.py` and `tests/test_clustering.py`
+**Deliverable:** `src/clustering.py` and `tests/test_clustering.py`. Must generate synthetic data via script, fit HDBSCAN, and assert noise points exist.
 
 - Implement `ContextualClusterMap` using `hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=5, allow_single_cluster=False)`
 - `tests/test_clustering.py` must:
@@ -449,7 +557,7 @@ taste.node/
   4. Assert `n_clusters >= 1` or noise-only behavior is documented
 
 ### Phase 4: Synthetic Data Generator
-**Deliverable:** `scripts/generate_synthetic_data.py`
+**Deliverable:** `scripts/generate_synthetic_data.py`. Seeded PRNG. Generates 100 users, 3 contexts each, outputs JSONL.
 
 - Seeded PRNG (`random.Random(seed)`)
 - Generates exactly `100` users, `3` contexts each (`default`, `date_night`, `solo_comfort`)
@@ -457,16 +565,17 @@ taste.node/
 - Outputs JSONL to stdout; each line validates against `TasteProfile.model_validate_json()`
 - No scraping code. No external API calls.
 
-### Phase 5: API Surface & Integration
-**Deliverable:** `src/main.py` with all routes wired to Phase 2 and Phase 3. `tests/test_api.py` with 100% route coverage.
+### Phase 5: API Surface, Persistence & Integration
+**Deliverable:** `src/main.py`, `src/db.py`, and `tests/test_api.py` with 100% route coverage.
 
-- `POST /users` — create in-memory taste profile
+- `src/db.py` implements the exact SQLite schema from Chapter 6 Scaffold Appendix and exposes `get_db()` async generator.
+- `POST /users` — create persisted taste profile
 - `GET /users/{user_id}` — retrieve taste profile
 - `PUT /users/{user_id}/contexts/{context_id}` — upsert contextual ranked list
 - `POST /similarity?context_id={id}` — returns `{distance, shared_venues, context_id}`
 - `POST /clusters/recalculate` — triggers `ContextualClusterMap.fit_context()` and returns `ClusterResult`
 - `GET /recommendations?user={id}&context_id={id}` — returns scored, explained list
-- `tests/test_api.py` exercises every endpoint with `fastapi.testclient.TestClient`
+- `tests/test_api.py` exercises every endpoint with `fastapi.testclient.TestClient` and asserts exact error response shapes on `400`/`404`/`409`.
 
 ---
 
@@ -475,13 +584,15 @@ taste.node/
 | AI Failure Mode | Mitigation in Document |
 |---|---|
 | AI defaults to K-Means because "clustering" usually means K-Means. | Explicitly name HDBSCAN in title. Provide `pip install` command in stack lock. Redline 3 forbids K-Means. |
-| AI stores `rank` as raw int because the old models did. | Pillar 2 rewrite: `rank` is `@computed_field`. Chapter 2 shows derivation logic. Redline 2 enforces it. |
+| AI stores `rank` as raw int because the old models did. | Pillar 2 rewrite: `rank` is `@computed_field` + `@property`. Show derivation logic. Redline 2 and Redline 6 enforce it. |
+| AI emits broken `@computed_field rank(self, reference_time)` with parameters, crashing Pydantic v2. | Redline 6 explicitly forbids parameters inside `@computed_field`. Phase 1 instructs stub property with zero args. |
 | AI guesses folder structure and dumps logic in `main.py`. | Chapter 5 file tree is canonical. Module boundary rules are enforceable. `main.py` is route-only. |
-| AI suggests `pg_trgm` / Elasticsearch for search. | API spec says exact `LIKE` search (or in-memory prefix match). No ambiguity. Search is out of scope for MVP. |
-| AI builds a React frontend because the old TDD mentioned Next.js. | Redline 5: Frontend is out of scope for Phases 1–5. No Streamlit. No Next.js. API-only. |
+| AI suggests pg_trgm/Elasticsearch for search. | API spec says exact `LIKE` search. No ambiguity. Search is out of scope for MVP. |
+| AI builds a React frontend because the old TDD mentioned Next.js. | Redline 5: Frontend is out of scope for Phases 1-5. No Streamlit. No Next.js. API-only. |
 | AI conflates "no overlap" (sentinel `-1.0`) with "total disagreement" (`1.0`). | Chapter 3.1 provides explicit sentinel table. `tests/test_similarity.py` asserts both values distinctly. |
 | AI imports `sklearn` for silhouette analysis or elbow method. | Forbidden in stack lock. HDBSCAN requires no preset `K`. No silhouette analysis needed. |
 | AI generates stochastic synthetic data without seeding. | Phase 4 requires seeded PRNG. `tests/test_similarity.py` and `tests/test_clustering.py` depend on determinism. |
+| AI picks Python 3.14 and fails dependency resolution. | Chapter 6 locks Python to `^3.12`. No bleeding-edge runtime. |
 
 ---
 
@@ -489,12 +600,48 @@ taste.node/
 
 - [x] Every endpoint in Chapter 4 accepts or requires `context_id`.
 - [x] `TasteProfile` in Chapter 2 has **no** top-level `ranked_list`. Only `contexts: Dict[...]`.
+- [x] `RankedItem.rank` is `@computed_field` + `@property` with **zero arguments** other than `self`.
+- [x] `occasion_tag` and `source` are typed as `Literal[...]`, not plain `str`.
+- [x] The similarity function signature uses `context_id: str` (mandatory in the engine layer, not Optional).
 - [x] The clustering section explicitly names `hdbscan` and provides `metric='precomputed'`.
-- [x] The similarity section explicitly defines `(1 - tau) / 2` and distinguishes `NaN` from `-1.0`.
+- [x] The similarity section explicitly defines `(1 - tau) / 2` and distinguishes NaN from `-1`.
+- [x] Chapter 4 defines the exact `ErrorResponse` JSON schema and every error status code uses it.
+- [x] Chapter 5 file tree includes `pytest.ini` and shows `db.py` as SQLAlchemy Core tables.
+- [x] Chapter 6 locks Python to `^3.12` (not 3.14) and includes exact `pyproject.toml` / `pytest.ini` / SQLite schema contents.
 - [x] There are zero mentions of Scrapy, BeautifulSoup, or raw HTML parsing.
 - [x] The file tree shows `main.py` with **only** routes and dependency injection.
 - [x] Chapter 8 contains exactly 5 phases, each with a single, testable deliverable.
 - [x] No sentence contains "pending," "to be determined," "plan B," or "exact shapes will evolve."
+
+---
+
+## Chapter 10: Known Code Non-Compliance (Audit Remediation Blockers)
+
+The following `src/` files are **non-compliant** with this locked TDD as of 2026-06-22. They must be rewritten in a dedicated consolidation sprint before the PM conveyor belt or demo execution begins:
+
+1. **`src/models.py`** — Violates Redlines 2 and 6.
+   - `RankedItem` has a parameterized `compute_derived_rank` method instead of a zero-arg `@computed_field` + `@property rank(self) -> float`.
+   - `occasion_tag` is typed as plain `str`, not `Literal[...]`.
+   - `Venue` lacks `location`, `cuisines`, `dietary_tags`, `price_tier`, `health_score`, `source`.
+
+2. **`src/main.py`** — Violates Chapter 4 API Surface.
+   - Missing `POST /users`, `GET /users/{user_id}`, `PUT /users/{user_id}/contexts/{context_id}`.
+   - Uses `/cluster/assign` instead of `/clusters/recalculate`.
+   - Uses `POST /recommendations` with body instead of `GET` with query params.
+   - Missing `ErrorResponse` schema; returns ad-hoc dicts.
+   - Uses in-memory `_data_store` instead of `src/db.py` SQLite persistence.
+
+3. **`src/clustering.py`** — Violates Chapter 3.2.
+   - Uses `allow_single_cluster=True` and default `min_cluster_size=3` instead of `False` and `5`.
+
+4. **`src/similarity.py`** — Violates Redline 1.
+   - `context_id` is typed as `Optional[str] = None` in the engine layer.
+
+5. **`src/synthetic_data.py`** — Violates Chapter 5 / Phase 4.
+   - Located at `src/synthetic_data.py` instead of `scripts/generate_synthetic_data.py`.
+   - Generates 4 contexts (`business_lunch` extra) and defaults to 30 users instead of 100.
+
+These items are tracked as P0/P1 blockers in `docs/planning_audit_and_prompt_report.md`. The dependency manifests (`pyproject.toml`, `requirements.txt`) and `pytest.ini` have been aligned in the planning sprint; they no longer block execution.
 
 ---
 

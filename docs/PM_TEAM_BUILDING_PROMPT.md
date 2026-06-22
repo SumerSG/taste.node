@@ -9,7 +9,7 @@
 
 | Phase | Name | Duration | Goal | Primary Output |
 |---|---|---|---|---|
-| 0 | Foundation | 3 days | Deterministic synthetic dataset produces coherent HDBSCAN clusters. | `synthetic_data.py` + validation |
+| 0 | Foundation | 3 days | Deterministic synthetic dataset produces coherent HDBSCAN clusters. | `scripts/generate_synthetic_data.py` + validation |
 | 1 | Similarity Engine | 4 days | Contextual Kendall similarity with temporal weighting works end-to-end. | `similarity.py` + `clustering.py` + tests |
 | 2 | API Shell | 3 days | FastAPI exposes contextual endpoints for similarity, cluster assignment, and recommendations. | `main.py` + testable API |
 | 3 | Data Model Lock | 4 days | Onboarding flow captures `visited_at` and `occasion_tag` correctly. | `DATA_CONTRACT.md` + integratable models |
@@ -39,9 +39,11 @@
 | 3 | **HDBSCAN Clustering Engineer** | Role 2 handoff | 1 | 2 days |
 | 4 | **Contextual API Engineer** | Role 3 handoff | 2 | 3 days |
 | 5 | **Temporal Data Model Designer** | Role 4 handoff | 3 | 2 days |
-| 6 | **Taste-Focused Frontend Engineer** | Role 5 handoff | 4 | 4 days |
+| 6 | **Taste-Focused Frontend Engineer** | Role 5 handoff | **6** | 4 days |
 | 7 | **Recommendation Engineer** | Role 6 handoff | 5 | 2 days |
-| 8 | **Demo Quality Engineer** | Role 7 handoff | 6 | 3 days |
+| 8 | **Demo Quality Engineer** | Role 7 handoff | **7** | 3 days |
+
+> **Phase Gating Note:** Frontend work (Role 6) is **Phase 6** per TDD v0.2 Redline 5. It cannot begin until TDD Phases 1–5 are locked, `src/db.py` exists, and `docs/DATA_CONTRACT.md` is ratified. If the API surface is not stable, do not start frontend.
 
 **PM Rule:** The pipeline is a conveyor belt, not a team sport. One person at a time. If a role is blocked, the entire pipeline stops.
 
@@ -55,8 +57,8 @@ The PM is the only person who can authorize a handoff. No engineer may hand off 
 
 | Checkpoint | PM Verifies | Pass / Block |
 |---|---|---|
-| PRNG seed is configurable and documented | Can run `python src/synthetic_data.py --seed 42` and get identical output | |
-| N = 50 minimum profiles generated | Counts profiles in output | |
+| PRNG seed is configurable and documented | Can run `python scripts/generate_synthetic_data.py --seed 42` and get identical output | |
+| N = 100 profiles generated (exactly, per TDD Phase 4) | Counts profiles in output | |
 | Every profile has a `default` context | Inspects JSON output | |
 | Persona taxonomy exists (≥ 4 personas) | Reads docs or inline comments | |
 | Determinism test exists | `pytest` has a test that fails if output changes between runs | |
@@ -116,8 +118,8 @@ The PM is the only person who can authorize a handoff. No engineer may hand off 
 |---|---|---|
 | API starts without errors | `uvicorn src.main:app` boots successfully | |
 | `POST /similarity` returns a score or null | Hits endpoint with two profiles via curl/httpx | |
-| `POST /cluster/assign` returns an integer label | Hits endpoint and inspects JSON | |
-| `POST /recommendations` returns a list | Hits endpoint and counts array length | |
+| `POST /clusters/recalculate` returns a ClusterResult | Hits endpoint and inspects JSON | |
+| `GET /recommendations` returns a List[Recommendation] | Hits endpoint and counts array length | |
 | `context_id` query parameter works on all endpoints | Tests with and without parameter | |
 | Health check returns `{"status": "ok"}` | GET /health | |
 | `src/models.py` and `src/similarity.py` and `src/clustering.py` are unchanged | `git diff` check | |
@@ -212,23 +214,24 @@ Context:
 
 Your Task:
 1. Design a persona taxonomy (e.g., 'ramen_lover', 'michelin_chaser', 'casual_explorer') with distinct venue affinities.
-2. Generate N=50-100 synthetic TasteProfiles, each with 1-3 contexts. Personas must produce visually separable clusters when run through HDBSCAN.
+2. **Generate exactly 100 synthetic TasteProfiles, each with exactly 3 contexts (`default`, `date_night`, `solo_comfort`) per TDD v0.2 Phase 4.** Personas must produce visually separable clusters when run through HDBSCAN.
 3. Ensure visited_at dates are varied (not all today) so temporal decay is testable.
 4. Export deterministic output: seed must be configurable; same seed = identical dataset.
-5. Provide a validation script: run HDBSCAN on your data and report silhouette score and cluster count.
+5. Provide a validation script: run HDBSCAN on your data and report cluster count.
 
 Constraints:
 - No production data. No scrapers. No real venue names.
 - Venue names can be synthetic (e.g., "Golden Bistro 12").
 - Default context ('default') must exist on every profile.
-- Code goes in src/synthetic_data.py.
+- **Code goes in `scripts/generate_synthetic_data.py` per TDD v0.2 Chapter 5 file tree.**
+- **Persona biases must be strong enough to guarantee HDBSCAN produces ≥ 3 clusters at `min_cluster_size=5` on the default seed (42). If validation reports fewer than 3 clusters, the deliverable is blocked.**
 
 Definition of Done (PM will verify every item):
-- [ ] Script runs with `python src/synthetic_data.py --n 100 --seed 42`
+- [ ] Script runs with `python scripts/generate_synthetic_data.py --seed 42`
 - [ ] Output is deterministic (md5sum matches across runs)
-- [ ] A test in tests/test_synthetic_data.py verifies deterministic output
+- [ ] A test in `tests/test_synthetic_data.py` verifies deterministic output
 - [ ] Persona bias test: at least one persona produces distinct top venues
-- [ ] Validation script reports >= 3 clusters and silhouette > 0.3
+- [ ] Validation script reports >= 3 clusters on the default seed (silhouette analysis is prohibited per TDD v0.2 stack lock; use visual sanity check or cluster count instead)
 ```
 
 ---
@@ -249,7 +252,7 @@ Context:
 - Temporal decay: a shared venue visited 2 years ago should weigh less than one visited 2 weeks ago, unless tagged 'classic'.
 
 Your Task:
-1. Implement kendall_distance(a: TasteProfile, b: TasteProfile, context_id: Optional[str]) in src/similarity.py.
+1. Implement `kendall_distance(a: TasteProfile, b: TasteProfile, context_id: str)` in `src/similarity.py`.
 2. Implement kendall_similarity as 1 - distance (or None).
 3. Add extract_shared_venues that returns ranks + time-decay weights.
 4. Decay formula: halflife = 365 days; classic tags override decay to 1.0.
@@ -324,36 +327,37 @@ Definition of Done (PM will verify every item):
 You are the Contextual API Engineer for taste.node.
 
 Context:
-- taste.node exposes a FastAPI service. Every endpoint that touches taste data must accept an optional context_id.
-- The synthetic dataset is loaded in-memory for the MVP (no persistent DB yet).
-- Endpoints needed: health check, similarity, cluster assignment, recommendations.
+- taste.node exposes a FastAPI service. Every endpoint that touches taste data must accept a `context_id` query parameter, falling back to `profile.default_context` when omitted per TDD v0.2 Chapter 1.2 and `docs/AGENTS.md` Pillar 3.
+- **Persistent storage is required via `src/db.py` (SQLite + SQLAlchemy Core) per TDD Phase 5. In-memory dict is not sufficient.**
+- Endpoints needed: `POST /users`, `GET /users/{user_id}`, `PUT /users/{user_id}/contexts/{context_id}`, health check, similarity, cluster recalculation, recommendations.
 
 Your Task:
-1. Update src/main.py with endpoints:
-   - POST /similarity: accepts two TasteProfiles + optional context_id. Returns similarity, distance, shared count, interpretation string.
-   - POST /cluster/assign: accepts one TasteProfile + optional context_id. Returns cluster label (or -1 for noise) with status.
-   - POST /recommendations: accepts one TasteProfile + optional context_id + n (count). Returns top N venues with cluster label attached.
-2. Interpretation strings must be human-readable (e.g., "no overlap", "strong similarity", "noise (outlier)").
-3. If context_id is omitted, fall back to profile.default_context.
-4. Recommendations should:
-   - Pull candidate venues from users in the same cluster for that context
-   - Exclude venues already in the requester's list
-   - Sort by derived rank (time-decayed)
-   - Handle noise users by falling back to popularity across all profiles
-5. Wire the synthetic dataset as the in-memory seed store.
+1. Update `src/main.py` with endpoints per TDD Chapter 4:
+   - `POST /users` — create persisted taste profile
+   - `GET /users/{user_id}` — retrieve taste profile
+   - `PUT /users/{user_id}/contexts/{context_id}` — upsert contextual ranked list
+   - `POST /similarity`: accepts two `TasteProfile` objects + optional `context_id`. Returns `{distance, shared_venues, context_id}`.
+   - `POST /clusters/recalculate`: accepts `context_id`. Returns `ClusterResult`.
+   - `GET /recommendations`: accepts `user_id`, optional `context_id`, filter params, and `n`. Returns `List[Recommendation]` with `score` and `explanation`.
+2. All error responses must conform to the `ErrorResponse` schema from TDD Chapter 4.2.
+3. If `context_id` is omitted, fall back to `profile.default_context`.
+4. Wire synthetic data as the initial seed store via `src/db.py`.
 
 Constraints:
-- Do not add persistent DB logic for MVP. In-memory dict is fine.
+- **Implement `src/db.py` with SQLAlchemy Core tables (`users`, `contexts`, `ranked_items`) matching TDD Chapter 6. Do not use raw SQL strings in app code.**
 - Do not expose raw vectors or internal distance matrices to the client.
-- All Pydantic models must match src/models.py exactly.
-- Do NOT modify src/similarity.py or src/clustering.py. Import them as-is.
+- All Pydantic models must match `src/models.py` exactly.
+- Do NOT modify `src/similarity.py` or `src/clustering.py`. Import them as-is.
 
 Definition of Done (PM will verify every item):
 - [ ] API starts with `uvicorn src.main:app --reload` without errors
-- [ ] POST /similarity with two synthetic profiles returns a score in [0, 1] or null
-- [ ] POST /recommendations returns top N venues with venue model_dump()
-- [ ] All endpoints accept an optional ?context_id query parameter
-- [ ] Health check returns {"status": "ok"}
+- [ ] `POST /users` creates and persists a taste profile
+- [ ] `GET /users/{user_id}` retrieves a persisted profile
+- [ ] `PUT /users/{user_id}/contexts/{context_id}` upserts a contextual ranked list
+- [ ] `POST /similarity` with two synthetic profiles returns a distance in [0, 1] or null
+- [ ] `GET /recommendations` returns top N venues with `score`, `explanation`, and `venue.model_dump()`
+- [ ] All endpoints accept an optional `?context_id` query parameter
+- [ ] Health check returns `{"status": "ok"}`
 ```
 
 ---
@@ -401,7 +405,7 @@ Definition of Done (PM will verify every item):
 ---
 
 ### Role 6: Taste-Focused Frontend Engineer
-**Engage:** Phase 4, Day 13  
+**Engage:** Phase 6, Day 19  
 **Handoff from:** Temporal Data Model Designer (after Gate 5→6)  
 **Hands off to:** Recommendation Engineer  
 **Duration:** 4 days
@@ -409,16 +413,18 @@ Definition of Done (PM will verify every item):
 ```
 You are the Taste-Focused Frontend Engineer for taste.node.
 
+> **Phase Gate:** This is **Phase 6** work per TDD v0.2 Redline 5. It cannot begin until TDD Phases 1–5 are complete, `src/db.py` is implemented, and `docs/DATA_CONTRACT.md` is ratified.
+
 Context:
 - The MVP frontend must let a user create a ranked list of venues and see their cluster label.
 - This is not a generic CRUD app. The product sells "your taste is contextual and evolving." The UI should feel like ranking, not like filling a form.
-- Backend endpoints exist at POST /similarity, /cluster/assign, /recommendations. The data contract is locked in docs/DATA_CONTRACT.md.
+- Backend endpoints exist at `POST /similarity`, `POST /clusters/recalculate`, `GET /recommendations`. The data contract is locked in `docs/DATA_CONTRACT.md`.
 
 Your Task:
 1. Build a minimal web UI (Streamlit or a single-page React app) with three screens:
-   - **Screen 1: Onboarding** — User enters user_id and builds their first ranked list. Drag-and-drop or sequential entry is acceptable. Hidden fields: visited_at defaults to now, occasion_tag defaults to "solo".
-   - **Screen 2: Cluster Result** — Shows the user's cluster label after POST /cluster/assign. If noise (-1), show a friendly message: "You're still exploring — add more venues to unlock your taste cluster."
-   - **Screen 3: Recommendations** — Shows top 5 recommended venues with a one-line placeholder explanation.
+   - **Screen 1: Onboarding** — User enters `user_id` and builds their first ranked list. Drag-and-drop or sequential entry is acceptable. Hidden fields: `visited_at` defaults to now, `occasion_tag` defaults to "solo".
+   - **Screen 2: Cluster Result** — Shows the user's cluster label after `POST /clusters/recalculate`. If noise (-1), show a friendly message: "You're still exploring — add more venues to unlock your taste cluster."
+   - **Screen 3: Recommendations** — Shows top 5 recommended venues with a one-line explanation returned by `GET /recommendations`.
 2. The UI must call the FastAPI backend. Use the existing Pydantic models as the JSON contract.
 3. Handle errors gracefully (backend down, noise user, empty list).
 
@@ -453,9 +459,10 @@ Context:
 - The MVP uses the synthetic dataset, so explanations will reference other synthetic users. That is acceptable for the demo as long as it validates the mechanism.
 
 Your Task:
-1. Enrich the POST /recommendations endpoint so every returned recommendation includes:
+1. Enrich the **`GET /recommendations` endpoint** (via `src/recommendations.py`) so every returned recommendation includes:
    - venue: the venue object
-   - explanation: a one-sentence string
+   - score: float in [0, 1] computed per the locked scoring formula from TDD v0.2 Chapter 3.3: `α=0.5 cluster_affinity + β=0.3 filter_match + γ=0.2 temporal_boost`
+   - explanation: a one-sentence string ≤ 120 characters
    - reason: one of 'cluster', 'filter', 'surprise', 'trend', 'noise_fallback'
 2. Implement explanation templates:
    - Cluster: "{N} people in your taste cluster loved this."

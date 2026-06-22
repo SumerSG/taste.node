@@ -42,7 +42,7 @@ Build a platform that:
 
 ## Key Questions
 
-1. What similarity metric best compares ranked restaurant lists? (Kendall tau, Spearman, Jaccard, embedding-based?)
+1. [RESOLVED] Normalized Kendall Tau distance is the locked similarity metric (TDD v0.2 Chapter 3.1).
 2. How many clusters, and should the number be fixed or dynamic?
 3. How do initial seed clusters from scraped data translate into recommendations for the first real users?
 4. How do we weight cluster similarity vs. live-filter match?
@@ -55,7 +55,7 @@ Build a platform that:
 |--------|--------|
 | Demo readiness | End-to-end walkthrough in under 5 minutes |
 | Recommendation relevance | Qualitative positive feedback from test users |
-| Cluster coherence | Silhouette score > 0.5 or qualitative validation |
+| Cluster coherence | Qualitative validation or cluster count sanity check (silhouette analysis is prohibited per TDD v0.2 stack lock) |
 
 ## Decision Log
 

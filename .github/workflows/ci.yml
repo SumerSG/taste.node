@@ -7,21 +7,23 @@ on:
     branches: [main]
 
 jobs:
-  # Placeholder: Replace with actual tests once stack is chosen.
-  # Example for Python:
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.12'
-  #     - run: pip install -r requirements.txt
-  #     - run: pytest
-
-  lint:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder lint check
-        run: echo "Lint step defined after stack decision"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
