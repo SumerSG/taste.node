@@ -77,14 +77,6 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
 
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      {/* Big Add Recommendation button */}
-      <button
-        onClick={() => setComposing(true)}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-600 px-6 py-5 text-lg font-bold text-white shadow-elevated transition-all hover:bg-brand-700 hover:shadow-card-hover active:scale-[0.98]"
-      >
-        <Plus size={24} /> Add Recommendation
-      </button>
-
       {/* Composer modal */}
       {composing && (
         <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card ring-1 ring-surface-100">
@@ -183,19 +175,14 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
               ? "Add a few more spots to your ranking to unlock cluster picks."
               : "Be the first to share a place you loved."}
           </p>
-          {(mode === "global" || mode === "recommended") && (
-            <button onClick={() => setComposing(true)} className="btn-primary gap-2">
-              <Plus size={15} /> Add Recommendation
-            </button>
-          )}
           {mode === "following" && (
-            <button onClick={onNavigateToSearch} className="btn-ghost mt-3 gap-2 text-sm">
+            <button onClick={onNavigateToSearch} className="btn-ghost gap-2 text-sm">
               Browse restaurants to discover people
             </button>
           )}
           {(mode === "global" || mode === "recommended") && (
-            <button onClick={onNavigateToSearch} className="btn-ghost mt-3 gap-2 text-sm">
-              Or browse restaurants
+            <button onClick={onNavigateToSearch} className="btn-ghost gap-2 text-sm">
+              Browse restaurants
             </button>
           )}
         </div>
@@ -248,6 +235,15 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
           ))}
         </div>
       )}
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setComposing(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-elevated transition-all hover:bg-brand-700 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-brand-200"
+        aria-label="Add recommendation"
+      >
+        <Plus size={28} strokeWidth={2.5} />
+      </button>
     </div>
   );
 }
