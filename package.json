@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "cd web && npm install --include=dev && npm run build",
-    "start": "cd web && npx serve -s dist -l $PORT"
+    "start": "cd web && npx serve -s dist -l $PORT",
+    "test": "cd web && npx vitest run",
+    "lint": "cd web && npm run lint",
+    "migrate": "cd web && npm run migrate"
   }
 }

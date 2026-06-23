@@ -27,10 +27,9 @@ function AppContent() {
     setCurrentUserId(userId);
   }, [userId]);
 
-  // Load venues + profile + feed whenever the user changes.
+  // Load venues + profile + feed on mount (user-scoped state reset happens via key on wrapper)
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
     loadVenues().then(async () => {
       if (cancelled) return;
       const [p, f] = await Promise.all([loadProfile(), loadFeed()]);
@@ -42,7 +41,7 @@ function AppContent() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (profile) saveProfile(profile);
@@ -127,9 +126,14 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AuthKeyWrapper />
     </AuthProvider>
   );
+}
+
+function AuthKeyWrapper() {
+  const { user } = useAuthState();
+  return <AppContent key={user?.id ?? 'anon'} />;
 }
 
 export default App;

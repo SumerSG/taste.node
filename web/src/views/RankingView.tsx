@@ -3,7 +3,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types";
-import { removeRankedItem, updateItemStatus } from "../data/api";
+import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
 import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink } from "lucide-react";
@@ -133,9 +133,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
       const oldIndex = items.findIndex((i) => i.venue.id === active.id);
       const newIndex = items.findIndex((i) => i.venue.id === over.id);
       const newList = arrayMove(items, oldIndex, newIndex);
-      import("../data/api").then(({ updateRankedList }) => {
-        onProfileChange(updateRankedList(profile, newList));
-      });
+      onProfileChange(updateRankedList(profile, newList));
     }
   };
 
@@ -143,9 +141,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
     const newIndex = index + dir;
     if (newIndex < 0 || newIndex >= items.length) return;
     const newList = arrayMove(items, index, newIndex);
-    import("../data/api").then(({ updateRankedList }) => {
-      onProfileChange(updateRankedList(profile, newList));
-    });
+    onProfileChange(updateRankedList(profile, newList));
   };
 
   return (
@@ -205,10 +201,8 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
           open={!!selectedVenue}
           onClose={() => setSelectedVenue(null)}
           onAdd={(item) => {
-            import("../data/api").then(({ addRankedItem }) => {
-              onProfileChange(addRankedItem(profile, item));
-              setSelectedVenue(null);
-            });
+            onProfileChange(addRankedItem(profile, item));
+            setSelectedVenue(null);
           }}
         />
       )}

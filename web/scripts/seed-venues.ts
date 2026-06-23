@@ -43,22 +43,23 @@ function pickImage(cuisines: string[]): string {
   return IMAGES.default;
 }
 
-function transform(raw: any) {
+function transform(raw: Record<string, unknown>) {
+  const cuisines = Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [];
   return {
-    id: raw.venue_id ?? raw.id,
-    name: raw.name,
-    address: raw.address ?? null,
-    lat: raw.lat ?? null,
-    lng: raw.lng ?? null,
-    cuisines: raw.cuisines ?? [],
-    dietary_tags: raw.dietary_tags ?? [],
-    price_tier: raw.price_tier ?? null,
-    health_score: raw.health_score ?? null,
-    source: raw.source ?? "tabelog",
-    source_url: raw.source_url ?? null,
-    rating: raw.rating ?? null,
-    review_count: raw.review_count ?? null,
-    image_url: raw.image_url ?? pickImage(raw.cuisines ?? []),
+    id: (raw.venue_id as string | undefined) ?? (raw.id as string | undefined) ?? "",
+    name: (raw.name as string) ?? "",
+    address: (raw.address as string | null | undefined) ?? null,
+    lat: (raw.lat as number | null | undefined) ?? null,
+    lng: (raw.lng as number | null | undefined) ?? null,
+    cuisines,
+    dietary_tags: Array.isArray(raw.dietary_tags) ? (raw.dietary_tags as string[]) : [],
+    price_tier: (raw.price_tier as number | null | undefined) ?? null,
+    health_score: (raw.health_score as number | null | undefined) ?? null,
+    source: (raw.source as string) ?? "tabelog",
+    source_url: (raw.source_url as string | null | undefined) ?? null,
+    rating: (raw.rating as number | null | undefined) ?? null,
+    review_count: (raw.review_count as number | null | undefined) ?? null,
+    image_url: (raw.image_url as string | null | undefined) ?? pickImage(cuisines),
   };
 }
 

@@ -16,6 +16,7 @@ import {
   addPost,
   deletePost,
   filterFeedPosts,
+  setCurrentUserId,
 } from './api';
 
 const mockVenue = {
@@ -59,6 +60,7 @@ function makeItem(id: string, overrides: Partial<RankedItem> = {}): RankedItem {
 describe('api', () => {
   beforeEach(() => {
     localStorage.clear();
+    setCurrentUserId(null);
   });
 
   describe('profile', () => {
@@ -194,6 +196,7 @@ describe('api', () => {
     });
 
     it('filters feed by following mode', () => {
+      setCurrentUserId('demo_user');
       const feed: FeedData = {
         posts: [
           { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString() },
@@ -206,6 +209,7 @@ describe('api', () => {
     });
 
     it('filters feed by recommended mode', () => {
+      setCurrentUserId('demo_user');
       const feed: FeedData = {
         posts: [
           { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString() },

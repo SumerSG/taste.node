@@ -1,7 +1,18 @@
 import { useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import type { TasteProfile } from "../data/types";
 import { getCluster } from "../data/api";
-import { Search, ListOrdered, Home, BookOpen, PenLine, X } from "lucide-react";
+import {
+  Search,
+  ListOrdered,
+  Home,
+  BookOpen,
+  PenLine,
+  X,
+  LogIn,
+  LogOut,
+  UserCircle,
+} from "lucide-react";
 
 export type Tab = "feed" | "search" | "library" | "ranking";
 
@@ -10,13 +21,26 @@ interface Props {
   activeTab: Tab;
   onTabChange: (t: Tab) => void;
   onGlobalSearch?: (q: string) => void;
+  user: User | null;
+  onOpenAuth: () => void;
+  onLogout: () => Promise<void>;
   children: React.ReactNode;
 }
 
-export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, children }: Props) {
+export function Layout({
+  profile,
+  activeTab,
+  onTabChange,
+  onGlobalSearch,
+  user,
+  onOpenAuth,
+  onLogout,
+  children,
+}: Props) {
   const cluster = getCluster(profile);
   const [showCluster, setShowCluster] = useState(true);
   const [wantText, setWantText] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "feed", label: "Feed", icon: <Home size={16} /> },
@@ -30,6 +54,15 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
     if (!wantText.trim() || !onGlobalSearch) return;
     onGlobalSearch(wantText.trim());
     setWantText("");
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -46,7 +79,7 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
             </div>
           </div>
 
-          {/* Cluster pill */}
+          {/* Cluster pill — desktop only */}
           {profile.contexts[profile.default_context].ranked_list.length >= 3 && showCluster && (
             <button
               onClick={() => setShowCluster((s) => !s)}
@@ -57,23 +90,52 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
             </button>
           )}
 
-          {/* Nav tabs */}
-          <nav className="flex items-center gap-1 rounded-xl bg-cream p-1">
-            {tabs.map((tab) => (
+          {/* Right side: nav + auth */}
+          <div className="flex items-center gap-2">
+            {/* Nav tabs */}
+            <nav className="flex items-center gap-1 rounded-xl bg-cream p-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    activeTab === tab.id
+                      ? "bg-paper text-ink shadow-sm"
+                      : "text-ink-faint hover:text-ink-muted"
+                  }`}
+                >
+                  {tab.icon}
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Auth widget */}
+            {user ? (
+              <div className="flex items-center gap-2 pl-2">
+                <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-ink-muted ring-1 ring-cream-dark">
+                  <UserCircle size={13} />
+                  <span className="max-w-[120px] truncate">{user.email}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  title="Sign out"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint hover:bg-red-50 hover:text-red-500 transition disabled:opacity-50"
+                >
+                  <LogOut size={15} />
+                </button>
+              </div>
+            ) : (
               <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                  activeTab === tab.id
-                    ? "bg-paper text-ink shadow-sm"
-                    : "text-ink-faint hover:text-ink-muted"
-                }`}
+                onClick={onOpenAuth}
+                className="flex items-center gap-1.5 rounded-lg bg-sienna-500 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sienna-600 active:scale-[0.98]"
               >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <LogIn size={14} />
+                <span className="hidden sm:inline">Sign in</span>
               </button>
-            ))}
-          </nav>
+            )}
+          </div>
         </div>
 
         {/* Global search bar */}

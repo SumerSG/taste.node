@@ -51,11 +51,16 @@ export interface Recommendation {
 }
 
 export interface Filters {
+  query: string;
   cuisine: string;
   diet: string;
   price_tier: number | null;
   healthiness_min: number;
   radius_km: number;
+  rating_min: number;
+  review_count_min: number;
+  visit_status: RankStatus | "any";
+  sort_by: string;
 }
 
 export interface Post {
