@@ -71,6 +71,10 @@
 
 **Architectural Implication:** No production scrapers. No reliance on scraped seed data for the demo trajectory. No `BeautifulSoup`, `Scrapy`, or raw HTML parsing in dependencies.
 
+### Pillar 4.1: Formal Rejection Record
+
+All rejected tools — including K-Means, AHC, Spectral Clustering, silhouette analysis, vector databases (Pinecone, Weaviate, pgvector), and scraping tools — are formally documented in `docs/ADR-001_REJECTED_TOOLS.md`. This ADR is an immutable dependency of `AGENTS.md`.
+
 ---
 
 ## Dispute Resolution

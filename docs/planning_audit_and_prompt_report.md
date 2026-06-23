@@ -1,5 +1,7 @@
 # taste.node — Planning Audit & Promptable Assets Report
 
+> **AUDIT CLOSURE NOTICE (2026-06-22):** The actions mandated by `docs/PROJECT_AUDIT.md` have been executed. All non-compliant source code has been purged. Superseded documents have been archived. Missing components (incremental clustering, offline evaluation, caching, security boundaries, venue ingestion, ADR, planning hygiene policy) have been formally documented. This report is retained for historical reference. See `PLANNING_HYGIENE.md` for current repository policy.
+
 **Auditor:** Principal TPM & Chief Architect (Autonomous AI Audit)  
 **Date:** 2026-06-22  
 **Scope:** All planning, specification, configuration, and source files in `/home/build/taste.node` and subdirectories.  

@@ -43,11 +43,11 @@ Build a platform that:
 ## Key Questions
 
 1. [RESOLVED] Normalized Kendall Tau distance is the locked similarity metric (TDD v0.2 Chapter 3.1).
-2. How many clusters, and should the number be fixed or dynamic?
-3. How do initial seed clusters from scraped data translate into recommendations for the first real users?
-4. How do we weight cluster similarity vs. live-filter match?
-5. How do we explain a recommendation in one sentence?
-6. What filter dimensions do users actually care about (location, cuisine, diet, health, price, etc.)?
+2. [RESOLVED] Cluster count is dynamic — HDBSCAN discovers it naturally. No fixed `K`. See `TDD.md` Chapter 3.2.
+3. [RESOLVED] Seed-to-real user mapping uses warm-start heuristic (nearest cluster centroid). See `TDD.md` Chapter 3.5.
+4. [RESOLVED] Scoring weights are locked: `α=0.5 cluster + β=0.3 filter + γ=0.2 temporal`. See `TDD.md` Chapter 3.3.
+5. [RESOLVED] Explanation templates are Jinja2-style, ≤120 characters. See `TDD.md` Chapter 3.4.
+6. [RESOLVED] Filter dimensions: location (lat/lng + radius), cuisine, dietary tags, health score, price tier. See `PRD.md` FR-5 and `DATA_CONTRACT.md`.
 
 ## Success Metrics
 

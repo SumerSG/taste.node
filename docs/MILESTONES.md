@@ -3,8 +3,8 @@
 | | |
 |:---|:---|
 | **Duration** | 6 weeks |
-| **Start** | [Fill in] |
-| **End** | [Fill in] |
+| **Start** | 2026-06-23 |
+| **End** | 2026-08-04 |
 | **Review cycle** | Weekly mentor sync + async Slack |
 
 ---
@@ -49,7 +49,7 @@
 |-----|-------|-------------|
 | Mon | Implement ranked-list data model and similarity function | Two test users have a similarity score |
 | Tue | Implement seed data ingestion + initial HDBSCAN clustering (context-aware) | Clusters generated from seed data |
-| Wed | Validate DATA_CONTRACT.md against API; scaffold `tests/test_api.py` *(blocked until Role 4 handoff)* | Contract validated; test scaffold compiles |
+| Wed | Validate DATA_CONTRACT.md against API spec; scaffold API-layer test plan in `docs/TDD.md` Phase 5 | Contract validated; test plan documented (not yet implemented) |
 | Thu | End-to-end API integration test via curl: onboarding → similarity → clustering → recommendations | Full backend flow validated without UI |
 | Fri | Polish, rehearse demo, fix bugs | Demo script written; dry-run completed |
 
@@ -148,4 +148,13 @@
 
 ---
 
-*Last updated: 2026-06-19*
+*Last updated: 2026-06-22*
+
+## New & Updated Documents
+
+The following planning documents were created or updated as part of the 2026-06-22 audit closure:
+- `docs/ADR-001_REJECTED_TOOLS.md` — formal rejection of mismatched algorithms and tools
+- `docs/VENUE_INGESTION_PIPELINE.md` — public API ingestion contract and normalization rules
+- `docs/EVALUATION_PLAN.md` — offline quantitative evaluation protocol
+- `docs/SECURITY_BOUNDARIES.md` — demo-only security and auth migration path
+- `PLANNING_HYGIENE.md` — repository-wide policy forbidding implementation code until Phase 0

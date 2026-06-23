@@ -109,11 +109,11 @@ To avoid a dead-empty platform on day one, the system bootstraps with **seed clu
 
 ## 8. Open Questions
 
-1. [RESOLVED] Similarity metric is locked to normalized Kendall Tau distance (TDD v0.2 Chapter 3.1). RBO was evaluated in CLUSTER_ARCHITECTURE.md v0.1 and rejected for the MVP.
-2. How do we map a seed-cluster user (from synthetic data) to a real user who joins later?
-3. How often do clusters recalculate? Real-time, nightly, or on-demand?
-4. Do we allow users to see *who* is in their cluster (privacy concern)?
-5. Which public API (Yelp Fusion vs Google Places) is best for production venue enrichment?
+1. [RESOLVED] Similarity metric is locked to normalized Kendall Tau distance (TDD v0.2 Chapter 3.1). RBO was evaluated in `ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md` and rejected for the MVP.
+2. [RESOLVED] Seed-to-real user mapping: handled by incremental clustering warm-start (TDD v0.2 Chapter 3.5). New users are assigned to the nearest cluster centroid before the next full HDBSCAN recompute.
+3. [RESOLVED] Cluster recalculation triggers are documented in TDD v0.2 Chapter 3.5: immediate queue on list mutation, batch every 5 minutes, or manual via API.
+4. [RESOLVED] Privacy: cluster identities are never exposed. Explanations use anonymous phrasing only. See `SECURITY_BOUNDARIES.md` §4.
+5. [RESOLVED] Venue ingestion pipeline documents both Yelp Fusion and Google Places contracts, rate-limiting, and normalization rules. See `VENUE_INGESTION_PIPELINE.md`.
 
 ## 9. Out of Scope
 

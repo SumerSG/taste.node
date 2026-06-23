@@ -2,10 +2,12 @@
 
 | | |
 |:---|:---|
-| **Status** | Rehearsal-Ready |
+| **Status** | Rehearsal-Ready (Planned Trajectory) |
 | **Runtime Target** | < 5 minutes from `git clone` to final recommendation |
 | **Audience** | Mentors and stakeholders (non-engineers) |
 | **Prerequisites** | Python 3.12, `git`, no external API keys, no internet required |
+
+> **Planning-Only Notice:** This document describes the **intended** demo flow for Phase 5–6. Implementation code does not yet exist in this repository. See `PLANNING_HYGIENE.md`.
 
 ---
 

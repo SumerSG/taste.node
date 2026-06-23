@@ -297,6 +297,85 @@ Where:
 
 ---
 
+### 3.5 Incremental Clustering Strategy
+
+**Problem:** HDBSCAN does not natively support incremental fitting with precomputed distance matrices. A full recompute of the `N×N` matrix costs `O(N²)` pairwise comparisons.
+
+**Strategy:**
+
+1. **Full batch recalculation threshold:** `N <= 1,000` users → full recompute on every trigger. This is computationally acceptable (~500K comparisons) and guarantees optimal cluster quality.
+
+2. **Trigger types:**
+   - **Immediate:** User adds/modifies/deletes a `RankedItem` in a context → queue that context for recalculation.
+   - **Batch:** Every 5 minutes, dequeue all queued contexts and recompute once.
+   - **Manual:** `POST /clusters/recalculate` forces immediate recalculation for a specific `context_id`.
+
+3. **New-user warm-start (before next full recompute):**
+   - Compute the new user's Kendall-Tau distance to the **cluster centroid** (median ranked list) of every existing cluster in the context.
+   - Assign to the nearest cluster if distance `< 0.4`.
+   - If no cluster is within `0.4`, label as noise (`-1`) until the next full HDBSCAN run.
+   - Centroid definition: plurality vote per rank position, truncated to `max_depth=10`.
+
+4. **Computational complexity:**
+   - Full recompute: `O(N²)` comparisons, `O(N²)` memory for the dense distance matrix.
+   - Warm-start for one user: `O(C × L)` where `C` = number of clusters, `L` = average list length.
+
+---
+
+### 3.6 Caching & Performance Strategy
+
+**Goal:** Keep live filter latency `< 500ms` as the user base grows.
+
+**Cache Tiers:**
+
+1. **ClusterResult Cache (in-memory TTL):**
+   - Key: `context_id`
+   - Value: `ClusterResult`
+   - TTL: 5 minutes (aligns with batch recalculation interval)
+   - Invalidation triggers: user list update, new user onboarding, manual recalculation call.
+   - Tool: `functools.lru_cache` or `cachetools.TTLCache` (lightweight, no external dependency).
+
+2. **Recommendation Cache (in-memory TTL):**
+   - Key: `user_id + ":" + context_id + ":" + filter_hash`
+   - `filter_hash` = deterministic hash of active filter parameters (`cuisine`, `diet`, `price_tier`, `lat`, `lng`, `radius`).
+   - TTL: 60 seconds (short enough to feel live, long enough to prevent redundant scoring).
+   - Invalidation triggers: `ClusterResult` cache invalidation, new venue ingestion.
+
+3. **Future scaling (>1,000 users):**
+   - Replace in-memory caches with Redis or Memcached.
+   - Precompute distance matrices asynchronously and store in object storage (e.g., S3) for warm-start.
+
+---
+
+### 3.7 New-Venue Cold-Start Handling
+
+**Problem:** A newly added venue has zero rankings in any cluster. It cannot be recommended via `cluster_affinity` until enough users rank it.
+
+**Mechanism — Exploration Bonus:**
+
+Add a small exploration bonus to the recommendation scoring formula when a venue has **low cluster penetration** but **high cuisine alignment** with the cluster's dominant cuisines.
+
+```
+exploration_bonus(venue, cluster) =
+    if cluster_penetration(venue) < 3:
+        cuisine_alignment(venue, cluster) * 0.05
+    else:
+        0.0
+```
+
+- `cluster_penetration` = count of cluster members who have ranked this venue.
+- `cuisine_alignment` = Jaccard similarity between `venue.cuisines` and `cluster.dominant_cuisines`.
+- The bonus is capped at `0.05` so it does not dominate the locked `α=0.5` cluster affinity term.
+
+**Updated scoring formula:**
+```
+score = α · cluster_affinity + β · filter_match + γ · temporal_boost + exploration_bonus
+```
+
+The `exploration_bonus` decays to `0.0` once `cluster_penetration >= 3`, at which point standard cluster affinity fully captures the signal.
+
+---
+
 ## Chapter 4: API Surface (Exact Shapes)
 
 ### 4.1 Endpoints
@@ -370,6 +449,34 @@ Every error response from `main.py` MUST conform to this shape. The AI coder mus
 
 ## Chapter 5: File Tree & Module Boundaries
 
+### 5.1 Planning-Only Repository (Current)
+
+```
+taste.node/
+├── docs/
+│   ├── AGENTS.md                    # Supreme architecture (immutable reference)
+│   ├── ADR-001_REJECTED_TOOLS.md    # Formal tool rejections
+│   ├── DATA_CONTRACT.md             # Canonical JSON integration contract
+│   ├── DEMO_SCRIPT.md               # Rehearsal-ready demo walkthrough
+│   ├── EVALUATION_PLAN.md           # Offline quantitative metrics
+│   ├── MILESTONES.md                # 6-week timeline
+│   ├── PRD.md                       # Product requirements
+│   ├── PROJECT_OVERVIEW.md          # One-page summary
+│   ├── SECURITY_BOUNDARIES.md       # Demo security & auth migration
+│   ├── TDD.md                       # This document
+│   ├── VENUE_INGESTION_PIPELINE.md  # Public API ingestion design
+│   └── ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md  # Superseded; do not implement
+├── pyproject.toml                    # Exact pinned deps + build system
+├── pytest.ini                        # Test path and default flags (for Phase 0)
+├── requirements.txt                  # Mirror of pyproject.toml
+├── PLANNING_HYGIENE.md               # Repository policy: no code until Phase 0
+└── README.md                         # Quick orientation
+```
+
+### 5.2 Phase 0+ Target File Tree
+
+Once Phase 0 is formally kicked off, the following directories may be created:
+
 ```
 taste.node/
 ├── src/
@@ -378,22 +485,21 @@ taste.node/
 │   ├── models.py            # Pydantic models ONLY.
 │   ├── similarity.py        # compute_similarity and time_decay utils.
 │   ├── clustering.py        # ContextualClusterEngine (HDBSCAN wrapper).
-│   ├── recommendations.py   # scoring and explanation templates.
+│   ├── recommendations.py   # scoring, explanation, and exploration-bonus logic.
 │   └── db.py                # SQLite file DB + SQLAlchemy Core table definitions ONLY.
 ├── tests/
 │   ├── __init__.py
 │   ├── test_models.py       # Pydantic validation and round-trip serialization.
-│   ├── test_similarity.py   # Perfect correlation, inverse correlation, no overlap (sentinel -1.0), time-decay.
+│   ├── test_similarity.py   # Perfect correlation, inverse correlation, no overlap, time-decay.
 │   ├── test_clustering.py   # HDBSCAN integration with synthetic data.
 │   └── test_api.py          # FastAPI TestClient for all routes.
 ├── scripts/
-│   └── generate_synthetic_data.py  # Seeded PRNG. Validates against models.
-├── docs/
-│   ├── TDD.md               # This document.
-│   └── AGENTS.md            # Supreme architecture (immutable reference).
-├── pyproject.toml           # Exact pinned deps + build system.
-├── pytest.ini               # Test path and default flags.
-└── requirements.txt         # Mirror of pyproject.toml for legacy installs.
+│   ├── generate_synthetic_data.py   # Seeded PRNG. Validates against models.
+│   └── evaluate_offline.py          # Offline evaluation harness (P1+).
+├── docs/                    # (as defined in 5.1)
+├── pyproject.toml
+├── pytest.ini
+└── requirements.txt
 ```
 
 **Strict Boundary Rules:**
@@ -420,9 +526,21 @@ taste.node/
 | Uvicorn | 0.32.0 | ASGI | Gunicorn sync workers |
 | python-json-logger | 3.0.0 | Structured Logging | print statements in production routes |
 
+### 6.1 Database Migration Strategy
+
+**Decision:** Alembic is **adopted** for the MVP.
+
+- **Rationale:** SQLAlchemy Core tables are locked in Chapter 6 Scaffold Appendix. Any schema change to `RankedItem` or `Venue` after initial deployment requires a migration. Manual SQLite migrations are error-prone and block rapid iteration.
+- **Dependency:** Add `alembic==1.13.0` to `pyproject.toml` `[project.optional-dependencies] dev` (or main deps if migrations run in production).
+- **Workflow:**
+  1. `alembic init alembic` during Phase 0 scaffold.
+  2. `alembic revision --autogenerate -m "description"` after any model change.
+  3. `alembic upgrade head` before server boot.
+- **Manual fallback:** Documented in `docs/SECURITY_BOUNDARIES.md` §5 for emergency schema recovery.
+
 **Lock Enforcement:** `requirements.txt` and `pyproject.toml` must pin exact versions. No unpinned dependencies. No transitive dependency overrides without TDD amendment.
 
-### 6.1 Scaffold Appendix: Exact File Contents
+### 6.2 Scaffold Appendix: Exact File Contents
 
 **`pyproject.toml`**
 ```toml
@@ -450,6 +568,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest==9.0.0",
+    "alembic==1.13.0",
 ]
 
 [tool.pytest.ini_options]
@@ -615,33 +734,19 @@ ranked_items_table = Table(
 
 ---
 
-## Chapter 10: Known Code Non-Compliance (Audit Remediation Blockers)
+## Chapter 10: References & Cross-Document Alignment
 
-The following `src/` files are **non-compliant** with this locked TDD as of 2026-06-22. They must be rewritten in a dedicated consolidation sprint before the PM conveyor belt or demo execution begins:
+| Document | Purpose | Violation Policy |
+|---|---|---|
+| `docs/AGENTS.md` | Supreme architectural constraints (Three Pillars + Scraping Policy) | Wins all disputes |
+| `docs/ADR-001_REJECTED_TOOLS.md` | Formal rejection of K-Means, AHC, Spectral, silhouette analysis, vector DBs, scraping tools | Must be consulted before proposing new dependencies |
+| `docs/DATA_CONTRACT.md` | Canonical JSON shapes for every endpoint | Locked against TDD Chapter 4 |
+| `docs/EVALUATION_PLAN.md` | Offline metrics (Precision@K, MRR, nDCG) | Aligned with TDD Chapter 3 scoring |
+| `docs/SECURITY_BOUNDARIES.md` | Demo security, rate-limiting, auth migration | Aligned with TDD Chapter 4 API surface |
+| `docs/VENUE_INGESTION_PIPELINE.md` | Public API ingestion, deduplication, normalization | Aligned with TDD Chapter 2 `Venue` schema |
+| `docs/ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md` | Superseded v0.1 document | **Do not implement. Do not feed to AI agents.** |
 
-1. **`src/models.py`** — Violates Redlines 2 and 6.
-   - `RankedItem` has a parameterized `compute_derived_rank` method instead of a zero-arg `@computed_field` + `@property rank(self) -> float`.
-   - `occasion_tag` is typed as plain `str`, not `Literal[...]`.
-   - `Venue` lacks `location`, `cuisines`, `dietary_tags`, `price_tier`, `health_score`, `source`.
-
-2. **`src/main.py`** — Violates Chapter 4 API Surface.
-   - Missing `POST /users`, `GET /users/{user_id}`, `PUT /users/{user_id}/contexts/{context_id}`.
-   - Uses `/cluster/assign` instead of `/clusters/recalculate`.
-   - Uses `POST /recommendations` with body instead of `GET` with query params.
-   - Missing `ErrorResponse` schema; returns ad-hoc dicts.
-   - Uses in-memory `_data_store` instead of `src/db.py` SQLite persistence.
-
-3. **`src/clustering.py`** — Violates Chapter 3.2.
-   - Uses `allow_single_cluster=True` and default `min_cluster_size=3` instead of `False` and `5`.
-
-4. **`src/similarity.py`** — Violates Redline 1.
-   - `context_id` is typed as `Optional[str] = None` in the engine layer.
-
-5. **`src/synthetic_data.py`** — Violates Chapter 5 / Phase 4.
-   - Located at `src/synthetic_data.py` instead of `scripts/generate_synthetic_data.py`.
-   - Generates 4 contexts (`business_lunch` extra) and defaults to 30 users instead of 100.
-
-These items are tracked as P0/P1 blockers in `docs/planning_audit_and_prompt_report.md`. The dependency manifests (`pyproject.toml`, `requirements.txt`) and `pytest.ini` have been aligned in the planning sprint; they no longer block execution.
+**Audit Closure:** All repository hygiene actions from `docs/PROJECT_AUDIT.md` (2026-06-22) have been executed. Implementation code will be introduced only during the formal Phase 0 consolidation sprint.
 
 ---
 
