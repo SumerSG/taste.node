@@ -1,28 +1,48 @@
 import { useEffect, useState } from "react";
 import type { TasteProfile, FeedData } from "./data/types";
-import { loadProfile, saveProfile, loadFeed, saveFeed } from "./data/api";
-import { loadVenues, isVenuesLoaded } from "./data/venues";
+import { loadProfile, saveProfile, loadFeed, saveFeed, setCurrentUserId } from "./data/api";
+import { loadVenues } from "./data/venues";
+import { AuthProvider } from "./context/AuthContext";
+import { useAuthState, useAuthActions } from "./hooks/useAuth";
 import { Layout, type Tab } from "./components/Layout";
+import { AuthModal } from "./components/AuthModal";
 import { FeedView } from "./views/FeedView";
 import { SearchView } from "./views/SearchView";
 import { LibraryView } from "./views/LibraryView";
 import { RankingView } from "./views/RankingView";
 
-function App() {
-  const [ready, setReady] = useState(isVenuesLoaded());
+function AppContent() {
+  const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<TasteProfile | null>(null);
   const [feed, setFeed] = useState<FeedData | null>(null);
   const [tab, setTab] = useState<Tab>("feed");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showAuth, setShowAuth] = useState(false);
+  const { user, loading: authLoading } = useAuthState();
+  const { logout } = useAuthActions();
+  const userId = user?.id ?? null;
 
+  // Sync user id with storage layer so profiles are isolated per account
   useEffect(() => {
-    if (ready) return;
-    loadVenues().then(() => {
-      setProfile(loadProfile());
-      setFeed(loadFeed());
+    setCurrentUserId(userId);
+  }, [userId]);
+
+  // Load venues + profile + feed whenever the user changes.
+  useEffect(() => {
+    let cancelled = false;
+    setReady(false);
+    loadVenues().then(async () => {
+      if (cancelled) return;
+      const [p, f] = await Promise.all([loadProfile(), loadFeed()]);
+      if (cancelled) return;
+      setProfile(p);
+      setFeed(f);
       setReady(true);
     });
-  }, [ready]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (profile) saveProfile(profile);
@@ -45,48 +65,70 @@ function App() {
     setTab("search");
   };
 
-  if (!ready || !profile || !feed) {
+  if (!ready || !profile || !feed || authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-sienna-500 border-t-transparent" />
-          <p className="text-sm font-medium text-ink-muted">Loading restaurants…</p>
+          <p className="text-sm font-medium text-ink-muted">
+            {authLoading ? "Checking session…" : "Loading restaurants…"}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <Layout profile={profile} activeTab={tab} onTabChange={setTab} onGlobalSearch={handleGlobalSearch}>
-      {tab === "feed" && (
-        <FeedView
-          feed={feed}
-          onFeedChange={handleFeedChange}
-          onNavigateToSearch={() => setTab("search")}
-        />
-      )}
-      {tab === "search" && (
-        <SearchView
-          key={searchQuery}
-          profile={profile}
-          onProfileChange={handleProfileChange}
-          initialQuery={searchQuery}
-        />
-      )}
-      {tab === "library" && (
-        <LibraryView
-          profile={profile}
-          onProfileChange={handleProfileChange}
-        />
-      )}
-      {tab === "ranking" && (
-        <RankingView
-          profile={profile}
-          onProfileChange={handleProfileChange}
-          onNavigateToLibrary={() => setTab("search")}
-        />
-      )}
-    </Layout>
+    <>
+      <Layout
+        profile={profile}
+        activeTab={tab}
+        onTabChange={setTab}
+        onGlobalSearch={handleGlobalSearch}
+        user={user}
+        onOpenAuth={() => setShowAuth(true)}
+        onLogout={logout}
+      >
+        {tab === "feed" && (
+          <FeedView
+            feed={feed}
+            onFeedChange={handleFeedChange}
+            onNavigateToSearch={() => setTab("search")}
+          />
+        )}
+        {tab === "search" && (
+          <SearchView
+            key={searchQuery}
+            profile={profile}
+            onProfileChange={handleProfileChange}
+            initialQuery={searchQuery}
+          />
+        )}
+        {tab === "library" && (
+          <LibraryView
+            profile={profile}
+            onProfileChange={handleProfileChange}
+          />
+        )}
+        {tab === "ranking" && (
+          <RankingView
+            profile={profile}
+            onProfileChange={handleProfileChange}
+            onNavigateToLibrary={() => setTab("search")}
+          />
+        )}
+      </Layout>
+
+      <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

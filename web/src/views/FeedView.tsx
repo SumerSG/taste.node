@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Post, FeedData, Venue, FeedMode } from "../data/types";
-import { addPost, deletePost, filterFeedPosts } from "../data/api";
+import { addPost, deletePost, filterFeedPosts, getCurrentUserId } from "../data/api";
 import { getAllVenues } from "../data/venues";
 import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles } from "lucide-react";
 
@@ -49,10 +49,11 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
 
   const handleSubmit = () => {
     if (!text.trim() && !imageUrl.trim()) return;
+    const me = getCurrentUserId() ?? "anonymous";
     const post: Post = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      author_id: "demo_user",
-      author_name: "You",
+      author_id: me,
+      author_name: me === "anonymous" ? "You" : "You",
       text: text.trim(),
       venue_id: venueId || undefined,
       venue_name: selectedVenue?.name,
@@ -190,7 +191,7 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
-                    post.author_id === "demo_user"
+                    post.author_id === (getCurrentUserId() ?? "anonymous")
                       ? "bg-sienna-50 text-sienna-700"
                       : "bg-cream text-ink-muted"
                   }`}>
@@ -201,7 +202,7 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
                     <div className="text-[11px] text-ink-faint">{timeAgo(post.created_at)}</div>
                   </div>
                 </div>
-                {post.author_id === "demo_user" && (
+                {post.author_id === (getCurrentUserId() ?? "anonymous") && (
                   <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
                     <Trash2 size={14} />
                   </button>

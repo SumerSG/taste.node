@@ -1,17 +1,39 @@
 import type { TasteProfile, RankedItem, Filters, RankStatus, Post, FeedData } from "./types";
 import { getClusterLabel, computeRecommendations, sortRecommendations, buildSeedPosts, getDefaultProfile } from "./mockData";
 import { FOLLOWED_USERS, CLUSTER_PEERS } from "./mockData";
+import {
+  loadProfileSupabase,
+  saveProfileSupabase,
+  loadFeedSupabase,
+  addPostSupabase,
+  deletePostSupabase,
+} from "./supabaseApi";
+import { hasSupabase } from "../lib/supabase";
 
-const STORAGE_KEY = "taste.node.profile.v2";
+const STORAGE_KEY_BASE = "taste.node.profile.v2";
+const FEED_KEY_BASE = "taste.node.feed.v2";
 
-export function loadProfile(): TasteProfile {
+let _currentUserId: string | null = null;
+let _supabaseActive = false;
+
+export function setCurrentUserId(id: string | null) {
+  _currentUserId = id;
+  _supabaseActive = !!id && hasSupabase();
+}
+
+function storageKey(base: string) {
+  return _currentUserId ? `${base}:${_currentUserId}` : base;
+}
+
+/* ─── LocalStorage helpers ─── */
+
+function loadLocalProfile(): TasteProfile {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(STORAGE_KEY_BASE));
     if (raw) {
-      const parsed = JSON.parse(raw);
-      // migrate: ensure statuses and new fields exist
-      Object.values(parsed.contexts).forEach((ctx: any) => {
-        ctx.ranked_list.forEach((item: any) => {
+      const parsed = JSON.parse(raw) as TasteProfile;
+      Object.values(parsed.contexts).forEach((ctx) => {
+        ctx.ranked_list.forEach((item) => {
           if (!item.status) item.status = "visited";
           if (item.personal_rating === undefined) item.personal_rating = undefined;
           if (item.reaction === undefined) item.reaction = undefined;
@@ -21,23 +43,81 @@ export function loadProfile(): TasteProfile {
       });
       return parsed;
     }
-  } catch {}
+  } catch {
+    // fall through to default
+  }
   return { ...getDefaultProfile() };
 }
 
-export function saveProfile(profile: TasteProfile) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+function saveLocalProfile(profile: TasteProfile) {
+  localStorage.setItem(storageKey(STORAGE_KEY_BASE), JSON.stringify(profile));
 }
+
+function loadLocalFeed(): FeedData {
+  try {
+    const raw = localStorage.getItem(storageKey(FEED_KEY_BASE));
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // fall through
+  }
+  return { posts: buildSeedPosts() };
+}
+
+function saveLocalFeed(feed: FeedData) {
+  localStorage.setItem(storageKey(FEED_KEY_BASE), JSON.stringify(feed));
+}
+
+/* ─── Async load from Supabase ─── */
+
+export async function loadProfile(): Promise<TasteProfile> {
+  if (_supabaseActive) {
+    const remote = await loadProfileSupabase();
+    if (remote) {
+      // mirror to localStorage as cache
+      saveLocalProfile(remote);
+      return remote;
+    }
+  }
+  return loadLocalProfile();
+}
+
+export async function loadFeed(): Promise<FeedData> {
+  if (_supabaseActive) {
+    const remote = await loadFeedSupabase();
+    if (remote) {
+      saveLocalFeed(remote);
+      return remote;
+    }
+  }
+  return loadLocalFeed();
+}
+
+/* ─── Save (local + optional cloud) ─── */
+
+export function saveProfile(profile: TasteProfile) {
+  saveLocalProfile(profile);
+  if (_supabaseActive) {
+    saveProfileSupabase(profile).catch(() => {}); // fire-and-forget
+  }
+}
+
+export function saveFeed(feed: FeedData) {
+  saveLocalFeed(feed);
+}
+
+/* ─── Profile mutation helpers (sync, returns new profile) ─── */
 
 export function updateRankedList(profile: TasteProfile, newList: RankedItem[]): TasteProfile {
   const ctx = profile.contexts[profile.default_context];
-  return {
+  const next = {
     ...profile,
     contexts: {
       ...profile.contexts,
       [profile.default_context]: { ...ctx, ranked_list: newList, updated_at: new Date().toISOString() },
     },
   };
+  saveProfile(next);
+  return next;
 }
 
 export function addRankedItem(profile: TasteProfile, item: RankedItem, atIndex?: number): TasteProfile {
@@ -112,41 +192,37 @@ export function getSortedRecommendations(profile: TasteProfile, filters: Filters
   return sortRecommendations(computeRecommendations(profile, filters), sortBy);
 }
 
-/* ─── Feed ─── */
-
-const FEED_KEY = "taste.node.feed.v2";
-
-export function loadFeed(): FeedData {
-  try {
-    const raw = localStorage.getItem(FEED_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { posts: buildSeedPosts() };
+export function getCurrentUserId(): string | null {
+  return _currentUserId;
 }
 
-export function saveFeed(feed: FeedData) {
-  localStorage.setItem(FEED_KEY, JSON.stringify(feed));
-}
+/* ─── Feed (sync helpers, with async cloud for add/delete) ─── */
 
 export function addPost(feed: FeedData, post: Post): FeedData {
   const next = { posts: [post, ...feed.posts] };
-  saveFeed(next);
+  saveLocalFeed(next);
+  if (_supabaseActive) {
+    addPostSupabase(post).catch(() => {});
+  }
   return next;
 }
 
 export function deletePost(feed: FeedData, postId: string): FeedData {
   const next = { posts: feed.posts.filter((p) => p.id !== postId) };
-  saveFeed(next);
+  saveLocalFeed(next);
+  if (_supabaseActive) {
+    deletePostSupabase(postId).catch(() => {});
+  }
   return next;
 }
 
 export function filterFeedPosts(feed: FeedData, mode: import("./types").FeedMode): Post[] {
   switch (mode) {
     case "following":
-      return feed.posts.filter((p) => p.author_id === "demo_user" || FOLLOWED_USERS.includes(p.author_id));
+      return feed.posts.filter((p) => p.author_id === _currentUserId || FOLLOWED_USERS.includes(p.author_id));
     case "recommended": {
       const peerIds = new Set(CLUSTER_PEERS);
-      return feed.posts.filter((p) => p.author_id === "demo_user" || peerIds.has(p.author_id));
+      return feed.posts.filter((p) => p.author_id === _currentUserId || peerIds.has(p.author_id));
     }
     case "global":
     default:
@@ -154,7 +230,7 @@ export function filterFeedPosts(feed: FeedData, mode: import("./types").FeedMode
   }
 }
 
-/* ─── Re-export venue helpers so callers don’t need two imports ─── */
+/* ─── Re-export helpers ─── */
 export {
   buildSeedPosts,
   getDefaultProfile,
