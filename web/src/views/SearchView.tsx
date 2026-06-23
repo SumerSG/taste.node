@@ -53,7 +53,6 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
-  // Filter state
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   const [selectedPrices, setSelectedPrices] = useState<number[]>([]);
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
@@ -91,25 +90,23 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
 
   const FilterRailContent = (
     <div className="space-y-6">
-      {/* Search inside filter rail (mobile emphasis) */}
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search name or cuisine..."
-          className="w-full rounded-xl border border-surface-200 bg-white py-2.5 pl-10 pr-9 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-cream-dark bg-paper py-2.5 pl-10 pr-9 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
         />
         {query && (
-          <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600">
+          <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-faint hover:bg-cream hover:text-ink-muted">
             <X size={14} />
           </button>
         )}
       </div>
 
-      {/* Cuisines */}
       <section>
-        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Cuisine</h4>
+        <h4 className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Cuisine</h4>
         <div className="flex flex-wrap gap-1.5">
           {TOP_CUISINES.map((c) => {
             const active = selectedCuisines.includes(c);
@@ -119,8 +116,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
                 onClick={() => setSelectedCuisines((prev) => toggleInArray(prev, c))}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition-all ${
                   active
-                    ? "bg-brand-50 text-brand-700 ring-brand-200"
-                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                    ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
+                    : "bg-paper text-ink-muted ring-cream-dark hover:bg-cream"
                 }`}
               >
                 {c}
@@ -128,12 +125,11 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
             );
           })}
         </div>
-        <p className="mt-2 text-[11px] text-surface-400">Type any cuisine in the search bar above to find more.</p>
+        <p className="mt-2 text-[11px] text-ink-faint">Type any cuisine in the search bar to find more.</p>
       </section>
 
-      {/* Price */}
       <section>
-        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Price</h4>
+        <h4 className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Price</h4>
         <div className="flex gap-1.5">
           {PRICE_TIERS.map((t) => {
             const active = selectedPrices.includes(t.value);
@@ -144,8 +140,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
                 title={t.hint}
                 className={`flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-semibold ring-1 transition-all ${
                   active
-                    ? "bg-brand-50 text-brand-700 ring-brand-200"
-                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                    ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
+                    : "bg-paper text-ink-muted ring-cream-dark hover:bg-cream"
                 }`}
               >
                 <span className="text-sm">{t.label}</span>
@@ -155,9 +151,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
         </div>
       </section>
 
-      {/* Dietary */}
       <section>
-        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Diet</h4>
+        <h4 className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Diet</h4>
         <div className="flex flex-wrap gap-1.5">
           {DIETARY_OPTIONS.map((d) => {
             const active = selectedDietary.includes(d.value);
@@ -167,8 +162,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
                 onClick={() => setSelectedDietary((prev) => toggleInArray(prev, d.value))}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ring-1 transition-all ${
                   active
-                    ? "bg-brand-50 text-brand-700 ring-brand-200"
-                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                    ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
+                    : "bg-paper text-ink-muted ring-cream-dark hover:bg-cream"
                 }`}
               >
                 {d.icon}
@@ -179,9 +174,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
         </div>
       </section>
 
-      {/* Health */}
       <section>
-        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Health</h4>
+        <h4 className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Health</h4>
         <div className="flex flex-wrap gap-1.5">
           {HEALTH_PRESETS.map((h) => {
             const active = minHealthScore === h.value;
@@ -191,8 +185,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
                 onClick={() => setMinHealthScore(h.value)}
                 className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ring-1 transition-all ${
                   active
-                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                    ? "bg-olive-50 text-olive-700 ring-olive-200"
+                    : "bg-paper text-ink-muted ring-cream-dark hover:bg-cream"
                 }`}
               >
                 {h.value > 0 && <HeartPulse size={12} />}
@@ -203,9 +197,8 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
         </div>
       </section>
 
-      {/* Clear all inside filter rail */}
       {hasActiveFilters && (
-        <button onClick={clearAllFilters} className="w-full rounded-xl py-2 text-xs font-semibold text-surface-500 transition hover:bg-surface-100 hover:text-surface-700">
+        <button onClick={clearAllFilters} className="w-full rounded-xl py-2 text-xs font-semibold text-ink-faint transition hover:bg-cream hover:text-ink-muted">
           Clear all filters
         </button>
       )}
@@ -214,38 +207,35 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
 
   return (
     <div className="space-y-5">
-      {/* Top bar: title + result count + sort + mobile filter toggle */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-surface-900">Search</h2>
-          <p className="text-sm text-surface-500 mt-1">Find restaurants by name, cuisine, price, diet, or health score.</p>
+          <h2 className="font-serif text-2xl text-ink">Search</h2>
+          <p className="text-sm text-ink-faint mt-1">Find restaurants by name, cuisine, price, diet, or health score.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-surface-500">{results.length} restaurant{results.length !== 1 ? "s" : ""}</div>
-          {/* Sort */}
+          <div className="text-sm text-ink-faint">{results.length} restaurant{results.length !== 1 ? "s" : ""}</div>
           <div className="relative">
-            <ArrowDownUp size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-400" />
+            <ArrowDownUp size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none rounded-xl border border-surface-200 bg-white py-2 pl-8 pr-7 text-xs font-medium text-surface-700 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="appearance-none rounded-xl border border-cream-dark bg-paper py-2 pl-8 pr-7 text-xs font-medium text-ink-muted shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
-          {/* Mobile filter toggle */}
           <button
             onClick={() => setShowFiltersMobile((s) => !s)}
             className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-sm ring-1 transition-all lg:hidden ${
-              showFiltersMobile ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-700 ring-surface-200"
+              showFiltersMobile ? "bg-sienna-50 text-sienna-700 ring-sienna-200" : "bg-paper text-ink-muted ring-cream-dark"
             }`}
           >
             <SlidersHorizontal size={14} />
             Filters
             {activeFilters.length > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sienna-500 text-[10px] font-bold text-white">
                 {activeFilters.length}
               </span>
             )}
@@ -253,31 +243,28 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
         </div>
       </div>
 
-      {/* Active filter pills */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {activeFilters.map((f) => (
-            <span key={f.key} className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-200">
+            <span key={f.key} className="flex items-center gap-1 rounded-full bg-sienna-50 px-3 py-1 text-xs font-medium text-sienna-700 ring-1 ring-sienna-200">
               {f.label}
-              <button onClick={f.onRemove} className="rounded-full p-0.5 hover:bg-brand-100 transition">
+              <button onClick={f.onRemove} className="rounded-full p-0.5 hover:bg-sienna-100 transition">
                 <X size={10} />
               </button>
             </span>
           ))}
-          <button onClick={clearAllFilters} className="ml-1 text-xs font-medium text-surface-400 hover:text-surface-700 transition">
+          <button onClick={clearAllFilters} className="ml-1 text-xs font-medium text-ink-faint hover:text-ink-muted transition">
             Clear all
           </button>
         </div>
       )}
 
-      {/* Main layout: filter rail + results */}
       <div className="flex gap-6">
-        {/* Filter rail — desktop always visible, mobile collapsible */}
         <aside className={`w-64 flex-shrink-0 ${showFiltersMobile ? "block" : "hidden lg:block"}`}>
-          <div className="sticky top-4 rounded-2xl border border-surface-200 bg-white p-4 shadow-card ring-1 ring-surface-100">
+          <div className="sticky top-28 rounded-2xl border border-cream-dark bg-paper p-4 shadow-card">
             <div className="mb-4 flex items-center justify-between lg:hidden">
-              <h3 className="text-sm font-bold text-surface-900">Filters</h3>
-              <button onClick={() => setShowFiltersMobile(false)} className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600">
+              <h3 className="text-sm font-semibold text-ink">Filters</h3>
+              <button onClick={() => setShowFiltersMobile(false)} className="rounded p-1 text-ink-faint hover:bg-cream hover:text-ink-muted">
                 <X size={16} />
               </button>
             </div>
@@ -285,13 +272,12 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
           </div>
         </aside>
 
-        {/* Results */}
         <div className="min-w-0 flex-1">
           {results.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
-              <BookOpen size={40} className="mb-3 text-surface-300" />
-              <p className="text-lg font-semibold text-surface-600">No venues found</p>
-              <p className="text-sm text-surface-400 mt-1 mb-5">
+            <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cream-dark py-20 text-center">
+              <BookOpen size={40} className="mb-3 text-ink-faint" />
+              <p className="font-serif text-lg text-ink-muted">No venues found</p>
+              <p className="text-sm text-ink-faint mt-1 mb-5">
                 {hasActiveFilters
                   ? "Try loosening your filters or clearing them entirely."
                   : "Try a different search term."}

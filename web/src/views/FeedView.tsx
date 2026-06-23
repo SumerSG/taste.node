@@ -25,10 +25,10 @@ function avatarInitial(name: string) {
   return name.split(" ")[0][0].toUpperCase();
 }
 
-const MODES: { id: FeedMode; label: string; icon: React.ReactNode; hint: string }[] = [
-  { id: "following", label: "Following", icon: <Users size={14} />, hint: "People you follow" },
-  { id: "recommended", label: "For You", icon: <Sparkles size={14} />, hint: "Your taste cluster" },
-  { id: "global", label: "Global", icon: <Globe size={14} />, hint: "Everyone" },
+const MODES: { id: FeedMode; label: string; icon: React.ReactNode }[] = [
+  { id: "following", label: "Following", icon: <Users size={13} /> },
+  { id: "recommended", label: "For You", icon: <Sparkles size={13} /> },
+  { id: "global", label: "Global", icon: <Globe size={13} /> },
 ];
 
 export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
@@ -45,7 +45,6 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
   }, []);
 
   const selectedVenue = venueId ? venueMap.get(venueId) ?? null : null;
-
   const filteredPosts = useMemo(() => filterFeedPosts(feed, mode), [feed, mode]);
 
   const handleSubmit = () => {
@@ -71,18 +70,14 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
     onFeedChange(deletePost(feed, postId));
   };
 
-  const handleModeChange = (next: FeedMode) => {
-    setMode(next);
-  };
-
   return (
-    <div className="mx-auto max-w-xl space-y-5">
+    <div className="mx-auto max-w-xl space-y-6">
       {/* Composer modal */}
       {composing && (
-        <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card ring-1 ring-surface-100">
+        <div className="taste-card rounded-2xl border border-cream-dark bg-paper p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-bold text-surface-900">Share a place you loved</h3>
-            <button onClick={() => setComposing(false)} className="rounded-lg p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600">
+            <h3 className="font-serif text-lg text-ink">Share a place you loved</h3>
+            <button onClick={() => setComposing(false)} className="rounded-lg p-1 text-ink-faint hover:bg-cream hover:text-ink-muted">
               <X size={18} />
             </button>
           </div>
@@ -90,17 +85,17 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="What did you love about it?"
-            className="mb-3 w-full rounded-xl border border-surface-200 bg-surface-50 p-3 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            placeholder="What was the one thing you can't stop thinking about?"
+            className="mb-3 w-full rounded-xl border border-cream-dark bg-cream p-3 text-sm leading-relaxed shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             rows={3}
           />
 
           <div className="mb-3 flex items-center gap-2">
-            <MapPin size={14} className="text-surface-400" />
+            <MapPin size={14} className="text-ink-faint" />
             <select
               value={venueId}
               onChange={(e) => setVenueId(e.target.value)}
-              className="flex-1 rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="flex-1 rounded-xl border border-cream-dark bg-cream px-3 py-2 text-sm shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             >
               <option value="">Tag a restaurant (optional)</option>
               {ALL_VENUES.map((v) => (
@@ -110,12 +105,12 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
           </div>
 
           <div className="mb-4 flex items-center gap-2">
-            <Image size={14} className="text-surface-400" />
+            <Image size={14} className="text-ink-faint" />
             <input
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="Paste a photo URL (optional)"
-              className="flex-1 rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="flex-1 rounded-xl border border-cream-dark bg-cream px-3 py-2 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             />
           </div>
 
@@ -136,19 +131,18 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
 
       {/* Mode toggle */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex items-center rounded-xl bg-surface-100 p-1 shadow-sm">
+        <div className="inline-flex items-center rounded-xl bg-cream-warm p-1 shadow-sm">
           {MODES.map((m) => {
             const active = mode === m.id;
             return (
               <button
                 key={m.id}
-                onClick={() => handleModeChange(m.id)}
+                onClick={() => setMode(m.id)}
                 className={`relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all ${
                   active
-                    ? "bg-white text-surface-900 shadow-sm ring-1 ring-surface-200"
-                    : "text-surface-500 hover:text-surface-700"
+                    ? "bg-paper text-ink shadow-sm"
+                    : "text-ink-faint hover:text-ink-muted"
                 }`}
-                title={m.hint}
                 aria-pressed={active}
               >
                 {m.icon}
@@ -161,26 +155,25 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
 
       {/* Feed posts */}
       {filteredPosts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
-          <Camera size={40} className="mb-3 text-surface-300" />
-          <p className="text-lg font-semibold text-surface-600">
+        <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cream-dark py-20 text-center">
+          <Camera size={40} className="mb-3 text-ink-faint" />
+          <p className="font-serif text-lg text-ink-muted">
             {mode === "following" && "Nobody you follow has posted yet"}
             {mode === "recommended" && "No recommendations from your cluster yet"}
             {mode === "global" && "No posts yet"}
           </p>
-          <p className="text-sm text-surface-400 mt-1 mb-5">
+          <p className="text-sm text-ink-faint mt-2 mb-6 max-w-xs">
             {mode === "following"
               ? "Follow more people to see their recommendations here."
               : mode === "recommended"
               ? "Add a few more spots to your ranking to unlock cluster picks."
               : "Be the first to share a place you loved."}
           </p>
-          {mode === "following" && (
+          {mode === "following" ? (
             <button onClick={onNavigateToSearch} className="btn-ghost gap-2 text-sm">
               Browse restaurants to discover people
             </button>
-          )}
-          {(mode === "global" || mode === "recommended") && (
+          ) : (
             <button onClick={onNavigateToSearch} className="btn-ghost gap-2 text-sm">
               Browse restaurants
             </button>
@@ -189,37 +182,40 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
       ) : (
         <div className="space-y-5">
           {filteredPosts.map((post) => (
-            <div key={post.id} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card ring-1 ring-surface-100 transition hover:shadow-card-hover">
+            <div
+              key={post.id}
+              className="taste-card rounded-2xl border border-cream-dark bg-paper p-5"
+            >
               {/* Header */}
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
                     post.author_id === "demo_user"
-                      ? "bg-brand-100 text-brand-700"
-                      : "bg-surface-100 text-surface-600"
+                      ? "bg-sienna-50 text-sienna-700"
+                      : "bg-cream text-ink-muted"
                   }`}>
                     {avatarInitial(post.author_name)}
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-surface-900">{post.author_name}</div>
-                    <div className="text-xs text-surface-400">{timeAgo(post.created_at)}</div>
+                    <div className="text-sm font-semibold text-ink">{post.author_name}</div>
+                    <div className="text-[11px] text-ink-faint">{timeAgo(post.created_at)}</div>
                   </div>
                 </div>
                 {post.author_id === "demo_user" && (
-                  <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-surface-400 hover:bg-red-50 hover:text-red-500 transition">
+                  <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
                     <Trash2 size={14} />
                   </button>
                 )}
               </div>
 
               {/* Text */}
-              {post.text && <p className="mb-3 whitespace-pre-wrap text-sm text-surface-800 leading-relaxed">{post.text}</p>}
+              {post.text && <p className="mb-3 whitespace-pre-wrap text-base leading-relaxed text-ink-light">{post.text}</p>}
 
               {/* Venue tag */}
               {post.venue_id && post.venue_name && (
                 <button
                   onClick={onNavigateToSearch}
-                  className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 transition hover:bg-brand-100"
+                  className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-sienna-50 px-3 py-1.5 text-xs font-medium text-sienna-700 ring-1 ring-sienna-200 transition hover:bg-sienna-100"
                 >
                   <MapPin size={12} /> {post.venue_name}
                 </button>
@@ -239,7 +235,7 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
       {/* Floating Action Button */}
       <button
         onClick={() => setComposing(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-elevated transition-all hover:bg-brand-700 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-brand-200"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-sienna-500 text-white shadow-elevated transition-all hover:bg-sienna-600 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-sienna-200"
         aria-label="Add recommendation"
       >
         <Plus size={28} strokeWidth={2.5} />

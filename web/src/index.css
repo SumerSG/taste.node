@@ -9,28 +9,54 @@
   }
   body {
     font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    background-color: #fafaf9;
-    color: #1c1917;
+    background-color: #f7f3ed;
+    color: #1a1612;
+    line-height: 1.6;
   }
+  h1, h2, h3, h4 {
+    font-family: 'DM Serif Display', Georgia, Times, serif;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.1rem; }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-700 hover:shadow-card-hover active:scale-[0.98];
+    @apply inline-flex items-center justify-center rounded-xl bg-sienna-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sienna-600 hover:shadow-card-hover active:scale-[0.98];
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-surface-700 shadow-sm ring-1 ring-surface-200 transition-all hover:bg-surface-50 hover:ring-surface-300 active:scale-[0.98];
+    @apply inline-flex items-center justify-center rounded-xl bg-paper px-4 py-2.5 text-sm font-semibold text-ink-muted shadow-sm ring-1 ring-cream-dark transition-all hover:bg-cream hover:ring-surface-300 active:scale-[0.98];
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-surface-600 transition-all hover:bg-surface-100 hover:text-surface-800;
+    @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-ink-faint transition-all hover:bg-cream-warm hover:text-ink-muted;
   }
   .card {
-    @apply rounded-2xl bg-white shadow-card ring-1 ring-surface-100 transition-shadow hover:shadow-card-hover;
+    @apply rounded-2xl bg-paper shadow-card transition-shadow hover:shadow-card-hover;
   }
   .chip {
-    @apply inline-flex items-center rounded-full bg-surface-100 px-2.5 py-0.5 text-xs font-medium text-surface-600;
+    @apply inline-flex items-center rounded-full bg-cream px-2.5 py-0.5 text-xs font-medium text-ink-muted;
   }
   .chip-active {
-    @apply inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700;
+    @apply inline-flex items-center rounded-full bg-sienna-50 px-2.5 py-0.5 text-xs font-medium text-sienna-700;
+  }
+  /* Taste card signature element */
+  .taste-card {
+    @apply relative rounded-2xl bg-paper shadow-card overflow-hidden transition-all duration-300 ease-card;
+  }
+  .taste-card::before {
+    content: '';
+    @apply absolute top-0 left-0 h-[3px] bg-sienna-500 rounded-full;
+    width: 40%;
+    transition: width 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .taste-card:hover::before {
+    width: 100%;
+  }
+  .taste-card:hover {
+    @apply shadow-card-hover -translate-y-0.5;
   }
 }
