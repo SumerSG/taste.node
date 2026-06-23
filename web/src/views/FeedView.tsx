@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { Post, FeedData, Venue, FeedMode } from "../data/types";
 import { addPost, deletePost, filterFeedPosts } from "../data/api";
-import { ALL_VENUES } from "../data/mockData";
+import { getAllVenues } from "../data/venues";
 import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles } from "lucide-react";
 
 interface Props {
@@ -40,7 +40,7 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
 
   const venueMap = useMemo(() => {
     const m = new Map<string, Venue>();
-    ALL_VENUES.forEach((v) => m.set(v.id, v));
+    getAllVenues().forEach((v) => m.set(v.id, v));
     return m;
   }, []);
 
@@ -97,10 +97,10 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
               onChange={(e) => setVenueId(e.target.value)}
               className="flex-1 rounded-xl border border-cream-dark bg-cream px-3 py-2 text-sm shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             >
-              <option value="">Tag a restaurant (optional)</option>
-              {ALL_VENUES.map((v) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
+                <option value="">Tag a restaurant (optional)</option>
+                {getAllVenues().map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
             </select>
           </div>
 

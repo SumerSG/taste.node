@@ -1,5 +1,6 @@
 import type { TasteProfile, RankedItem, Filters, RankStatus, Post, FeedData } from "./types";
-import { DEFAULT_PROFILE, getClusterLabel, computeRecommendations, sortRecommendations, searchVenues, ALL_VENUES, SEED_POSTS, FOLLOWED_USERS, CLUSTER_PEERS } from "./mockData";
+import { getClusterLabel, computeRecommendations, sortRecommendations, buildSeedPosts, getDefaultProfile } from "./mockData";
+import { FOLLOWED_USERS, CLUSTER_PEERS } from "./mockData";
 
 const STORAGE_KEY = "taste.node.profile.v2";
 
@@ -21,7 +22,7 @@ export function loadProfile(): TasteProfile {
       return parsed;
     }
   } catch {}
-  return { ...DEFAULT_PROFILE };
+  return { ...getDefaultProfile() };
 }
 
 export function saveProfile(profile: TasteProfile) {
@@ -111,7 +112,7 @@ export function getSortedRecommendations(profile: TasteProfile, filters: Filters
   return sortRecommendations(computeRecommendations(profile, filters), sortBy);
 }
 
-export { searchVenues, ALL_VENUES };
+/* ─── Feed ─── */
 
 const FEED_KEY = "taste.node.feed.v2";
 
@@ -120,7 +121,7 @@ export function loadFeed(): FeedData {
     const raw = localStorage.getItem(FEED_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { posts: [...SEED_POSTS] };
+  return { posts: buildSeedPosts() };
 }
 
 export function saveFeed(feed: FeedData) {
@@ -152,3 +153,12 @@ export function filterFeedPosts(feed: FeedData, mode: import("./types").FeedMode
       return feed.posts;
   }
 }
+
+/* ─── Re-export venue helpers so callers don’t need two imports ─── */
+export {
+  buildSeedPosts,
+  getDefaultProfile,
+  getClusterLabel,
+  computeRecommendations,
+  sortRecommendations,
+} from "./mockData";

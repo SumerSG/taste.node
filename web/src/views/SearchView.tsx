@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import type { Venue, TasteProfile } from "../data/types";
-import { filterAndSortVenues, TOP_CUISINES } from "../data/mockData";
+import { filterAndSortVenues } from "../data/venues";
+import { TOP_CUISINES } from "../data/mockData";
 import { addRankedItem } from "../data/api";
 import { VenueCard } from "../components/VenueCard";
 import { VenueDetailModal } from "../components/VenueDetailModal";
