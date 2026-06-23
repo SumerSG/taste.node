@@ -14,9 +14,9 @@ export default {
           faint: '#8a8074',
         },
         cream: {
-          DEFAULT: '#f7f3ed',
-          warm: '#ede6db',
-          dark: '#e2d9cc',
+          DEFAULT: '#e8e0d1',
+          warm: '#ded5c4',
+          dark: '#d1c6b3',
         },
         paper: {
           DEFAULT: '#fdfcfa',

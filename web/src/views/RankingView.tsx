@@ -6,7 +6,7 @@ import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types"
 import { removeRankedItem, updateItemStatus } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
-import { GripVertical, Trash2, ChevronUp, ChevronDown, Plus, ListOrdered } from "lucide-react";
+import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink } from "lucide-react";
 
 interface Props {
   profile: TasteProfile;
@@ -29,7 +29,7 @@ function rankNumberStyle(index: number) {
 }
 
 function SortableRow({
-  item, index, onRemove, onMoveUp, onMoveDown, onStatusChange, onClick, sensorsEnabled,
+  item, index, onRemove, onMoveUp, onMoveDown, onStatusChange, onClick,
 }: {
   item: RankedItem;
   index: number;
@@ -38,15 +38,17 @@ function SortableRow({
   onMoveDown: () => void;
   onStatusChange: (s: RankStatus) => void;
   onClick: () => void;
-  sensorsEnabled: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.venue.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group relative flex items-center gap-3 rounded-2xl border border-cream-dark bg-paper p-3 shadow-sm transition hover:shadow-card"
+      className="group relative flex items-center gap-3 rounded-2xl border border-cream-dark bg-paper p-3 shadow-sm transition hover:shadow-card cursor-grab active:cursor-grabbing"
+      {...attributes}
+      {...listeners}
     >
       {/* Left gradient accent line */}
       <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b ${rankAccentClass(index)}`} />
@@ -56,20 +58,28 @@ function SortableRow({
         {index + 1}
       </div>
 
-      {/* Drag handle */}
-      <button {...(sensorsEnabled ? attributes : {})} {...(sensorsEnabled ? listeners : {})} className="cursor-grab text-ink-faint hover:text-ink-muted">
-        <GripVertical size={16} />
-      </button>
-
       {/* Photo */}
-      <div className="shrink-0 cursor-pointer overflow-hidden rounded-xl" onClick={onClick}>
+      <div className="shrink-0 cursor-pointer overflow-hidden rounded-xl" onPointerDown={(e) => e.stopPropagation()} onClick={onClick}>
         <img src={item.venue.image_url} alt={item.venue.name} className="h-14 w-14 object-cover" loading="lazy" />
       </div>
 
       {/* Info */}
-      <div className="min-w-0 flex-1 cursor-pointer" onClick={onClick}>
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold text-ink">{item.venue.name}</span>
+          {item.venue.source_url && (
+            <a
+              href={item.venue.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded p-0.5 text-ink-faint hover:text-sienna-600 transition"
+              title="Open restaurant page"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink size={13} />
+            </a>
+          )}
           {item.is_classic && (
             <span className="shrink-0 -rotate-6 rounded-sm border border-sienna-300 bg-sienna-50 px-1 py-0.5 text-[9px] font-black uppercase tracking-tight text-sienna-700">
               Classic
@@ -84,7 +94,7 @@ function SortableRow({
       </div>
 
       {/* Status selector */}
-      <div className="hidden sm:block">
+      <div className="hidden sm:block" onPointerDown={(e) => e.stopPropagation()}>
         <select
           value={item.status ?? "visited"}
           onChange={(e) => onStatusChange(e.target.value as RankStatus)}
@@ -97,13 +107,13 @@ function SortableRow({
       </div>
 
       {/* Reorder buttons */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition" onPointerDown={(e) => e.stopPropagation()}>
         <button onClick={onMoveUp} className="rounded p-1 text-ink-faint hover:bg-cream"><ChevronUp size={14} /></button>
         <button onClick={onMoveDown} className="rounded p-1 text-ink-faint hover:bg-cream"><ChevronDown size={14} /></button>
       </div>
 
       {/* Remove */}
-      <button onClick={onRemove} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
+      <button onClick={onRemove} onPointerDown={(e) => e.stopPropagation()} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
         <Trash2 size={14} />
       </button>
     </div>
@@ -112,7 +122,6 @@ function SortableRow({
 
 export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: Props) {
   const items = profile.contexts[profile.default_context].ranked_list;
-  const [dragEnabled] = useState(true);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const cluster = getClusterLabel(profile);
 
@@ -154,7 +163,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-serif text-2xl text-ink">My Ranking</h2>
-          <p className="text-sm text-ink-faint">Drag to reorder. Up/down arrows nudge. Status updates taste signal.</p>
+          <p className="text-sm text-ink-faint">Drag anywhere to reorder. Up/down arrows nudge. Status updates taste signal.</p>
         </div>
         <button onClick={onNavigateToLibrary} className="btn-primary gap-2 text-sm">
           <Plus size={15} /> Add from Search
@@ -183,7 +192,6 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
                   onMoveDown={() => move(idx, 1)}
                   onStatusChange={(s) => onProfileChange(updateItemStatus(profile, item.venue.id, s))}
                   onClick={() => setSelectedVenue(item.venue)}
-                  sensorsEnabled={dragEnabled}
                 />
               ))}
             </div>

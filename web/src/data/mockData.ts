@@ -41,6 +41,7 @@ const VENUE_DATA: Venue[] = (rawVenues as unknown as Array<Record<string, unknow
   health_score: v.health_score as number | null,
   source: v.source as Venue["source"],
   image_url: pickImage(v.cuisines as string[]),
+  source_url: (v.source_url as string | undefined) || undefined,
 }));
 
 export const CLUSTER_PEERS = ["alex_12", "jordan_34", "sam_88", "taylor_09", "casey_22", "morgan_45"];
@@ -102,7 +103,7 @@ export const ALL_VENUES = MOCK_VENUES;
 
 export const ALL_CUISINES: string[] = Array.from(new Set(MOCK_VENUES.flatMap((v) => v.cuisines))).sort();
 
-export const DEFAULT_VENUES = [MOCK_VENUES[0], MOCK_VENUES[1], MOCK_VENUES[2], MOCK_VENUES[3], MOCK_VENUES[4]];
+export const DEFAULT_VENUES = [MOCK_VENUES[12], MOCK_VENUES[45], MOCK_VENUES[88], MOCK_VENUES[134], MOCK_VENUES[201]];
 
 const validLocs = MOCK_VENUES.map((v) => v.location).filter((l): l is { lat: number; lng: number } => l != null);
 const USER_LOCATION = validLocs.length > 0
@@ -118,11 +119,11 @@ export const DEFAULT_PROFILE: TasteProfile = {
     default: {
       context_id: "default",
       ranked_list: [
-        { venue: MOCK_VENUES[0], visited_at: "2025-01-10T18:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "solo", is_classic: false, status: "favourite" },
-        { venue: MOCK_VENUES[1], visited_at: "2025-02-14T19:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: true, status: "favourite" },
-        { venue: MOCK_VENUES[2], visited_at: "2025-03-01T12:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "group", is_classic: false, status: "visited" },
-        { venue: MOCK_VENUES[3], visited_at: "2025-04-20T19:30:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: false, status: "visited" },
-        { venue: MOCK_VENUES[4], visited_at: "2025-05-15T13:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "comfort", is_classic: false, status: "visited" },
+        { venue: DEFAULT_VENUES[0], visited_at: "2025-01-10T18:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "solo", is_classic: false, status: "favourite" },
+        { venue: DEFAULT_VENUES[1], visited_at: "2025-02-14T19:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: true, status: "favourite" },
+        { venue: DEFAULT_VENUES[2], visited_at: "2025-03-01T12:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "group", is_classic: false, status: "visited" },
+        { venue: DEFAULT_VENUES[3], visited_at: "2025-04-20T19:30:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "date", is_classic: false, status: "visited" },
+        { venue: DEFAULT_VENUES[4], visited_at: "2025-05-15T13:00:00+00:00", added_at: "2026-06-22T10:00:00+00:00", occasion_tag: "comfort", is_classic: false, status: "visited" },
       ],
       created_at: "2026-06-22T10:00:00+00:00",
       updated_at: "2026-06-22T10:00:00+00:00",

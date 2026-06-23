@@ -8,6 +8,7 @@ export interface Venue {
   price_tier: number | null;
   health_score: number | null;
   source: "synthetic" | "api" | "user_added" | "tabelog";
+  source_url?: string;
 }
 
 export type RankStatus = "want_to_try" | "visited" | "favourite" | "regular";
