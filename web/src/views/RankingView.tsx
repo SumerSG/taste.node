@@ -127,7 +127,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
           <p className="text-sm text-surface-500">Drag to reorder. Up/down arrows nudge. Status updates taste signal.</p>
         </div>
         <button onClick={onNavigateToLibrary} className="btn-primary gap-2 text-sm">
-          <Plus size={15} /> Add from Library
+          <Plus size={15} /> Add from Search
         </button>
       </div>
 
@@ -136,8 +136,8 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
           <ListOrdered size={40} className="mb-3 text-surface-300" />
           <p className="text-lg font-semibold text-surface-600">Your ranking is empty</p>
-          <p className="text-sm text-surface-400 mt-1">Browse the Library and add places you love.</p>
-          <button onClick={onNavigateToLibrary} className="btn-primary mt-4 gap-2"><Plus size={15} /> Browse Library</button>
+          <p className="text-sm text-surface-400 mt-1">Browse Search and add places you love.</p>
+          <button onClick={onNavigateToLibrary} className="btn-primary mt-4 gap-2"><Plus size={15} /> Browse Search</button>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import type { Post, FeedData, Venue } from "../data/types";
-import { addPost, deletePost } from "../data/api";
+import type { Post, FeedData, Venue, FeedMode } from "../data/types";
+import { addPost, deletePost, filterFeedPosts } from "../data/api";
 import { ALL_VENUES } from "../data/mockData";
-import { Plus, Image, X, MapPin, Send, Trash2, Camera } from "lucide-react";
+import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles } from "lucide-react";
 
 interface Props {
   feed: FeedData;
@@ -25,11 +25,18 @@ function avatarInitial(name: string) {
   return name.split(" ")[0][0].toUpperCase();
 }
 
+const MODES: { id: FeedMode; label: string; icon: React.ReactNode; hint: string }[] = [
+  { id: "following", label: "Following", icon: <Users size={14} />, hint: "People you follow" },
+  { id: "recommended", label: "For You", icon: <Sparkles size={14} />, hint: "Your taste cluster" },
+  { id: "global", label: "Global", icon: <Globe size={14} />, hint: "Everyone" },
+];
+
 export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
-  const [ composing, setComposing ] = useState(false);
-  const [ text, setText ] = useState("");
-  const [ imageUrl, setImageUrl ] = useState("");
-  const [ venueId, setVenueId ] = useState("");
+  const [mode, setMode] = useState<FeedMode>("recommended");
+  const [composing, setComposing] = useState(false);
+  const [text, setText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [venueId, setVenueId] = useState("");
 
   const venueMap = useMemo(() => {
     const m = new Map<string, Venue>();
@@ -38,6 +45,8 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
   }, []);
 
   const selectedVenue = venueId ? venueMap.get(venueId) ?? null : null;
+
+  const filteredPosts = useMemo(() => filterFeedPosts(feed, mode), [feed, mode]);
 
   const handleSubmit = () => {
     if (!text.trim() && !imageUrl.trim()) return;
@@ -62,8 +71,12 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
     onFeedChange(deletePost(feed, postId));
   };
 
+  const handleModeChange = (next: FeedMode) => {
+    setMode(next);
+  };
+
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-xl space-y-5">
       {/* Big Add Recommendation button */}
       <button
         onClick={() => setComposing(true)}
@@ -129,27 +142,75 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
         </div>
       )}
 
+      {/* Mode toggle */}
+      <div className="flex items-center justify-center">
+        <div className="inline-flex items-center rounded-xl bg-surface-100 p-1 shadow-sm">
+          {MODES.map((m) => {
+            const active = mode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => handleModeChange(m.id)}
+                className={`relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all ${
+                  active
+                    ? "bg-white text-surface-900 shadow-sm ring-1 ring-surface-200"
+                    : "text-surface-500 hover:text-surface-700"
+                }`}
+                title={m.hint}
+                aria-pressed={active}
+              >
+                {m.icon}
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Feed posts */}
-      {feed.posts.length === 0 ? (
+      {filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
           <Camera size={40} className="mb-3 text-surface-300" />
-          <p className="text-lg font-semibold text-surface-600">No posts yet</p>
-          <p className="text-sm text-surface-400 mt-1 mb-5">Be the first to share a place you loved.</p>
-          <button onClick={() => setComposing(true)} className="btn-primary gap-2">
-            <Plus size={15} /> Add Recommendation
-          </button>
-          <button onClick={onNavigateToSearch} className="btn-ghost mt-3 gap-2 text-sm">
-            Or browse restaurants
-          </button>
+          <p className="text-lg font-semibold text-surface-600">
+            {mode === "following" && "Nobody you follow has posted yet"}
+            {mode === "recommended" && "No recommendations from your cluster yet"}
+            {mode === "global" && "No posts yet"}
+          </p>
+          <p className="text-sm text-surface-400 mt-1 mb-5">
+            {mode === "following"
+              ? "Follow more people to see their recommendations here."
+              : mode === "recommended"
+              ? "Add a few more spots to your ranking to unlock cluster picks."
+              : "Be the first to share a place you loved."}
+          </p>
+          {(mode === "global" || mode === "recommended") && (
+            <button onClick={() => setComposing(true)} className="btn-primary gap-2">
+              <Plus size={15} /> Add Recommendation
+            </button>
+          )}
+          {mode === "following" && (
+            <button onClick={onNavigateToSearch} className="btn-ghost mt-3 gap-2 text-sm">
+              Browse restaurants to discover people
+            </button>
+          )}
+          {(mode === "global" || mode === "recommended") && (
+            <button onClick={onNavigateToSearch} className="btn-ghost mt-3 gap-2 text-sm">
+              Or browse restaurants
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-5">
-          {feed.posts.map((post) => (
+          {filteredPosts.map((post) => (
             <div key={post.id} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card ring-1 ring-surface-100 transition hover:shadow-card-hover">
               {/* Header */}
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
+                    post.author_id === "demo_user"
+                      ? "bg-brand-100 text-brand-700"
+                      : "bg-surface-100 text-surface-600"
+                  }`}>
                     {avatarInitial(post.author_name)}
                   </div>
                   <div>

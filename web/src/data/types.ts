@@ -7,7 +7,7 @@ export interface Venue {
   dietary_tags: string[];
   price_tier: number | null;
   health_score: number | null;
-  source: "synthetic" | "api" | "user_added";
+  source: "synthetic" | "api" | "user_added" | "tabelog";
 }
 
 export type RankStatus = "want_to_try" | "visited" | "favourite" | "regular";
@@ -20,6 +20,10 @@ export interface RankedItem {
   is_classic: boolean;
   rank?: number;
   status?: RankStatus;
+  personal_rating?: number;
+  reaction?: string;
+  meal_type?: "lunch" | "dinner";
+  dishes?: string[];
 }
 
 export interface TasteContext {
@@ -50,4 +54,19 @@ export interface Filters {
   radius_km: number;
 }
 
-export type SortBy = "match" | "price_asc" | "price_desc" | "health_desc" | "distance";
+export interface Post {
+  id: string;
+  author_id: string;
+  author_name: string;
+  text: string;
+  venue_id?: string;
+  venue_name?: string;
+  image_url?: string;
+  created_at: string;
+}
+
+export interface FeedData {
+  posts: Post[];
+}
+
+export type FeedMode = "following" | "recommended" | "global";

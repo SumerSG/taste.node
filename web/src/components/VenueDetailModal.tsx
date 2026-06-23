@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Venue, RankedItem, RankStatus } from "../data/types";
-import { X, MapPin, Heart, Calendar, Tag } from "lucide-react";
+import { X, MapPin, Heart, Calendar, Tag, Star, UtensilsCrossed, Sun, Moon, MessageSquare } from "lucide-react";
 import { statusLabel, statusColor } from "../data/mockData";
 
 interface Props {
@@ -16,10 +16,18 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
   const [visited, setVisited] = useState(new Date().toISOString().slice(0, 10));
   const [classic, setClassic] = useState(false);
   const [status, setStatus] = useState<RankStatus>(existingStatus ?? "want_to_try");
+  const [personalRating, setPersonalRating] = useState<number>(0);
+  const [reaction, setReaction] = useState("");
+  const [mealType, setMealType] = useState<"lunch" | "dinner" | undefined>(undefined);
+  const [dishesInput, setDishesInput] = useState("");
 
   if (!open) return null;
 
   const handleAdd = () => {
+    const dishes = dishesInput
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
     const item: RankedItem = {
       venue,
       visited_at: `${visited}T12:00:00+00:00`,
@@ -27,6 +35,10 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
       occasion_tag: occasion,
       is_classic: classic,
       status,
+      personal_rating: personalRating > 0 ? personalRating : undefined,
+      reaction: reaction.trim() || undefined,
+      meal_type: mealType,
+      dishes: dishes.length > 0 ? dishes : undefined,
     };
     onAdd(item);
     onClose();
@@ -70,7 +82,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
 
           {/* Add to list form */}
           <div className="mt-5 space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400">Add to your ranking</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400">Add to your library</h3>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -111,13 +123,72 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
                 </label>
               </div>
             </div>
+
+            {/* Personal rating */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-surface-700 flex items-center gap-1"><Star size={12}/> Your rating</label>
+              <div className="flex items-center gap-1">
+                {[1,2,3,4,5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setPersonalRating(n === personalRating ? 0 : n)}
+                    className={`rounded p-1 transition ${n <= personalRating ? "text-amber-400" : "text-surface-300 hover:text-amber-300"}`}
+                  >
+                    <Star size={22} fill={n <= personalRating ? "currentColor" : "none"} />
+                  </button>
+                ))}
+                {personalRating > 0 && <span className="ml-2 text-sm font-medium text-surface-600">{personalRating}/5</span>}
+              </div>
+            </div>
+
+            {/* Meal type */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-surface-700">Meal</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMealType(mealType === "lunch" ? undefined : "lunch")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium ring-1 transition ${mealType === "lunch" ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-500 ring-surface-200 hover:bg-surface-50"}`}
+                >
+                  <Sun size={13} /> Lunch
+                </button>
+                <button
+                  onClick={() => setMealType(mealType === "dinner" ? undefined : "dinner")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium ring-1 transition ${mealType === "dinner" ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-500 ring-surface-200 hover:bg-surface-50"}`}
+                >
+                  <Moon size={13} /> Dinner
+                </button>
+              </div>
+            </div>
+
+            {/* What they ate */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-surface-700 flex items-center gap-1"><UtensilsCrossed size={12}/> What you ate</label>
+              <input
+                value={dishesInput}
+                onChange={(e) => setDishesInput(e.target.value)}
+                placeholder="Ramen, gyoza, beer... (comma separated)"
+                className="w-full rounded-xl border-surface-200 bg-surface-50 px-3 py-2 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
+
+            {/* Reaction */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-surface-700 flex items-center gap-1"><MessageSquare size={12}/> Your take</label>
+              <textarea
+                value={reaction}
+                onChange={(e) => setReaction(e.target.value)}
+                placeholder="Short reaction..."
+                rows={2}
+                className="w-full rounded-xl border-surface-200 bg-surface-50 p-3 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex gap-3 border-t border-surface-100 p-4">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={handleAdd} className="btn-primary flex-1 gap-2"><Heart size={15}/> Save</button>
+          <button onClick={handleAdd} className="btn-primary flex-1 gap-2"><Heart size={15}/> Save to Library</button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import type { Venue, TasteProfile, Recommendation, Filters, RankStatus } from "./types";
+import rawVenues from "./venues.json";
 
 const IMAGES: Record<string, string> = {
   Japanese: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=400&fit=crop",
@@ -30,46 +31,86 @@ function pickImage(cuisines: string[]): string {
   return IMAGES.default;
 }
 
-const VENUE_DATA: Omit<Venue, "image_url">[] = [
-  { id: "ramen_ya", name: "Ramen-Ya", location: { lat: 40.728, lng: -73.994 }, cuisines: ["Japanese"], dietary_tags: [], price_tier: 2, health_score: 0.6, source: "synthetic" },
-  { id: "sushi_zen", name: "Sushi-Zen", location: { lat: 40.741, lng: -73.989 }, cuisines: ["Japanese"], dietary_tags: ["pescatarian"], price_tier: 3, health_score: 0.75, source: "synthetic" },
-  { id: "burger_01", name: "Burger-No1", location: { lat: 40.705, lng: -74.013 }, cuisines: ["American"], dietary_tags: [], price_tier: 2, health_score: 0.4, source: "synthetic" },
-  { id: "pizza_nap", name: "Pizza-Napoli", location: { lat: 40.72, lng: -74.005 }, cuisines: ["Italian"], dietary_tags: ["vegetarian"], price_tier: 2, health_score: 0.55, source: "synthetic" },
-  { id: "taco_01", name: "Tacos-Locos", location: { lat: 40.758, lng: -73.985 }, cuisines: ["Mexican"], dietary_tags: [], price_tier: 1, health_score: 0.5, source: "synthetic" },
-  { id: "borgia", name: "Borgia", location: { lat: 40.732, lng: -73.998 }, cuisines: ["Italian"], dietary_tags: ["vegetarian"], price_tier: 3, health_score: 0.7, source: "synthetic" },
-  { id: "golden_bistro", name: "Golden Bistro", location: { lat: 40.71, lng: -74.01 }, cuisines: ["French"], dietary_tags: ["pescatarian"], price_tier: 4, health_score: 0.8, source: "synthetic" },
-  { id: "green_bowl", name: "Green Bowl", location: { lat: 40.745, lng: -73.98 }, cuisines: ["Salad", "Vegetarian"], dietary_tags: ["vegan", "gluten-free"], price_tier: 2, health_score: 0.95, source: "synthetic" },
-  { id: "spice_route", name: "Spice Route", location: { lat: 40.725, lng: -73.99 }, cuisines: ["Indian"], dietary_tags: ["vegetarian"], price_tier: 2, health_score: 0.65, source: "synthetic" },
-  { id: "nordic_fish", name: "Nordic Fish", location: { lat: 40.735, lng: -74.0 }, cuisines: ["Nordic", "Seafood"], dietary_tags: ["pescatarian"], price_tier: 3, health_score: 0.72, source: "synthetic" },
-  { id: "coppa", name: "Coppa", location: { lat: 40.738, lng: -73.996 }, cuisines: ["Italian"], dietary_tags: [], price_tier: 3, health_score: 0.68, source: "synthetic" },
-  { id: "bao_haus", name: "Bao Haus", location: { lat: 40.718, lng: -73.987 }, cuisines: ["Taiwanese"], dietary_tags: [], price_tier: 1, health_score: 0.5, source: "synthetic" },
-  { id: "falafel_king", name: "Falafel King", location: { lat: 40.752, lng: -73.977 }, cuisines: ["Middle Eastern"], dietary_tags: ["vegan", "vegetarian"], price_tier: 1, health_score: 0.78, source: "synthetic" },
-  { id: "steak_house_7", name: "Steak House 7", location: { lat: 40.761, lng: -73.98 }, cuisines: ["Steakhouse"], dietary_tags: [], price_tier: 4, health_score: 0.35, source: "synthetic" },
-  { id: "pho_pasteur", name: "Pho Pasteur", location: { lat: 40.718, lng: -73.995 }, cuisines: ["Vietnamese"], dietary_tags: [], price_tier: 1, health_score: 0.6, source: "synthetic" },
-  { id: "tandoori_flame", name: "Tandoori Flame", location: { lat: 40.74, lng: -73.985 }, cuisines: ["Indian"], dietary_tags: [], price_tier: 2, health_score: 0.58, source: "synthetic" },
-  { id: "el_jefe", name: "El Jefe", location: { lat: 40.708, lng: -74.006 }, cuisines: ["Mexican"], dietary_tags: [], price_tier: 2, health_score: 0.52, source: "synthetic" },
-  { id: "pastry_lab", name: "Pastry Lab", location: { lat: 40.73, lng: -73.991 }, cuisines: ["Bakery", "French"], dietary_tags: ["vegetarian"], price_tier: 2, health_score: 0.45, source: "synthetic" },
-  { id: "korean_bbq_house", name: "Korean BBQ House", location: { lat: 40.747, lng: -73.986 }, cuisines: ["Korean"], dietary_tags: [], price_tier: 3, health_score: 0.4, source: "synthetic" },
-  { id: "the_salmon_bar", name: "The Salmon Bar", location: { lat: 40.739, lng: -74.002 }, cuisines: ["Nordic", "Seafood"], dietary_tags: ["pescatarian"], price_tier: 3, health_score: 0.8, source: "synthetic" },
-  { id: "molcajete", name: "Molcajete", location: { lat: 40.715, lng: -73.992 }, cuisines: ["Mexican"], dietary_tags: ["gluten-free"], price_tier: 2, health_score: 0.62, source: "synthetic" },
-  { id: "umami_burger", name: "Umami Burger", location: { lat: 40.722, lng: -73.988 }, cuisines: ["American"], dietary_tags: [], price_tier: 2, health_score: 0.42, source: "synthetic" },
-  { id: "roots_cafe", name: "Roots Cafe", location: { lat: 40.744, lng: -73.982 }, cuisines: ["Vegetarian", "Vegan"], dietary_tags: ["vegan", "gluten-free"], price_tier: 2, health_score: 0.92, source: "synthetic" },
-  { id: "coq_au_vin", name: "Coq au Vin", location: { lat: 40.728, lng: -74.003 }, cuisines: ["French"], dietary_tags: [], price_tier: 3, health_score: 0.55, source: "synthetic" },
-  { id: "donburi_den", name: "Donburi Den", location: { lat: 40.733, lng: -73.994 }, cuisines: ["Japanese"], dietary_tags: [], price_tier: 1, health_score: 0.65, source: "synthetic" },
-  { id: "carbonara_club", name: "Carbonara Club", location: { lat: 40.721, lng: -73.997 }, cuisines: ["Italian"], dietary_tags: [], price_tier: 2, health_score: 0.48, source: "synthetic" },
-  { id: "seoul_kitchen", name: "Seoul Kitchen", location: { lat: 40.749, lng: -73.988 }, cuisines: ["Korean"], dietary_tags: [], price_tier: 2, health_score: 0.5, source: "synthetic" },
-  { id: "shawarma_spot", name: "Shawarma Spot", location: { lat: 40.736, lng: -73.981 }, cuisines: ["Middle Eastern"], dietary_tags: [], price_tier: 1, health_score: 0.58, source: "synthetic" },
-  { id: "oyster_bay", name: "Oyster Bay", location: { lat: 40.74, lng: -74.01 }, cuisines: ["Seafood"], dietary_tags: ["pescatarian"], price_tier: 3, health_score: 0.7, source: "synthetic" },
-];
+const VENUE_DATA: Venue[] = (rawVenues as unknown as Array<Record<string, unknown>>).map((v) => ({
+  id: v.venue_id as string,
+  name: v.name as string,
+  location: v.lat != null && v.lng != null ? { lat: v.lat as number, lng: v.lng as number } : null,
+  cuisines: v.cuisines as string[],
+  dietary_tags: v.dietary_tags as string[],
+  price_tier: v.price_tier as number | null,
+  health_score: v.health_score as number | null,
+  source: v.source as Venue["source"],
+  image_url: pickImage(v.cuisines as string[]),
+}));
 
-const CLUSTER_PEERS = ["alex_12", "jordan_34", "sam_88", "taylor_09", "casey_22", "morgan_45"];
+export const CLUSTER_PEERS = ["alex_12", "jordan_34", "sam_88", "taylor_09", "casey_22", "morgan_45"];
 
-export const MOCK_VENUES: Venue[] = VENUE_DATA.map((v) => ({ ...v, image_url: pickImage(v.cuisines) }));
+export const FOLLOWED_USERS = ["alex_12", "jordan_34", "sam_88"];
+
+export const SEED_POSTS: import("./types").Post[] = [
+  {
+    id: "seed_001",
+    author_id: "alex_12",
+    author_name: "Alex M.",
+    text: "The omakase here was unreal. Every course built on the last — the chūtoro melted like butter.",
+    venue_id: VENUE_DATA[5]?.id,
+    venue_name: VENUE_DATA[5]?.name,
+    image_url: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&h=500&fit=crop",
+    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+  },
+  {
+    id: "seed_002",
+    author_id: "jordan_34",
+    author_name: "Jordan T.",
+    text: "Finally found a proper Neapolitan pizza in this city. Leopard-spotted crust, San Marzano tomatoes, buffalo mozzarella.",
+    venue_id: VENUE_DATA[6]?.id,
+    venue_name: VENUE_DATA[6]?.name,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+  },
+  {
+    id: "seed_003",
+    author_id: "sam_88",
+    author_name: "Sam K.",
+    text: "This tiny Korean BBQ joint doesn't take reservations and the wait is always 40 mins. Worth it.",
+    venue_id: VENUE_DATA[7]?.id,
+    venue_name: VENUE_DATA[7]?.name,
+    image_url: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=800&h=500&fit=crop",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+  },
+  {
+    id: "seed_004",
+    author_id: "taylor_09",
+    author_name: "Taylor R.",
+    text: "Hidden vegan tasting menu. 10 courses, no repeats, all plant-based. Who knew cashew cream could do that?",
+    venue_id: VENUE_DATA[8]?.id,
+    venue_name: VENUE_DATA[8]?.name,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+  },
+  {
+    id: "seed_005",
+    author_id: "demo_user",
+    author_name: "You",
+    text: "My new favourite lunch spot. The salmon bowl is exactly what I needed.",
+    venue_id: VENUE_DATA[2]?.id,
+    venue_name: VENUE_DATA[2]?.name,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+].filter((p) => p.venue_id);
+
+export const MOCK_VENUES: Venue[] = VENUE_DATA;
 export const ALL_VENUES = MOCK_VENUES;
 
 export const ALL_CUISINES: string[] = Array.from(new Set(MOCK_VENUES.flatMap((v) => v.cuisines))).sort();
 
 export const DEFAULT_VENUES = [MOCK_VENUES[0], MOCK_VENUES[1], MOCK_VENUES[2], MOCK_VENUES[3], MOCK_VENUES[4]];
+
+const validLocs = MOCK_VENUES.map((v) => v.location).filter((l): l is { lat: number; lng: number } => l != null);
+const USER_LOCATION = validLocs.length > 0
+  ? {
+      lat: validLocs.reduce((s, l) => s + l.lat, 0) / validLocs.length,
+      lng: validLocs.reduce((s, l) => s + l.lng, 0) / validLocs.length,
+    }
+  : { lat: 35.659, lng: 139.701 };
 
 export const DEFAULT_PROFILE: TasteProfile = {
   user_id: "demo_user",
@@ -111,7 +152,7 @@ function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: numbe
 }
 
 export function computeRecommendations(profile: TasteProfile, filters: Filters): Recommendation[] {
-  const userLoc = { lat: 40.728, lng: -73.994 };
+  const userLoc = USER_LOCATION;
   const context = profile.contexts[profile.default_context];
   const existingIds = new Set(context?.ranked_list.map((r) => r.venue.id) ?? []);
   const userCuisines = new Set<string>();
@@ -171,8 +212,8 @@ export function sortRecommendations(recs: Recommendation[], sortBy: string): Rec
       return copy.sort((a, b) => (b.venue.health_score ?? 0) - (a.venue.health_score ?? 0));
     case "distance":
       return copy.sort((a, b) => {
-        const ua = a.venue.location ? haversine({ lat: 40.728, lng: -73.994 }, a.venue.location) : Infinity;
-        const ub = b.venue.location ? haversine({ lat: 40.728, lng: -73.994 }, b.venue.location) : Infinity;
+        const ua = a.venue.location ? haversine(USER_LOCATION, a.venue.location) : Infinity;
+        const ub = b.venue.location ? haversine(USER_LOCATION, b.venue.location) : Infinity;
         return ua - ub;
       });
     default:
