@@ -84,9 +84,14 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
               <input
                 value={wantText}
                 onChange={(e) => setWantText(e.target.value)}
-                placeholder="Describe what you're craving... (e.g. cozy ramen near Shibuya)"
-                className="w-full rounded-xl border border-cream-dark bg-paper py-2.5 pl-10 pr-4 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+                placeholder="Describe what you're craving..."
+                className="w-full rounded-none border-0 border-b border-cream-dark bg-transparent py-2 pl-10 pr-4 text-sm text-ink placeholder:text-ink-faint transition focus:border-sienna-400 focus:outline-none"
               />
+              {wantText && (
+                <button type="button" onClick={() => setWantText("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-muted">
+                  <X size={14} />
+                </button>
+              )}
             </form>
           </div>
         </div>
