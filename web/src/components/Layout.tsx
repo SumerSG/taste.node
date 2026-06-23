@@ -35,7 +35,7 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
   return (
     <div className="min-h-screen bg-cream">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-cream-dark bg-paper/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-cream-dark bg-cream shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sienna-500 text-white shadow-sm">
@@ -77,7 +77,7 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
         </div>
 
         {/* Global search bar */}
-        <div className="border-t border-cream-warm bg-paper">
+        <div className="border-t border-cream-dark bg-cream">
           <div className="mx-auto max-w-7xl px-4 py-2.5">
             <form onSubmit={handleWantSubmit} className="relative">
               <PenLine size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
@@ -85,7 +85,7 @@ export function Layout({ profile, activeTab, onTabChange, onGlobalSearch, childr
                 value={wantText}
                 onChange={(e) => setWantText(e.target.value)}
                 placeholder="Describe what you're craving... (e.g. cozy ramen near Shibuya)"
-                className="w-full rounded-xl border border-cream-dark bg-cream py-2.5 pl-10 pr-4 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+                className="w-full rounded-xl border border-cream-dark bg-paper py-2.5 pl-10 pr-4 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
               />
             </form>
           </div>
