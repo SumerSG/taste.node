@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { Venue, TasteProfile } from "../data/types";
-import { ALL_VENUES, searchVenues } from "../data/mockData";
+import { filterAndSortVenues, TOP_CUISINES } from "../data/mockData";
 import { addRankedItem } from "../data/api";
 import { VenueCard } from "../components/VenueCard";
 import { VenueDetailModal } from "../components/VenueDetailModal";
-import { Search, BookOpen, X } from "lucide-react";
+import {
+  Search, X, BookOpen, SlidersHorizontal, ArrowDownUp,
+  Leaf, Fish, Beef, HeartPulse,
+} from "lucide-react";
 
 interface Props {
   profile: TasteProfile;
@@ -12,86 +15,308 @@ interface Props {
   initialQuery?: string;
 }
 
+const SORT_OPTIONS = [
+  { value: "relevance", label: "Relevance" },
+  { value: "name", label: "Name" },
+  { value: "price_asc", label: "Price: Low to High" },
+  { value: "price_desc", label: "Price: High to Low" },
+  { value: "health_desc", label: "Healthiest First" },
+  { value: "distance", label: "Nearest First" },
+];
+
+const PRICE_TIERS = [
+  { value: 1, label: "$", hint: "Budget" },
+  { value: 2, label: "$$", hint: "Mid-range" },
+  { value: 3, label: "$$$", hint: "Premium" },
+  { value: 4, label: "$$$$", hint: "Fine dining" },
+];
+
+const DIETARY_OPTIONS = [
+  { value: "veg", label: "Vegetarian", icon: <Leaf size={13} /> },
+  { value: "fish", label: "Pescatarian", icon: <Fish size={13} /> },
+  { value: "meat", label: "Meat", icon: <Beef size={13} /> },
+];
+
+const HEALTH_PRESETS = [
+  { value: 0, label: "Any" },
+  { value: 0.5, label: "Healthy" },
+  { value: 0.7, label: "Very healthy" },
+  { value: 0.8, label: "Super healthy" },
+];
+
+function toggleInArray<T>(arr: T[], val: T): T[] {
+  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+}
+
 export function SearchView({ profile, onProfileChange, initialQuery = "" }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [filterCuisine, setFilterCuisine] = useState<string>("");
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
+  // Filter state
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+  const [selectedPrices, setSelectedPrices] = useState<number[]>([]);
+  const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
+  const [minHealthScore, setMinHealthScore] = useState<number>(0);
+  const [sortBy, setSortBy] = useState("relevance");
 
-  const cuisines = useMemo(() => Array.from(new Set(ALL_VENUES.flatMap((v) => v.cuisines))).sort(), []);
+  const results = useMemo(
+    () => filterAndSortVenues(query, selectedCuisines, selectedPrices, selectedDietary, minHealthScore, sortBy),
+    [query, selectedCuisines, selectedPrices, selectedDietary, minHealthScore, sortBy]
+  );
 
-  const results = useMemo(() => {
-    let pool = searchVenues(query);
-    if (filterCuisine) pool = pool.filter((v) => v.cuisines.includes(filterCuisine));
-    return pool;
-  }, [query, filterCuisine]);
+  const activeFilters = useMemo(() => {
+    const filters: { label: string; key: string; onRemove: () => void }[] = [];
+    if (query) filters.push({ label: `"${query}"`, key: "query", onRemove: () => setQuery("") });
+    selectedCuisines.forEach((c) => filters.push({ label: c, key: `c-${c}`, onRemove: () => setSelectedCuisines((prev) => prev.filter((x) => x !== c)) }));
+    selectedPrices.forEach((p) => filters.push({ label: PRICE_TIERS.find((t) => t.value === p)?.label ?? `$${p}`, key: `p-${p}`, onRemove: () => setSelectedPrices((prev) => prev.filter((x) => x !== p)) }));
+    selectedDietary.forEach((d) => filters.push({ label: DIETARY_OPTIONS.find((o) => o.value === d)?.label ?? d, key: `d-${d}`, onRemove: () => setSelectedDietary((prev) => prev.filter((x) => x !== d)) }));
+    if (minHealthScore > 0) {
+      const preset = HEALTH_PRESETS.find((h) => h.value === minHealthScore);
+      filters.push({ label: preset?.label ?? `Health ≥${minHealthScore}`, key: "health", onRemove: () => setMinHealthScore(0) });
+    }
+    return filters;
+  }, [query, selectedCuisines, selectedPrices, selectedDietary, minHealthScore]);
 
-  const activeChips = [];
-  if (query) activeChips.push({ label: `"${query}"`, key: "query" });
-  if (filterCuisine) activeChips.push({ label: filterCuisine, key: "cuisine" });
+  const clearAllFilters = useCallback(() => {
+    setQuery("");
+    setSelectedCuisines([]);
+    setSelectedPrices([]);
+    setSelectedDietary([]);
+    setMinHealthScore(0);
+    setSortBy("relevance");
+  }, []);
+
+  const hasActiveFilters = activeFilters.length > 0 || sortBy !== "relevance";
+
+  const FilterRailContent = (
+    <div className="space-y-6">
+      {/* Search inside filter rail (mobile emphasis) */}
+      <div className="relative">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name or cuisine..."
+          className="w-full rounded-xl border border-surface-200 bg-white py-2.5 pl-10 pr-9 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+        {query && (
+          <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600">
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Cuisines */}
+      <section>
+        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Cuisine</h4>
+        <div className="flex flex-wrap gap-1.5">
+          {TOP_CUISINES.map((c) => {
+            const active = selectedCuisines.includes(c);
+            return (
+              <button
+                key={c}
+                onClick={() => setSelectedCuisines((prev) => toggleInArray(prev, c))}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition-all ${
+                  active
+                    ? "bg-brand-50 text-brand-700 ring-brand-200"
+                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[11px] text-surface-400">Type any cuisine in the search bar above to find more.</p>
+      </section>
+
+      {/* Price */}
+      <section>
+        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Price</h4>
+        <div className="flex gap-1.5">
+          {PRICE_TIERS.map((t) => {
+            const active = selectedPrices.includes(t.value);
+            return (
+              <button
+                key={t.value}
+                onClick={() => setSelectedPrices((prev) => toggleInArray(prev, t.value))}
+                title={t.hint}
+                className={`flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-semibold ring-1 transition-all ${
+                  active
+                    ? "bg-brand-50 text-brand-700 ring-brand-200"
+                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                }`}
+              >
+                <span className="text-sm">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Dietary */}
+      <section>
+        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Diet</h4>
+        <div className="flex flex-wrap gap-1.5">
+          {DIETARY_OPTIONS.map((d) => {
+            const active = selectedDietary.includes(d.value);
+            return (
+              <button
+                key={d.value}
+                onClick={() => setSelectedDietary((prev) => toggleInArray(prev, d.value))}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ring-1 transition-all ${
+                  active
+                    ? "bg-brand-50 text-brand-700 ring-brand-200"
+                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                }`}
+              >
+                {d.icon}
+                {d.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Health */}
+      <section>
+        <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-surface-400">Health</h4>
+        <div className="flex flex-wrap gap-1.5">
+          {HEALTH_PRESETS.map((h) => {
+            const active = minHealthScore === h.value;
+            return (
+              <button
+                key={h.value}
+                onClick={() => setMinHealthScore(h.value)}
+                className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ring-1 transition-all ${
+                  active
+                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                    : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"
+                }`}
+              >
+                {h.value > 0 && <HeartPulse size={12} />}
+                {h.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Clear all inside filter rail */}
+      {hasActiveFilters && (
+        <button onClick={clearAllFilters} className="w-full rounded-xl py-2 text-xs font-semibold text-surface-500 transition hover:bg-surface-100 hover:text-surface-700">
+          Clear all filters
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+      {/* Top bar: title + result count + sort + mobile filter toggle */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-surface-900">Search</h2>
-          <p className="text-sm text-surface-500 mt-1">Find restaurants by name or cuisine. Click a card to view details and add to your ranking.</p>
+          <p className="text-sm text-surface-500 mt-1">Find restaurants by name, cuisine, price, diet, or health score.</p>
         </div>
-        <div className="text-sm text-surface-500">{results.length} restaurants</div>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-surface-500">{results.length} restaurant{results.length !== 1 ? "s" : ""}</div>
+          {/* Sort */}
+          <div className="relative">
+            <ArrowDownUp size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none rounded-xl border border-surface-200 bg-white py-2 pl-8 pr-7 text-xs font-medium text-surface-700 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          {/* Mobile filter toggle */}
+          <button
+            onClick={() => setShowFiltersMobile((s) => !s)}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-sm ring-1 transition-all lg:hidden ${
+              showFiltersMobile ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-700 ring-surface-200"
+            }`}
+          >
+            <SlidersHorizontal size={14} />
+            Filters
+            {activeFilters.length > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">
+                {activeFilters.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Search + cuisine filter */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or cuisine..."
-            className="w-full rounded-2xl border border-surface-200 bg-white py-2.5 pl-10 pr-4 text-sm shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setFilterCuisine("")} className={`rounded-lg px-3 py-2 text-xs font-medium ring-1 transition ${!filterCuisine ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"}`}>All</button>
-          {cuisines.map((c) => (
-            <button key={c} onClick={() => setFilterCuisine((f) => (f === c ? "" : c))} className={`rounded-lg px-3 py-2 text-xs font-medium ring-1 transition ${filterCuisine === c ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-white text-surface-600 ring-surface-200 hover:bg-surface-50"}`}>{c}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Active chips */}
-      {activeChips.length > 0 && (
+      {/* Active filter pills */}
+      {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          {activeChips.map((chip) => (
-            <span key={chip.key} className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-200">
-              {chip.label}
-              <button onClick={() => { if (chip.key === "query") setQuery(""); if (chip.key === "cuisine") setFilterCuisine(""); }} className="rounded-full hover:bg-brand-100"><X size={10} /></button>
+          {activeFilters.map((f) => (
+            <span key={f.key} className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-200">
+              {f.label}
+              <button onClick={f.onRemove} className="rounded-full p-0.5 hover:bg-brand-100 transition">
+                <X size={10} />
+              </button>
             </span>
           ))}
+          <button onClick={clearAllFilters} className="ml-1 text-xs font-medium text-surface-400 hover:text-surface-700 transition">
+            Clear all
+          </button>
         </div>
       )}
 
-      {/* Grid */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {results.map((venue) => (
-          <VenueCard
-            key={venue.id}
-            venue={venue}
-            onAdd={() => setSelectedVenue(venue)}
-            onClick={() => setSelectedVenue(venue)}
-            compact
-          />
-        ))}
+      {/* Main layout: filter rail + results */}
+      <div className="flex gap-6">
+        {/* Filter rail — desktop always visible, mobile collapsible */}
+        <aside className={`w-64 flex-shrink-0 ${showFiltersMobile ? "block" : "hidden lg:block"}`}>
+          <div className="sticky top-4 rounded-2xl border border-surface-200 bg-white p-4 shadow-card ring-1 ring-surface-100">
+            <div className="mb-4 flex items-center justify-between lg:hidden">
+              <h3 className="text-sm font-bold text-surface-900">Filters</h3>
+              <button onClick={() => setShowFiltersMobile(false)} className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600">
+                <X size={16} />
+              </button>
+            </div>
+            {FilterRailContent}
+          </div>
+        </aside>
+
+        {/* Results */}
+        <div className="min-w-0 flex-1">
+          {results.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
+              <BookOpen size={40} className="mb-3 text-surface-300" />
+              <p className="text-lg font-semibold text-surface-600">No venues found</p>
+              <p className="text-sm text-surface-400 mt-1 mb-5">
+                {hasActiveFilters
+                  ? "Try loosening your filters or clearing them entirely."
+                  : "Try a different search term."}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearAllFilters} className="btn-primary gap-2">
+                  <X size={14} /> Clear all filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {results.map((venue) => (
+                <VenueCard
+                  key={venue.id}
+                  venue={venue}
+                  onAdd={() => setSelectedVenue(venue)}
+                  onClick={() => setSelectedVenue(venue)}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      {results.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-surface-200 py-20 text-center">
-          <BookOpen size={40} className="mb-3 text-surface-300" />
-          <p className="text-lg font-semibold text-surface-600">No venues found</p>
-          <p className="text-sm text-surface-400 mt-1">Try a different search term or cuisine filter.</p>
-        </div>
-      )}
 
       {selectedVenue && (
         <VenueDetailModal

@@ -229,6 +229,53 @@ export function searchVenues(query: string): Venue[] {
   );
 }
 
+export function filterAndSortVenues(
+  query: string,
+  cuisines: string[],
+  priceTiers: number[],
+  dietaryTags: string[],
+  minHealthScore: number,
+  sortBy: string
+): Venue[] {
+  let pool = searchVenues(query);
+
+  if (cuisines.length > 0) {
+    pool = pool.filter((v) => v.cuisines.some((c) => cuisines.includes(c)));
+  }
+  if (priceTiers.length > 0) {
+    pool = pool.filter((v) => v.price_tier !== null && priceTiers.includes(v.price_tier));
+  }
+  if (dietaryTags.length > 0) {
+    pool = pool.filter((v) => dietaryTags.some((tag) => v.dietary_tags.includes(tag)));
+  }
+  if (minHealthScore > 0) {
+    pool = pool.filter((v) => (v.health_score ?? 0) >= minHealthScore);
+  }
+
+  const copy = [...pool];
+  switch (sortBy) {
+    case "name":
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    case "price_asc":
+      return copy.sort((a, b) => (a.price_tier ?? 99) - (b.price_tier ?? 99));
+    case "price_desc":
+      return copy.sort((a, b) => (b.price_tier ?? 0) - (a.price_tier ?? 0));
+    case "health_desc":
+      return copy.sort((a, b) => (b.health_score ?? 0) - (a.health_score ?? 0));
+    case "distance":
+      return copy.sort((a, b) => {
+        const ua = a.location ? haversine(USER_LOCATION, a.location) : Infinity;
+        const ub = b.location ? haversine(USER_LOCATION, b.location) : Infinity;
+        return ua - ub;
+      });
+    default:
+      return copy;
+  }
+}
+
+const TOP_CUISINES = ["居酒屋", "海鮮", "焼き鳥", "焼肉", "日本料理", "イタリアン", "中華料理", "寿司", "韓国料理", "ステーキ", "パスタ", "鍋", "カフェ", "鉄板焼き", "しゃぶしゃぶ", "創作料理"];
+export { TOP_CUISINES };
+
 export function statusLabel(s: RankStatus | undefined): string {
   const map: Record<string, string> = {
     want_to_try: "Want to try",
