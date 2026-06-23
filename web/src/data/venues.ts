@@ -52,26 +52,24 @@ function fromRow(row: Record<string, unknown>): Venue {
   };
 }
 
-function fromRawJson(v: Record<string, unknown>): Venue {
-  return {
-    id: v.venue_id as string,
-    name: v.name as string,
-    address: (v.address as string | undefined) || undefined,
-    location:
-      v.lat != null && v.lng != null
-        ? { lat: v.lat as number, lng: v.lng as number }
-        : null,
-    cuisines: v.cuisines as string[],
-    dietary_tags: v.dietary_tags as string[],
-    price_tier: v.price_tier as number | null,
-    health_score: v.health_score as number | null,
-    source: v.source as Venue["source"],
-    source_url: (v.source_url as string | undefined) || undefined,
-    rating: (v.rating as number | undefined) || undefined,
-    review_count: (v.review_count as number | undefined) || undefined,
-    image_url: pickImage((v.cuisines as string[]) ?? []),
-  };
-}
+/* ─── Fallback inline data (no JSON needed) ─── */
+const FALLBACK_VENUES: Venue[] = [
+  { id: "v1", name: "Nakameguro Kiriko", address: "東京都目黒区上目黒2-19-1", location: { lat: 35.6415, lng: 139.6981 }, cuisines: ["居酒屋", "焼き鳥"], dietary_tags: [], price_tier: 2, health_score: 0.6, source: "tabelog" as const, rating: 3.58, review_count: 142 },
+  { id: "v2", name: "Shibuya Yakiniku Jumbo", address: "東京都渋谷区道玄坂1-6-6", location: { lat: 35.6592, lng: 139.7003 }, cuisines: ["焼肉", "居酒屋"], dietary_tags: ["meat"], price_tier: 3, health_score: 0.5, source: "tabelog" as const, rating: 3.72, review_count: 389 },
+  { id: "v3", name: "Ramen Jiro Meguro", address: "東京都目黒区目黒1-3-18", location: { lat: 35.6339, lng: 139.7157 }, cuisines: ["ラーメン"], dietary_tags: ["meat"], price_tier: 1, health_score: 0.3, source: "tabelog" as const, rating: 3.51, review_count: 567 },
+  { id: "v4", name: "Sushi Saito", address: "東京都港区六本木1-4-5", location: { lat: 35.6628, lng: 139.7394 }, cuisines: ["寿司", "日本料理"], dietary_tags: ["fish"], price_tier: 4, health_score: 0.8, source: "tabelog" as const, rating: 4.77, review_count: 203 },
+  { id: "v5", name: "Trattoria Dal Biassanot", address: "東京都渋谷区恵比寿1-30-10", location: { lat: 35.6467, lng: 139.7101 }, cuisines: ["イタリアン", "パスタ"], dietary_tags: ["vegetarian"], price_tier: 2, health_score: 0.7, source: "tabelog" as const, rating: 3.48, review_count: 198 },
+  { id: "v6", name: "T's Restaurant", address: "東京都渋谷区神宮前6-28-5", location: { lat: 35.6614, lng: 139.7041 }, cuisines: ["カフェ", "ベジタリアン"], dietary_tags: ["vegan", "vegetarian"], price_tier: 2, health_score: 0.9, source: "tabelog" as const, rating: 3.62, review_count: 312 },
+  { id: "v7", name: "Narisawa", address: "東京都港区南青山2-6-15", location: { lat: 35.6713, lng: 139.7188 }, cuisines: ["創作料理", "フレンチ"], dietary_tags: ["vegetarian"], price_tier: 4, health_score: 0.85, source: "tabelog" as const, rating: 4.65, review_count: 445 },
+  { id: "v8", name: "Harajuku Gyoza Lou", address: "東京都渋谷区神宮前6-2-4", location: { lat: 35.6701, lng: 139.7026 }, cuisines: ["中華料理", "餃子"], dietary_tags: ["meat"], price_tier: 1, health_score: 0.55, source: "tabelog" as const, rating: 3.44, review_count: 876 },
+  { id: "v9", name: "Afuri", address: "東京都港区六本木6-2-31", location: { lat: 35.6605, lng: 139.7292 }, cuisines: ["ラーメン", "和食"], dietary_tags: ["meat"], price_tier: 1, health_score: 0.6, source: "tabelog" as const, rating: 3.38, review_count: 654 },
+  { id: "v10", name: "Teppanyaki Nakamura", address: "東京都新宿区西新宿3-7-1", location: { lat: 35.6852, lng: 139.6926 }, cuisines: ["鉄板焼き", "ステーキ"], dietary_tags: ["meat"], price_tier: 4, health_score: 0.65, source: "tabelog" as const, rating: 4.21, review_count: 178 },
+  { id: "v11", name: "Tonkatsu Maisen", address: "東京都渋谷区神宮前4-8-5", location: { lat: 35.6671, lng: 139.7054 }, cuisines: ["和食", "とんかつ"], dietary_tags: ["meat"], price_tier: 2, health_score: 0.5, source: "tabelog" as const, rating: 3.56, review_count: 934 },
+  { id: "v12", name: "Luke's Lobster", address: "東京都渋谷区神宮前6-7-1", location: { lat: 35.6655, lng: 139.7062 }, cuisines: ["アメリカ料理", "シーフード"], dietary_tags: ["pescatarian"], price_tier: 2, health_score: 0.7, source: "tabelog" as const, rating: 3.32, review_count: 543 },
+  { id: "v13", name: "Gonpachi Nishiazabu", address: "東京都港区西麻布1-13-11", location: { lat: 35.6598, lng: 139.7228 }, cuisines: ["居酒屋", "和食"], dietary_tags: ["meat"], price_tier: 2, health_score: 0.6, source: "tabelog" as const, rating: 3.41, review_count: 421 },
+  { id: "v14", name: "Sangenjaya Curry Kusamura", address: "東京都世田谷区三軒茶屋1-32-10", location: { lat: 35.6407, lng: 139.6688 }, cuisines: ["カレー", "インド料理"], dietary_tags: ["vegetarian"], price_tier: 1, health_score: 0.75, source: "tabelog" as const, rating: 3.62, review_count: 267 },
+  { id: "v15", name: "Den", address: "東京都渋谷区神宮前2-3-18", location: { lat: 35.6718, lng: 139.7109 }, cuisines: ["創作料理", "居酒屋"], dietary_tags: ["meat"], price_tier: 3, health_score: 0.8, source: "tabelog" as const, rating: 4.58, review_count: 334 },
+].map((v) => ({ ...v, image_url: pickImage(v.cuisines) }));
 
 /* ─── Runtime store ─── */
 let _venues: Venue[] = [];
@@ -112,19 +110,10 @@ export async function loadVenues(): Promise<void> {
     }
   }
 
-  // 2️⃣  Fall back to static JSON served from /public
-  try {
-    const res = await fetch("/venues.json");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = (await res.json()) as Array<Record<string, unknown>>;
-    _venues = raw.map(fromRawJson);
-    _loaded = true;
-    console.log(`[json] loaded ${_venues.length} venues`);
-  } catch (err) {
-    console.error("[venues] failed to load:", err);
-    _venues = [];
-    _loaded = true;
-  }
+  // 2️⃣  Inline fallback (no external JSON needed)
+  _venues = FALLBACK_VENUES;
+  _loaded = true;
+  console.log(`[fallback] loaded ${_venues.length} venues`);
 }
 
 /* ─── Derived helpers (read from _venues) ─── */
