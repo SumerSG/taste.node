@@ -44,6 +44,17 @@ export async function signUp(email: string, password: string) {
   return data;
 }
 
+export async function signInWithGoogle() {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) throw error;
+  if (data.url) window.location.href = data.url;
+  return data;
+}
+
 export async function signOut() {
   if (!supabase) throw new Error("Supabase not configured");
   const { error } = await supabase.auth.signOut();

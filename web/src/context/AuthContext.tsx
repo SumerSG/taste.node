@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
-import { getCurrentUser, signInWithPassword, signUp, signOut, onAuthStateChange } from "../lib/supabase";
+import { getCurrentUser, signInWithPassword, signUp, signInWithGoogle, signOut, onAuthStateChange } from "../lib/supabase";
 import { AuthStateContext, AuthActionsContext } from "./AuthContext.defs";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -44,6 +44,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Google sign in failed";
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     setError(null);
     try {
@@ -59,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthStateContext.Provider value={{ user, loading, error }}>
-      <AuthActionsContext.Provider value={{ login, register, logout, clearError }}>
+      <AuthActionsContext.Provider value={{ login, register, loginWithGoogle, logout, clearError }}>
         {children}
       </AuthActionsContext.Provider>
     </AuthStateContext.Provider>
