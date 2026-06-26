@@ -295,6 +295,11 @@ export function isFollowing(profile: TasteProfile, userId: string): boolean {
   return profile.following.includes(userId);
 }
 
+export function displayContextName(id: string): string {
+  if (id === "default") return "My Favs";
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 /* ─── Re-export helpers ─── */
 
 export function getCluster(profile: TasteProfile) {

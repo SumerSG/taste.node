@@ -6,7 +6,6 @@ import {
   Search,
   ListOrdered,
   Home,
-  BookOpen,
   PenLine,
   X,
   LogIn,
@@ -14,7 +13,7 @@ import {
   UserCircle,
 } from "lucide-react";
 
-export type Tab = "feed" | "search" | "library" | "ranking";
+export type Tab = "feed" | "search" | "profile" | "ranking";
 
 interface Props {
   profile: TasteProfile;
@@ -45,7 +44,7 @@ export function Layout({
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "feed", label: "Feed", icon: <Home size={16} /> },
     { id: "search", label: "Search", icon: <Search size={16} /> },
-    { id: "library", label: "Library", icon: <BookOpen size={16} /> },
+    { id: "profile", label: "Profile", icon: <UserCircle size={16} /> },
     { id: "ranking", label: "My Ranking", icon: <ListOrdered size={16} /> },
   ];
 
@@ -70,14 +69,17 @@ export function Layout({
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-cream-dark bg-cream shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => onTabChange("feed")}
+            className="flex items-center gap-3 rounded-xl transition hover:bg-cream-dark/50 px-2 py-1 -ml-2"
+          >
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sienna-500 text-white shadow-sm">
               <span className="font-serif text-lg leading-none">t</span>
             </div>
             <div>
               <h1 className="font-serif text-lg tracking-tight text-ink">taste.node</h1>
             </div>
-          </div>
+          </button>
 
           {/* Cluster pill — desktop only */}
           {profile.contexts[profile.default_context].ranked_list.length >= 3 && showCluster && (

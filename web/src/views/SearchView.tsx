@@ -13,9 +13,10 @@ interface Props {
   profile: TasteProfile;
   onProfileChange: (p: TasteProfile) => void;
   initialQuery?: string;
+  onNavigateToVenue?: (venue: Venue) => void;
 }
 
-export function SearchView({ profile, onProfileChange, initialQuery = "" }: Props) {
+export function SearchView({ profile, onProfileChange, initialQuery = "", onNavigateToVenue }: Props) {
   const {
     messages,
     isTyping,
@@ -148,7 +149,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "" }: Prop
                   key={venue.id}
                   venue={venue}
                   onAdd={() => setSelectedVenue(venue)}
-                  onClick={() => setSelectedVenue(venue)}
+                  onClick={() => onNavigateToVenue?.(venue)}
                   compact
                 />
               ))}

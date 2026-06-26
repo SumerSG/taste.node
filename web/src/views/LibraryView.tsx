@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile, RankedItem } from "../data/types";
 import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList } from "../data/api";
-import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, BookOpen, ChevronDown } from "lucide-react";
+import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, ListOrdered, Users } from "lucide-react";
 
 interface Props {
   profile: TasteProfile;
@@ -32,7 +32,7 @@ function StarRating({ value, onChange }: { value?: number; onChange?: (n: number
   );
 }
 
-export function LibraryView({ profile, onProfileChange }: Props) {
+export function ProfileView({ profile, onProfileChange }: Props) {
   const items = profile.contexts[profile.default_context].ranked_list;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingDishes, setEditingDishes] = useState<string | null>(null);
@@ -45,6 +45,14 @@ export function LibraryView({ profile, onProfileChange }: Props) {
       (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime()
     );
   }, [items]);
+
+  // Profile stats
+  const allContexts = Object.values(profile.contexts);
+  const totalPlaces = allContexts.reduce((sum, ctx) => sum + ctx.ranked_list.length, 0);
+  const favCount = items.filter((i) => i.status === "favourite").length;
+  const uniqueCuisines = new Set<string>();
+  items.forEach((i) => i.venue.cuisines.forEach((c) => uniqueCuisines.add(c)));
+  const cuisineNames = Array.from(uniqueCuisines).slice(0, 3).join(" · ");
 
   const handleDateChange = (item: RankedItem, date: string) => {
     const list = items.map((i) => (i.venue.id === item.venue.id ? { ...i, visited_at: `${date}T12:00:00+00:00` } : i));
@@ -68,12 +76,45 @@ export function LibraryView({ profile, onProfileChange }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* Profile header */}
+      <div className="rounded-3xl border border-cream-dark bg-paper p-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sienna-500 text-white shadow-sm">
+            <UserCircle size={32} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-serif text-2xl text-ink">Your Taste Profile</h2>
+            <p className="text-sm text-ink-faint mt-0.5 truncate">
+              {cuisineNames || "Start ranking restaurants to build your profile."}
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
+            <ListOrdered size={16} className="text-sienna-500 mb-1" />
+            <span className="text-lg font-bold text-ink">{totalPlaces}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Ranked</span>
+          </div>
+          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
+            <Star size={16} className="text-amber-500 mb-1" />
+            <span className="text-lg font-bold text-ink">{favCount}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Favourites</span>
+          </div>
+          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
+            <Users size={16} className="text-olive-500 mb-1" />
+            <span className="text-lg font-bold text-ink">{profile.following.length}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Following</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section header */}
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="font-serif text-2xl text-ink">Library</h2>
+          <h3 className="font-serif text-xl text-ink">Library</h3>
           <p className="text-sm text-ink-faint mt-1">
-            Every restaurant you've visited. Tap a card to expand and add your rating, reaction, and what you ate.
+            Every place you've saved. Tap a card to expand and rate, react, or note what you ate.
           </p>
         </div>
         <div className="text-sm text-ink-faint">{sorted.length} visited</div>
@@ -81,7 +122,7 @@ export function LibraryView({ profile, onProfileChange }: Props) {
 
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cream-dark py-20 text-center">
-          <BookOpen size={40} className="mb-3 text-ink-faint" />
+          <UserCircle size={40} className="mb-3 text-ink-faint" />
           <p className="font-serif text-lg text-ink-muted">Your library is empty</p>
           <p className="text-sm text-ink-faint mt-1">Search for restaurants and save them to build your library.</p>
         </div>

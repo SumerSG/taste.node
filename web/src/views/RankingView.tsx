@@ -3,7 +3,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types";
-import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext } from "../data/api";
+import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext, displayContextName } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
 import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen } from "lucide-react";
@@ -179,7 +179,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
               className="rounded-lg border border-cream-dark bg-cream px-3 py-1.5 text-sm font-medium text-ink shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             >
               {contextNames.map((id) => (
-                <option key={id} value={id}>{id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+                <option key={id} value={id}>{displayContextName(id)}</option>
               ))}
             </select>
             {activeCtx !== "default" && (
@@ -216,7 +216,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
           </button>
         )}
 
-        <h2 className="font-serif text-2xl text-ink">{activeCtx.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</h2>
+        <h2 className="font-serif text-2xl text-ink">{displayContextName(activeCtx)}</h2>
         <p className="text-sm text-ink-faint">Drag anywhere to reorder. Up/down arrows nudge. Status updates taste signal.</p>
       </div>
 

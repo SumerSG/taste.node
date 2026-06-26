@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { Post, FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
 import { addPost, deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing } from "../data/api";
 import { getAllVenues } from "../data/venues";
-import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck } from "lucide-react";
+import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, Search, UtensilsCrossed } from "lucide-react";
 
 interface Props {
   profile: TasteProfile;
@@ -10,6 +10,7 @@ interface Props {
   feed: FeedData;
   onFeedChange: (feed: FeedData) => void;
   onNavigateToSearch: () => void;
+  onNavigateToVenue: (venue: Venue) => void;
 }
 
 function timeAgo(iso: string) {
@@ -33,12 +34,27 @@ const MODES: { id: FeedMode; label: string; icon: React.ReactNode }[] = [
   { id: "global", label: "Global", icon: <Globe size={13} /> },
 ];
 
-export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch }: Props) {
+export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch, onNavigateToVenue }: Props) {
   const [mode, setMode] = useState<FeedMode>("recommended");
   const [composing, setComposing] = useState(false);
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [venueId, setVenueId] = useState("");
+  const [fabOpen, setFabOpen] = useState(false);
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userQuery, setUserQuery] = useState("");
+  const fabRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!fabOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFabOpen(false); };
+    const onClick = (e: MouseEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onClick); };
+  }, [fabOpen]);
 
   const venueMap = useMemo(() => {
     const m = new Map<string, Venue>();
@@ -241,7 +257,10 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
               {/* Venue tag */}
               {post.venue_id && post.venue_name && (
                 <button
-                  onClick={onNavigateToSearch}
+                  onClick={() => {
+                    const v = venueMap.get(post.venue_id!);
+                    if (v) onNavigateToVenue(v);
+                  }}
                   className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-sienna-50 px-3 py-1.5 text-xs font-medium text-sienna-700 ring-1 ring-sienna-200 transition hover:bg-sienna-100"
                 >
                   <MapPin size={12} /> {post.venue_name}
@@ -259,14 +278,111 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
         </div>
       )}
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setComposing(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-sienna-500 text-white shadow-elevated transition-all hover:bg-sienna-600 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-sienna-200"
-        aria-label="Add recommendation"
-      >
-        <Plus size={28} strokeWidth={2.5} />
-      </button>
+      {/* FAB Menu */}
+      <div ref={fabRef} className="fixed bottom-6 right-6 z-50">
+        {fabOpen && (
+          <div className="absolute bottom-16 right-0 flex flex-col gap-2">
+            <button
+              onClick={() => { setFabOpen(false); setComposing(true); }}
+              className="flex items-center gap-2 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink shadow-elevated ring-1 ring-cream-dark transition hover:bg-cream"
+            >
+              <Camera size={16} className="text-sienna-500" /> New Post
+            </button>
+            <button
+              onClick={() => { setFabOpen(false); onNavigateToSearch(); }}
+              className="flex items-center gap-2 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink shadow-elevated ring-1 ring-cream-dark transition hover:bg-cream"
+            >
+              <UtensilsCrossed size={16} className="text-sienna-500" /> Search Restaurant
+            </button>
+            <button
+              onClick={() => { setFabOpen(false); setShowUserSearch(true); }}
+              className="flex items-center gap-2 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink shadow-elevated ring-1 ring-cream-dark transition hover:bg-cream"
+            >
+              <Users size={16} className="text-sienna-500" /> Search User
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => setFabOpen((s) => !s)}
+          className={`flex h-14 w-14 items-center justify-center rounded-full bg-sienna-500 text-white shadow-elevated transition-all hover:bg-sienna-600 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-sienna-200 ${fabOpen ? 'rotate-45' : ''}`}
+          aria-label="Open menu"
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      {/* User Search Overlay */}
+      {showUserSearch && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:p-4 sm:items-center backdrop-blur-sm">
+          <div className="flex max-h-[80vh] w-full sm:max-w-md flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-paper shadow-elevated">
+            <div className="flex items-center justify-between border-b border-cream-dark px-5 py-3">
+              <h3 className="font-serif text-lg text-ink">Find people</h3>
+              <button onClick={() => setShowUserSearch(false)} className="rounded-full p-1 text-ink-faint hover:bg-cream transition">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="relative mb-4">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+                <input
+                  value={userQuery}
+                  onChange={(e) => setUserQuery(e.target.value)}
+                  placeholder="Search by name..."
+                  className="w-full rounded-xl border border-cream-dark bg-cream py-2 pl-9 pr-4 text-sm shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2 overflow-y-auto max-h-[50vh]">
+                {/* Only show sample users as "discoverable" users for now */}
+                {([
+                  { id: "alex_12", name: "Alex M." },
+                  { id: "jordan_34", name: "Jordan T." },
+                  { id: "sam_88", name: "Sam K." },
+                  { id: "taylor_09", name: "Taylor R." },
+                  { id: "casey_22", name: "Casey L." },
+                  { id: "morgan_45", name: "Morgan B." },
+                  { id: "riley_17", name: "Riley S." },
+                  { id: "quinn_63", name: "Quinn J." },
+                  { id: "avery_29", name: "Avery P." },
+                  { id: "jules_51", name: "Jules D." },
+                  { id: "kenji_08", name: "Kenji Y." },
+                  { id: "priya_41", name: "Priya N." },
+                ] as const)
+                  .filter((u) => u.name.toLowerCase().includes(userQuery.toLowerCase()))
+                  .map((u) => {
+                    const following = isFollowing(profile, u.id);
+                    return (
+                      <div key={u.id} className="flex items-center justify-between rounded-xl border border-cream-dark bg-cream px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sienna-50 text-sm font-bold text-sienna-700">
+                            {u.name.split(" ")[0][0]}
+                          </div>
+                          <span className="text-sm font-medium text-ink">{u.name}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (following) {
+                              onProfileChange(unfollowUser(profile, u.id));
+                            } else {
+                              onProfileChange(followUser(profile, u.id));
+                            }
+                          }}
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                            following
+                              ? "bg-cream text-ink-muted ring-1 ring-cream-dark hover:bg-red-50 hover:text-red-500"
+                              : "bg-sienna-50 text-sienna-700 ring-1 ring-sienna-200 hover:bg-sienna-100"
+                          }`}
+                        >
+                          {following ? <><UserCheck size={12} /> Following</> : <><UserPlus size={12} /> Follow</>}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

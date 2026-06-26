@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { TasteProfile, FeedData } from "./data/types";
+import type { TasteProfile, FeedData, Venue } from "./data/types";
 import { loadProfile, saveProfile, loadFeed, saveFeed, setCurrentUserId } from "./data/api";
 import { loadVenues } from "./data/venues";
 import { AuthProvider } from "./context/AuthContext";
@@ -8,8 +8,9 @@ import { Layout, type Tab } from "./components/Layout";
 import { AuthModal } from "./components/AuthModal";
 import { FeedView } from "./views/FeedView";
 import { SearchView } from "./views/SearchView";
-import { LibraryView } from "./views/LibraryView";
+import { ProfileView } from "./views/LibraryView";
 import { RankingView } from "./views/RankingView";
+import { VenuePage } from "./views/VenuePage";
 import { LandingView } from "./views/LandingView";
 
 function AppContent() {
@@ -20,6 +21,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAuth, setShowAuth] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const { user, loading: authLoading } = useAuthState();
   const { logout } = useAuthActions();
   const userId = user?.id ?? null;
@@ -92,41 +94,55 @@ function AppContent() {
       <Layout
         profile={profile}
         activeTab={tab}
-        onTabChange={setTab}
+        onTabChange={(t) => { setSelectedVenue(null); setTab(t); }}
         onGlobalSearch={handleGlobalSearch}
         user={user}
         onOpenAuth={() => setShowAuth(true)}
         onLogout={logout}
       >
-        {tab === "feed" && (
-          <FeedView
+        {selectedVenue ? (
+          <VenuePage
+            venue={selectedVenue}
             profile={profile}
-            onProfileChange={handleProfileChange}
             feed={feed}
-            onFeedChange={handleFeedChange}
-            onNavigateToSearch={() => setTab("search")}
-          />
-        )}
-        {tab === "search" && (
-          <SearchView
-            key={searchQuery}
-            profile={profile}
             onProfileChange={handleProfileChange}
-            initialQuery={searchQuery}
+            onBack={() => setSelectedVenue(null)}
           />
-        )}
-        {tab === "library" && (
-          <LibraryView
-            profile={profile}
-            onProfileChange={handleProfileChange}
-          />
-        )}
-        {tab === "ranking" && (
-          <RankingView
-            profile={profile}
-            onProfileChange={handleProfileChange}
-            onNavigateToLibrary={() => setTab("search")}
-          />
+        ) : (
+          <>
+            {tab === "feed" && (
+              <FeedView
+                profile={profile}
+                onProfileChange={handleProfileChange}
+                feed={feed}
+                onFeedChange={handleFeedChange}
+                onNavigateToSearch={() => setTab("search")}
+                onNavigateToVenue={(v) => setSelectedVenue(v)}
+              />
+            )}
+            {tab === "search" && (
+              <SearchView
+                key={searchQuery}
+                profile={profile}
+                onProfileChange={handleProfileChange}
+                initialQuery={searchQuery}
+                onNavigateToVenue={(v) => setSelectedVenue(v)}
+              />
+            )}
+            {tab === "profile" && (
+              <ProfileView
+                profile={profile}
+                onProfileChange={handleProfileChange}
+              />
+            )}
+            {tab === "ranking" && (
+              <RankingView
+                profile={profile}
+                onProfileChange={handleProfileChange}
+                onNavigateToLibrary={() => setTab("search")}
+              />
+            )}
+          </>
         )}
       </Layout>
 
