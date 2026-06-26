@@ -44,11 +44,29 @@ export async function signUp(email: string, password: string) {
   return data;
 }
 
+/** Build a stable redirect URL (uses full href so Supabase returns the user
+ * to the exact same page). Falls back to HTTPS if running on an odd origin. */
+function getCurrentRedirectUrl(): string {
+  const href = window.location.href;
+  // If href contains auth callback fragments/hashes, strip them
+  try {
+    const u = new URL(href);
+    u.hash = "";
+    // Also strip any existing Supabase auth query params that might linger
+    const stripped = ["access_token", "refresh_token", "type", "error", "error_code", "error_description"];
+    stripped.forEach((k) => u.searchParams.delete(k));
+    return u.toString();
+  } catch {
+    return href;
+  }
+}
+
 export async function signInWithGoogle() {
   if (!supabase) throw new Error("Supabase not configured");
+  const redirectTo = getCurrentRedirectUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: window.location.origin },
+    options: { redirectTo },
   });
   if (error) throw error;
   if (data.url) window.location.href = data.url;

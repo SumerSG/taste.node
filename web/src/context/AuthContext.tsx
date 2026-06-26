@@ -9,6 +9,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clean auth callback fragments from URL so refreshing doesn't re-trigger
+    // the OAuth exchange and cause loops.
+    const cleanUrl = () => {
+      const u = new URL(window.location.href);
+      const hasAuthParams = u.hash.includes("access_token") || u.searchParams.has("code");
+      if (hasAuthParams) {
+        u.hash = "";
+        ["access_token", "refresh_token", "expires_in", "token_type", "provider_token", "type", "code"].forEach(
+          (k) => u.searchParams.delete(k)
+        );
+        window.history.replaceState({}, "", u.toString());
+      }
+    };
+    cleanUrl();
+
     getCurrentUser().then((u) => {
       setUser(u);
       setLoading(false);
