@@ -3,10 +3,10 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types";
-import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem } from "../data/api";
+import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
-import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink } from "lucide-react";
+import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen } from "lucide-react";
 
 interface Props {
   profile: TasteProfile;
@@ -121,8 +121,11 @@ function SortableRow({
 }
 
 export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: Props) {
-  const items = profile.contexts[profile.default_context].ranked_list;
+  const activeCtx = profile.default_context;
+  const items = profile.contexts[activeCtx]?.ranked_list ?? [];
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [showNewList, setShowNewList] = useState(false);
+  const [newListName, setNewListName] = useState("");
   const cluster = getClusterLabel(profile);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -144,6 +147,16 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
     onProfileChange(updateRankedList(profile, newList));
   };
 
+  const handleCreateList = () => {
+    const name = newListName.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!name || profile.contexts[name]) return;
+    onProfileChange(createContext(profile, name));
+    setNewListName("");
+    setShowNewList(false);
+  };
+
+  const contextNames = Object.keys(profile.contexts);
+
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       {/* Cluster banner */}
@@ -156,14 +169,55 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-2xl text-ink">My Ranking</h2>
-          <p className="text-sm text-ink-faint">Drag anywhere to reorder. Up/down arrows nudge. Status updates taste signal.</p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FolderOpen size={18} className="text-ink-muted" />
+            <select
+              value={activeCtx}
+              onChange={(e) => onProfileChange(switchContext(profile, e.target.value))}
+              className="rounded-lg border border-cream-dark bg-cream px-3 py-1.5 text-sm font-medium text-ink shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+            >
+              {contextNames.map((id) => (
+                <option key={id} value={id}>{id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+              ))}
+            </select>
+            {activeCtx !== "default" && (
+              <button
+                onClick={() => onProfileChange(deleteContext(profile, activeCtx))}
+                className="rounded p-1 text-ink-faint hover:bg-red-50 hover:text-red-500 transition"
+                title="Delete this list"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+          <button onClick={onNavigateToLibrary} className="btn-primary gap-2 text-sm">
+            <Plus size={15} /> Add from Search
+          </button>
         </div>
-        <button onClick={onNavigateToLibrary} className="btn-primary gap-2 text-sm">
-          <Plus size={15} /> Add from Search
-        </button>
+
+        {showNewList ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              placeholder="List name (e.g. Fav Cafes)"
+              className="flex-1 rounded-lg border border-cream-dark bg-cream px-3 py-1.5 text-sm shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateList(); if (e.key === "Escape") setShowNewList(false); }}
+              autoFocus
+            />
+            <button onClick={handleCreateList} className="btn-primary text-xs px-3 py-1.5">Create</button>
+            <button onClick={() => setShowNewList(false)} className="rounded p-1 text-ink-faint hover:bg-cream"><X size={14} /></button>
+          </div>
+        ) : (
+          <button onClick={() => setShowNewList(true)} className="flex items-center gap-1.5 text-xs font-medium text-sienna-600 hover:text-sienna-700 transition">
+            <FolderPlus size={13} /> New personal list
+          </button>
+        )}
+
+        <h2 className="font-serif text-2xl text-ink">{activeCtx.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</h2>
+        <p className="text-sm text-ink-faint">Drag anywhere to reorder. Up/down arrows nudge. Status updates taste signal.</p>
       </div>
 
       {/* List */}

@@ -90,6 +90,8 @@ function AppContent() {
       >
         {tab === "feed" && (
           <FeedView
+            profile={profile}
+            onProfileChange={handleProfileChange}
             feed={feed}
             onFeedChange={handleFeedChange}
             onNavigateToSearch={() => setTab("search")}

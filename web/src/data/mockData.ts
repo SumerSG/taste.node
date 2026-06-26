@@ -37,6 +37,7 @@ export function getDefaultProfile(): TasteProfile {
       },
     },
     default_context: "default",
+    following: [],
   };
 }
 
@@ -72,7 +73,7 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
   }
   if (filters.diet) {
     const dietMap: Record<string, string[]> = {
-      meat: [],
+      meat: ["meat"],
       fish: ["pescatarian"],
       veg: ["vegetarian"],
       vegan: ["vegan"],

@@ -17,6 +17,11 @@ import {
   deletePost,
   filterFeedPosts,
   setCurrentUserId,
+  createContext,
+  deleteContext,
+  switchContext,
+  followUser,
+  unfollowUser,
 } from './api';
 
 const mockVenue = {
@@ -42,6 +47,7 @@ function makeProfile(list: RankedItem[] = []): TasteProfile {
       },
     },
     default_context: 'default',
+    following: [],
   };
 }
 
@@ -135,7 +141,7 @@ describe('api', () => {
       expect(updated.contexts.default.ranked_list[0].dishes).toEqual(['Ramen', 'Gyoza']);
     });
 
-    it('migrates old data without status field', async () => {
+    it('migrates old data without status or following fields', async () => {
       const raw = JSON.stringify({
         user_id: 'legacy',
         contexts: {
@@ -159,6 +165,7 @@ describe('api', () => {
       localStorage.setItem('taste.node.profile.v2', raw);
       const profile = await loadProfile();
       expect(profile.contexts.default.ranked_list[0].status).toBe('visited');
+      expect(profile.following).toEqual([]);
     });
   });
 
@@ -204,7 +211,22 @@ describe('api', () => {
           { id: 'p3', author_id: 'stranger', author_name: 'Stranger', text: 'C', created_at: new Date().toISOString() },
         ],
       };
-      const filtered = filterFeedPosts(feed, 'following');
+      const profile = makeProfile([]);
+      const filtered = filterFeedPosts(feed, 'following', profile);
+      expect(filtered).toHaveLength(1); // only own post since no one is followed
+    });
+
+    it('filters feed by following mode with followed users', () => {
+      setCurrentUserId('demo_user');
+      const feed: FeedData = {
+        posts: [
+          { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString() },
+          { id: 'p2', author_id: 'alex_12', author_name: 'Alex', text: 'B', created_at: new Date().toISOString() },
+          { id: 'p3', author_id: 'stranger', author_name: 'Stranger', text: 'C', created_at: new Date().toISOString() },
+        ],
+      };
+      const profile = { ...makeProfile([]), following: ['alex_12'] };
+      const filtered = filterFeedPosts(feed, 'following', profile);
       expect(filtered).toHaveLength(2);
     });
 
@@ -217,8 +239,70 @@ describe('api', () => {
           { id: 'p3', author_id: 'unknown', author_name: 'Unknown', text: 'C', created_at: new Date().toISOString() },
         ],
       };
-      const filtered = filterFeedPosts(feed, 'recommended');
+      const profile = makeProfile([]);
+      const filtered = filterFeedPosts(feed, 'recommended', profile);
       expect(filtered).toHaveLength(2);
+    });
+  });
+
+  describe('contexts', () => {
+    it('creates a new context', () => {
+      const profile = makeProfile([]);
+      const updated = createContext(profile, 'noodle_spots');
+      expect(updated.contexts.noodle_spots).toBeDefined();
+      expect(updated.contexts.noodle_spots.ranked_list).toHaveLength(0);
+      expect(updated.default_context).toBe('noodle_spots');
+    });
+
+    it('deletes a context', () => {
+      const profile = makeProfile([]);
+      const withCtx = createContext(profile, 'noodle_spots');
+      const updated = deleteContext(withCtx, 'noodle_spots');
+      expect(updated.contexts.noodle_spots).toBeUndefined();
+      expect(updated.default_context).toBe('default');
+    });
+
+    it('protects default context from deletion', () => {
+      const profile = makeProfile([]);
+      const updated = deleteContext(profile, 'default');
+      expect(updated.contexts.default).toBeDefined();
+    });
+
+    it('switches active context', () => {
+      const profile = makeProfile([]);
+      const withCtx = createContext(profile, 'noodle_spots');
+      const switched = switchContext(withCtx, 'default');
+      expect(switched.default_context).toBe('default');
+    });
+
+    it('adds items to a specific context', () => {
+      const profile = makeProfile([]);
+      const withCtx = createContext(profile, 'cafes');
+      const item = makeItem('cafe1');
+      const updated = addRankedItem(withCtx, item, undefined, 'cafes');
+      expect(updated.contexts.cafes.ranked_list).toHaveLength(1);
+      expect(updated.contexts.default.ranked_list).toHaveLength(0);
+    });
+  });
+
+  describe('following', () => {
+    it('follows a user', () => {
+      const profile = makeProfile([]);
+      const updated = followUser(profile, 'alex_12');
+      expect(updated.following).toContain('alex_12');
+    });
+
+    it('unfollows a user', () => {
+      const profile = { ...makeProfile([]), following: ['alex_12', 'jordan_34'] };
+      const updated = unfollowUser(profile, 'alex_12');
+      expect(updated.following).not.toContain('alex_12');
+      expect(updated.following).toContain('jordan_34');
+    });
+
+    it('does not duplicate follows', () => {
+      const profile = { ...makeProfile([]), following: ['alex_12'] };
+      const updated = followUser(profile, 'alex_12');
+      expect(updated.following).toHaveLength(1);
     });
   });
 });

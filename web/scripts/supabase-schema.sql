@@ -1,7 +1,31 @@
 -- Run this in the Supabase SQL Editor
 
--- Enable Row Level Security on both tables
+-- Profiles table: one row per user, stores profile-level state
+CREATE TABLE IF NOT EXISTS public.profiles (
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  default_context text DEFAULT 'default' NOT NULL,
+  following text[] DEFAULT '{}' NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
 
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile"
+  ON public.profiles FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own profile"
+  ON public.profiles FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own profile"
+  ON public.profiles FOR UPDATE
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- Contexts table: one row per (user, context), stores ranked lists
 CREATE TABLE IF NOT EXISTS public.contexts (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,

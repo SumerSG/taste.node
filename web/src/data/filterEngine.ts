@@ -46,7 +46,7 @@ export function filterVenues(
   // Diet
   if (filters.diet) {
     const dietMap: Record<string, string[]> = {
-      meat: [],
+      meat: ["meat"],
       fish: ["pescatarian"],
       veg: ["vegetarian"],
       vegan: ["vegan"],
@@ -170,7 +170,7 @@ export function scoreVenueForChat(
   if (filters.cuisine && venue.cuisines.includes(filters.cuisine)) score += 0.25;
   if (filters.diet) {
     const dietMap: Record<string, string[]> = {
-      meat: [],
+      meat: ["meat"],
       fish: ["pescatarian"],
       veg: ["vegetarian"],
       vegan: ["vegan"],
@@ -225,6 +225,7 @@ export function filterAndSortVenues(
         },
       },
       default_context: "default",
+      following: [],
     }
   );
 }

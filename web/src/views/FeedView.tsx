@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
-import type { Post, FeedData, Venue, FeedMode } from "../data/types";
-import { addPost, deletePost, filterFeedPosts, getCurrentUserId } from "../data/api";
+import type { Post, FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
+import { addPost, deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing } from "../data/api";
 import { getAllVenues } from "../data/venues";
-import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles } from "lucide-react";
+import { Plus, Image, X, MapPin, Send, Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck } from "lucide-react";
 
 interface Props {
+  profile: TasteProfile;
+  onProfileChange: (profile: TasteProfile) => void;
   feed: FeedData;
   onFeedChange: (feed: FeedData) => void;
   onNavigateToSearch: () => void;
@@ -31,7 +33,7 @@ const MODES: { id: FeedMode; label: string; icon: React.ReactNode }[] = [
   { id: "global", label: "Global", icon: <Globe size={13} /> },
 ];
 
-export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
+export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch }: Props) {
   const [mode, setMode] = useState<FeedMode>("recommended");
   const [composing, setComposing] = useState(false);
   const [text, setText] = useState("");
@@ -45,7 +47,7 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
   }, []);
 
   const selectedVenue = venueId ? venueMap.get(venueId) ?? null : null;
-  const filteredPosts = useMemo(() => filterFeedPosts(feed, mode), [feed, mode]);
+  const filteredPosts = useMemo(() => filterFeedPosts(feed, mode, profile), [feed, mode, profile]);
 
   const handleSubmit = () => {
     if (!text.trim() && !imageUrl.trim()) return;
@@ -202,11 +204,35 @@ export function FeedView({ feed, onFeedChange, onNavigateToSearch }: Props) {
                     <div className="text-[11px] text-ink-faint">{timeAgo(post.created_at)}</div>
                   </div>
                 </div>
-                {post.author_id === (getCurrentUserId() ?? "anonymous") && (
-                  <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                <div className="flex items-center gap-1">
+                  {post.author_id !== (getCurrentUserId() ?? "anonymous") && (
+                    <button
+                      onClick={() => {
+                        if (isFollowing(profile, post.author_id)) {
+                          onProfileChange(unfollowUser(profile, post.author_id));
+                        } else {
+                          onProfileChange(followUser(profile, post.author_id));
+                        }
+                      }}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                        isFollowing(profile, post.author_id)
+                          ? "bg-cream text-ink-muted ring-1 ring-cream-dark hover:bg-red-50 hover:text-red-500"
+                          : "bg-sienna-50 text-sienna-700 ring-1 ring-sienna-200 hover:bg-sienna-100"
+                      }`}
+                    >
+                      {isFollowing(profile, post.author_id) ? (
+                        <><UserCheck size={12} /> Following</>
+                      ) : (
+                        <><UserPlus size={12} /> Follow</>
+                      )}
+                    </button>
+                  )}
+                  {post.author_id === (getCurrentUserId() ?? "anonymous") && (
+                    <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Text */}

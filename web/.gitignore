@@ -19,4 +19,7 @@ node_modules
 *.ntvs*
 *.njsproj
 *.sln
+# Environment variables — .env is tracked for demo convenience, but contains live keys.
+# To stop tracking: git rm --cached web/.env
 .env
+.env.local

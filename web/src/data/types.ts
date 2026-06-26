@@ -41,6 +41,7 @@ export interface TasteProfile {
   user_id: string;
   contexts: Record<string, TasteContext>;
   default_context: string;
+  following: string[];
 }
 
 export interface Recommendation {

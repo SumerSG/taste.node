@@ -123,13 +123,16 @@ export function computeAllCuisines(): string[] {
 }
 
 export function computeDefaultVenues(): Venue[] {
-  return [
-    _venues[12],
-    _venues[45],
-    _venues[88],
-    _venues[134],
-    _venues[201],
-  ].filter((v): v is Venue => !!v);
+  const count = _venues.length;
+  if (count === 0) return [];
+  // Spread selections across available venues so we don't crash when the
+  // fallback list (15 items) is active, and so we still pick diverse venues
+  // when the full Supabase dataset (~200 items) is loaded.
+  const indices =
+    count < 202
+      ? [0, Math.floor(count / 4), Math.floor(count / 2), Math.floor(count * 3 / 4), count - 1]
+      : [12, 45, 88, 134, 201];
+  return indices.map((i) => _venues[i]).filter((v): v is Venue => !!v);
 }
 
 export function computeUserLocation(): { lat: number; lng: number } {
