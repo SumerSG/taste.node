@@ -12,6 +12,7 @@ import { ProfileView } from "./views/LibraryView";
 import { RankingView } from "./views/RankingView";
 import { VenuePage } from "./views/VenuePage";
 import { LandingView } from "./views/LandingView";
+import { FabOverlay } from "./components/FabOverlay";
 
 function AppContent() {
   const [ready, setReady] = useState(false);
@@ -145,6 +146,14 @@ function AppContent() {
           </>
         )}
       </Layout>
+
+      <FabOverlay
+        profile={profile}
+        onProfileChange={handleProfileChange}
+        feed={feed}
+        onFeedChange={handleFeedChange}
+        onNavigateToSearch={() => setTab("search")}
+      />
 
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
     </>
