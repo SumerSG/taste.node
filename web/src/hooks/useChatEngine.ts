@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Venue, TasteProfile, Filters } from "../data/types";
 import { filterVenues, defaultFilters, mergeFilters } from "../data/filterEngine";
 import { parseChatQuery } from "../utils/chatParser";
+import { SAMPLE_USERS } from "../data/mockData";
 
 export type ChatPhase = "greeting" | "gathering" | "presenting" | "refining";
 
@@ -106,6 +107,11 @@ function getRefineText(count: number, topVenue: Venue | undefined): string {
   return fn(count, topVenue.name);
 }
 
+function friendName(filters: Filters): string | undefined {
+  if (!filters.with_user) return undefined;
+  return SAMPLE_USERS.find((u) => u.id === filters.with_user)?.name;
+}
+
 /* ─── Missing-info detection ─── */
 
 function detectMissing(filters: Filters): string[] {
@@ -166,12 +172,16 @@ export function useChatEngine(profile: TasteProfile) {
           } else {
             const count = results.length;
             let summary: string;
+            const friend = friendName(newFilters);
             if (count === 0) {
               summary = NO_MATCH_TEMPLATE;
             } else if (count > 12) {
               summary = `${getPresentText(count, top)} ${TOO_MANY_TEMPLATE}`;
             } else {
               summary = getPresentText(count, top);
+            }
+            if (friend) {
+              summary = `Finding something for you and ${friend}… ${summary}`;
             }
             setMessages((prev) => [
               ...prev,
@@ -188,6 +198,7 @@ export function useChatEngine(profile: TasteProfile) {
         } else if (phase === "presenting" || phase === "refining") {
           const count = results.length;
           let summary: string;
+          const friend2 = friendName(newFilters);
           if (count === 0) {
             summary = NO_MATCH_TEMPLATE;
           } else if (count <= 3) {
@@ -196,6 +207,9 @@ export function useChatEngine(profile: TasteProfile) {
             summary = `${getRefineText(count, top)} ${TOO_MANY_TEMPLATE}`;
           } else {
             summary = getRefineText(count, top);
+          }
+          if (friend2) {
+            summary = `Finding something for you and ${friend2}… ${summary}`;
           }
           setMessages((prev) => [
             ...prev,
@@ -229,10 +243,14 @@ export function useChatEngine(profile: TasteProfile) {
       const results = computeResults(newFilters);
       const top = results[0];
       const count = results.length;
-      const summary =
+      const friend3 = friendName(newFilters);
+      let summary =
         count === 0
           ? NO_MATCH_TEMPLATE
           : getPresentText(Math.min(count, 12), top);
+      if (friend3) {
+        summary = `For you and ${friend3}: ${summary}`;
+      }
       setMessages((prev) => [
         ...prev,
         {

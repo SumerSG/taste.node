@@ -85,4 +85,19 @@ describe('parseChatQuery', () => {
     expect(result.filters.healthiness_min).toBe(0.7);
     expect(result.filters.radius_km).toBe(3);
   });
+
+  it('detects mutual friend from name', () => {
+    const result = parseChatQuery('Something good with Alex');
+    expect(result.filters.with_user).toBe('alex_12');
+  });
+
+  it('detects mutual friend from partial name', () => {
+    const result = parseChatQuery('Group dinner and kenji tonight');
+    expect(result.filters.with_user).toBe('kenji_08');
+  });
+
+  it('does not detect friend without social context', () => {
+    const result = parseChatQuery('Best sushi in town');
+    expect(result.filters.with_user).toBeUndefined();
+  });
 });

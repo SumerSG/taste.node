@@ -1,4 +1,5 @@
 import type { Filters } from "../data/types";
+import { SAMPLE_USERS } from "../data/mockData";
 
 export interface ParsedChat {
   text: string;
@@ -86,6 +87,22 @@ export function parseChatQuery(input: string): ParsedChat {
     updates.radius_km = 3;
   } else if (text.includes("anywhere")) {
     updates.radius_km = 50;
+  }
+
+  // Mutual friend context
+  const socialContext = /with|and|mutual|together|friend|both of us|for us|with my/;
+  if (socialContext.test(text)) {
+    for (const user of SAMPLE_USERS) {
+      const needles = [
+        user.id.toLowerCase(),
+        user.name.toLowerCase(),
+        user.name.toLowerCase().split(" ")[0],
+      ];
+      if (needles.some((n) => text.includes(n))) {
+        updates.with_user = user.id;
+        break;
+      }
+    }
   }
 
   return { text: input, filters: updates };

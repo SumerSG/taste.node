@@ -62,6 +62,7 @@ export interface Filters {
   review_count_min: number;
   visit_status: RankStatus | "any";
   sort_by: string;
+  with_user?: string;
 }
 
 export interface Post {

@@ -1,4 +1,4 @@
-import type { TasteProfile, Recommendation, Filters, RankStatus, Post } from "./types";
+import type { TasteProfile, Recommendation, Filters, RankStatus, Post, RankedItem } from "./types";
 import {
   getAllVenues,
   computeDefaultVenues,
@@ -35,6 +35,47 @@ export const SAMPLE_USERS: { id: string; name: string }[] = [
 
 export const CLUSTER_PEERS = SAMPLE_USERS.slice(0, 6).map((u) => u.id);
 export const FOLLOWED_USERS = SAMPLE_USERS.slice(0, 3).map((u) => u.id);
+
+/* ─── Deterministic mock profile for any sample user ─── */
+
+export function getSampleUserProfile(userId: string): TasteProfile | null {
+  const pool = getAllVenues();
+  if (pool.length === 0) return null;
+
+  const seed = [...userId].reduce((s, c) => s + c.charCodeAt(0), 0);
+  const count = 3 + (seed % 5);
+  const selected: RankedItem[] = [];
+
+  for (let i = 0; i < count + 5; i++) {
+    if (selected.length >= count) break;
+    const idx = (seed * 7 + i * 11 + (i * i) % 3 * 13) % pool.length;
+    const venue = pool[idx];
+    if (venue && !selected.find((r) => r.venue.id === venue.id)) {
+      selected.push({
+        venue,
+        visited_at: new Date(2025, 0, 10 + i, 18, 0, 0).toISOString(),
+        added_at: "2026-06-22T10:00:00+00:00",
+        occasion_tag: (["solo", "date", "group", "business", "comfort"] as const)[(seed + i) % 5],
+        is_classic: (seed + i) % 7 === 0,
+        status: (["visited", "favourite", "regular", "want_to_try"] as const)[(seed + i) % 4],
+      });
+    }
+  }
+
+  return {
+    user_id: userId,
+    contexts: {
+      default: {
+        context_id: "default",
+        ranked_list: selected,
+        created_at: "2026-01-01T00:00:00+00:00",
+        updated_at: "2026-01-01T00:00:00+00:00",
+      },
+    },
+    default_context: "default",
+    following: [],
+  };
+}
 
 export const TOP_CUISINES = [
   "居酒屋", "海鮮", "焼き鳥", "焼肉", "日本料理", "イタリアン",
@@ -175,15 +216,56 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
     return haversine(userLoc, v.location) <= filters.radius_km;
   });
 
+  /* ─── mutual friend context ─── */
+  let friend: TasteProfile | null = null;
+  let friendCuisines = new Set<string>();
+  let friendName = "";
+  if (filters.with_user) {
+    friend = getSampleUserProfile(filters.with_user);
+    if (friend) {
+      const fCtx = friend.contexts[friend.default_context];
+      fCtx?.ranked_list.forEach((r) => r.venue.cuisines.forEach((c) => friendCuisines.add(c)));
+      friendName = SAMPLE_USERS.find((u) => u.id === filters.with_user)?.name ?? "Your friend";
+    }
+  }
+
   const scored = candidates.map((venue) => {
     let score = 0.45;
     const sharedCuisine = venue.cuisines.filter((c) => userCuisines.has(c)).length;
     score += Math.min(sharedCuisine * 0.18, 0.35);
     if (venue.health_score) score += venue.health_score * 0.1;
     if (venue.price_tier && filters.price_tier && venue.price_tier === filters.price_tier) score += 0.07;
+
+    if (filters.with_user && friendCuisines.size > 0) {
+      const friendShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
+      const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
+      score += Math.min(friendShared * 0.08, 0.15);
+      score += Math.min(mutual * 0.18, 0.30);
+      const fCtx = friend?.contexts[friend.default_context];
+      const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+      if (fRank !== -1) score += 0.15 / (fRank + 1);
+    }
+
     score = Math.min(score, 0.98);
-    const refVenue = context?.ranked_list[0]?.venue.name ?? "a similar spot";
-    const explanation = `${CLUSTER_PEERS.length} people in your taste cluster ranked this in their top 3 after visiting ${refVenue}.`;
+
+    let explanation: string;
+    if (filters.with_user && friendCuisines.size > 0) {
+      const mutualCs = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c));
+      const fCtx = friend?.contexts[friend.default_context];
+      const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+      if (mutualCs.length > 0 && fRank !== -1) {
+        explanation = `${friendName} ranked this #${fRank + 1} — both of you love ${mutualCs[0]}.`;
+      } else if (mutualCs.length > 0) {
+        explanation = `You and ${friendName} both love ${mutualCs[0]}. Strong mutual match.`;
+      } else if (fRank !== -1) {
+        explanation = `${friendName} placed this in their top ${fRank < 3 ? "3" : "10"}. You might like it as well.`;
+      } else {
+        explanation = `${friendName}'s taste overlaps with this place. Worth trying together.`;
+      }
+    } else {
+      const refVenue = context?.ranked_list[0]?.venue.name ?? "a similar spot";
+      explanation = `${CLUSTER_PEERS.length} people in your taste cluster ranked this in their top 3 after visiting ${refVenue}.`;
+    }
     return { venue, score: Math.round(score * 100) / 100, explanation, context_id: profile.default_context };
   });
 

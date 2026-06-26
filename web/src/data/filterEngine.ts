@@ -1,5 +1,6 @@
 import type { Venue, TasteProfile, Filters } from "./types";
 import { getAllVenues, computeUserLocation, haversine } from "./venues";
+import { getSampleUserProfile } from "./mockData";
 
 export function defaultFilters(): Filters {
   return {
@@ -13,6 +14,7 @@ export function defaultFilters(): Filters {
     review_count_min: 0,
     visit_status: "any",
     sort_by: "relevance",
+    with_user: "",
   };
 }
 
@@ -129,17 +131,31 @@ export function filterVenues(
       );
       break;
     default: {
-      // relevance: boost by profile cuisine overlap
+      // relevance: boost by profile + optional friend cuisine overlap
       const userCuisines = new Set<string>();
       ctx?.ranked_list.forEach((r) =>
         r.venue.cuisines.forEach((c) => userCuisines.add(c))
       );
+
+      let friendCuisines = new Set<string>();
+      if (filters.with_user) {
+        const friend = getSampleUserProfile(filters.with_user);
+        const fCtx = friend?.contexts[friend?.default_context ?? "default"];
+        fCtx?.ranked_list.forEach((r) =>
+          r.venue.cuisines.forEach((c) => friendCuisines.add(c))
+        );
+      }
+
       copy.sort((a, b) => {
         const sa =
           a.cuisines.filter((c) => userCuisines.has(c)).length * 2 +
+          a.cuisines.filter((c) => friendCuisines.has(c ? c : "")).length +
+          a.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length * 2 +
           (a.health_score ?? 0);
         const sb =
           b.cuisines.filter((c) => userCuisines.has(c)).length * 2 +
+          b.cuisines.filter((c) => friendCuisines.has(c ? c : "")).length +
+          b.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length * 2 +
           (b.health_score ?? 0);
         return sb - sa;
       });
@@ -161,6 +177,15 @@ export function scoreVenueForChat(
   ctx?.ranked_list.forEach((r) =>
     r.venue.cuisines.forEach((c) => userCuisines.add(c))
   );
+
+  let friendCuisines = new Set<string>();
+  if (filters.with_user) {
+    const friend = getSampleUserProfile(filters.with_user);
+    const fCtx = friend?.contexts[friend?.default_context ?? "default"];
+    fCtx?.ranked_list.forEach((r) =>
+      r.venue.cuisines.forEach((c) => friendCuisines.add(c))
+    );
+  }
 
   if (filters.query) {
     const q = filters.query.toLowerCase();
@@ -188,6 +213,13 @@ export function scoreVenueForChat(
 
   const shared = venue.cuisines.filter((c) => userCuisines.has(c)).length;
   score += Math.min(shared * 0.12, 0.3);
+
+  if (filters.with_user && friendCuisines.size > 0) {
+    const fShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
+    const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
+    score += Math.min(fShared * 0.06, 0.12);
+    score += Math.min(mutual * 0.12, 0.20);
+  }
 
   return score;
 }
