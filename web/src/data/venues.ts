@@ -1,4 +1,4 @@
-import type { Venue, Post } from "./types";
+import type { Venue } from "./types";
 import { supabase, hasSupabase } from "../lib/supabase";
 
 const IMAGES: Record<string, string> = {
@@ -198,61 +198,6 @@ export function filterAndSortVenues(
     default:
       return copy;
   }
-}
-
-/* ─── Seed posts (generated after venues are loaded) ─── */
-
-export function buildSeedPosts(): Post[] {
-  const v = _venues;
-  return [
-    {
-      id: "seed_001",
-      author_id: "alex_12",
-      author_name: "Alex M.",
-      text: "The omakase here was unreal. Every course built on the last — the chūtoro melted like butter.",
-      venue_id: v[5]?.id,
-      venue_name: v[5]?.name,
-      image_url: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&h=500&fit=crop",
-      created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    },
-    {
-      id: "seed_002",
-      author_id: "jordan_34",
-      author_name: "Jordan T.",
-      text: "Finally found a proper Neapolitan pizza in this city. Leopard-spotted crust, San Marzano tomatoes, buffalo mozzarella.",
-      venue_id: v[6]?.id,
-      venue_name: v[6]?.name,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    },
-    {
-      id: "seed_003",
-      author_id: "sam_88",
-      author_name: "Sam K.",
-      text: "This tiny Korean BBQ joint doesn't take reservations and the wait is always 40 mins. Worth it.",
-      venue_id: v[7]?.id,
-      venue_name: v[7]?.name,
-      image_url: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=800&h=500&fit=crop",
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-    },
-    {
-      id: "seed_004",
-      author_id: "taylor_09",
-      author_name: "Taylor R.",
-      text: "Hidden vegan tasting menu. 10 courses, no repeats, all plant-based. Who knew cashew cream could do that?",
-      venue_id: v[8]?.id,
-      venue_name: v[8]?.name,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-    },
-    {
-      id: "seed_005",
-      author_id: "demo_user",
-      author_name: "You",
-      text: "My new favourite lunch spot. The salmon bowl is exactly what I needed.",
-      venue_id: v[2]?.id,
-      venue_name: v[2]?.name,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    },
-  ].filter((p) => p.venue_id) as Post[];
 }
 
 /* ─── Geometry helpers ─── */

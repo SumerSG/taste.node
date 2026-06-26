@@ -10,6 +10,7 @@ import { FeedView } from "./views/FeedView";
 import { SearchView } from "./views/SearchView";
 import { LibraryView } from "./views/LibraryView";
 import { RankingView } from "./views/RankingView";
+import { LandingView } from "./views/LandingView";
 
 function AppContent() {
   const [ready, setReady] = useState(false);
@@ -18,6 +19,7 @@ function AppContent() {
   const [tab, setTab] = useState<Tab>("feed");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAuth, setShowAuth] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
   const { user, loading: authLoading } = useAuthState();
   const { logout } = useAuthActions();
   const userId = user?.id ?? null;
@@ -74,6 +76,14 @@ function AppContent() {
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (!user && !guestMode) {
+    return (
+      <LandingView
+        onGuestEnter={() => setGuestMode(true)}
+      />
     );
   }
 

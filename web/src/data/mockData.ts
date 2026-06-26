@@ -1,14 +1,40 @@
-import type { TasteProfile, Recommendation, Filters, RankStatus } from "./types";
+import type { TasteProfile, Recommendation, Filters, RankStatus, Post } from "./types";
 import {
   getAllVenues,
   computeDefaultVenues,
   computeUserLocation,
-  buildSeedPosts,
   haversine,
 } from "./venues";
 
-export const CLUSTER_PEERS = ["alex_12", "jordan_34", "sam_88", "taylor_09", "casey_22", "morgan_45"];
-export const FOLLOWED_USERS = ["alex_12", "jordan_34", "sam_88"];
+export const SAMPLE_USERS: { id: string; name: string }[] = [
+  { id: "alex_12", name: "Alex M." },
+  { id: "jordan_34", name: "Jordan T." },
+  { id: "sam_88", name: "Sam K." },
+  { id: "taylor_09", name: "Taylor R." },
+  { id: "casey_22", name: "Casey L." },
+  { id: "morgan_45", name: "Morgan B." },
+  { id: "riley_17", name: "Riley S." },
+  { id: "quinn_63", name: "Quinn J." },
+  { id: "avery_29", name: "Avery P." },
+  { id: "jules_51", name: "Jules D." },
+  { id: "kenji_08", name: "Kenji Y." },
+  { id: "priya_41", name: "Priya N." },
+  { id: "luca_77", name: "Luca R." },
+  { id: "sofia_33", name: "Sofia G." },
+  { id: "hugo_19", name: "Hugo B." },
+  { id: "mei_55", name: "Mei L." },
+  { id: "omar_02", name: "Omar F." },
+  { id: "inara_66", name: "Inara K." },
+  { id: "dmitri_24", name: "Dmitri V." },
+  { id: "yuki_11", name: "Yuki S." },
+  { id: "eloise_38", name: "Eloise M." },
+  { id: "rafael_49", name: "Rafael C." },
+  { id: "zara_72", name: "Zara A." },
+  { id: "nico_05", name: "Nico P." },
+];
+
+export const CLUSTER_PEERS = SAMPLE_USERS.slice(0, 6).map((u) => u.id);
+export const FOLLOWED_USERS = SAMPLE_USERS.slice(0, 3).map((u) => u.id);
 
 export const TOP_CUISINES = [
   "居酒屋", "海鮮", "焼き鳥", "焼肉", "日本料理", "イタリアン",
@@ -42,7 +68,62 @@ export function getDefaultProfile(): TasteProfile {
 }
 
 /* ─── Seed posts (generated after venues load) ─── */
-export { buildSeedPosts };
+
+const SEED_QUOTES: string[] = [
+  "The omakase here was unreal. Every course built on the last — the chūtoro melted like butter.",
+  "Finally found a proper Neapolitan pizza in this city. Leopard-spotted crust, San Marzano tomatoes, buffalo mozzarella.",
+  "This tiny Korean BBQ joint doesn't take reservations and the wait is always 40 mins. Worth it.",
+  "Hidden vegan tasting menu. 10 courses, no repeats, all plant-based. Who knew cashew cream could do that?",
+  "My new favourite lunch spot. The salmon bowl is exactly what I needed.",
+  "The tonkatsu was so light it practically floated. Homemade sauce deserves its own cult.",
+  "Ordered the chef's whim and got seven dishes I would never have picked. Loved all of them.",
+  "Ramen broth simmered for 18 hours — you can taste every minute.",
+  "Best steak I've had outside of Kobe. Marbling score off the charts.",
+  "Late-night izakaya energy. Grilled everything, cold beer, no pretence.",
+  "Sourdough pizza with burrata and nduja. Crunchy, gooey, spicy — the trifecta.",
+  "Took a date here. The lighting is perfect, the wine list is smarter than I am, and the pasta is handmade.",
+  "Fish so fresh it was still deciding if it wanted to be cooked.",
+  "Curry that builds heat slowly — starts gentle, ends with a polite kick. Layered.",
+  "Tempura vanishes on your tongue. Not heavy, not greasy — just golden air.",
+  "The burger is a two-hander. Juice everywhere, no regrets.",
+  "Dim sum cart service on weekends. Har gow with translucent wrappers — textbook.",
+  "Tasting menu was a geography lesson: Hokkaido scallop, Kyushu wagyu, Okinawa pork.",
+  "Walked in sceptical about plant-based sushi. Walked out a convert.",
+  "Pho broth clarity is the real test. This one passes with honours.",
+  "Gyoza bottoms are crispy lace. Top is soft. Filling is seasoned like a secret.",
+  "The espresso martini here is dessert and coffee in one. Dangerous.",
+  "Unagi glazed over charcoal. Smoky, sweet, fall-apart tender.",
+  "Fried chicken so crispy it echoes. Kimchi slaw cuts the grease perfectly.",
+];
+
+export function buildSeedPosts(): Post[] {
+  const venues = getAllVenues();
+  if (venues.length === 0) return [];
+
+  const posts: Post[] = [];
+  const now = Date.now();
+
+  for (let i = 0; i < SEED_QUOTES.length; i++) {
+    const user = SAMPLE_USERS[i % SAMPLE_USERS.length];
+    const venue = venues[i % venues.length];
+    const minutesAgo = (i + 1) * 45 + Math.floor(Math.random() * 30);
+    posts.push({
+      id: `seed_${String(i + 1).padStart(3, "0")}`,
+      author_id: user.id,
+      author_name: user.name,
+      text: SEED_QUOTES[i],
+      venue_id: venue.id,
+      venue_name: venue.name,
+      image_url:
+        i % 3 === 0
+          ? venue.image_url ?? undefined
+          : undefined,
+      created_at: new Date(now - 1000 * 60 * minutesAgo).toISOString(),
+    });
+  }
+
+  return posts;
+}
 
 /* ─── Cluster label ─── */
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthState, useAuthActions } from "../hooks/useAuth";
 import { X, Mail, Lock, LogIn, UserPlus, AlertCircle } from "lucide-react";
 
@@ -7,16 +7,27 @@ type Mode = "signin" | "signup";
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialMode?: Mode;
 }
 
-export function AuthModal({ open, onClose }: Props) {
-  const [mode, setMode] = useState<Mode>("signin");
+export function AuthModal({ open, onClose, initialMode = "signin" }: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const { error } = useAuthState();
   const { login, register, clearError } = useAuthActions();
+
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+      setEmail("");
+      setPassword("");
+      setConfirm("");
+      clearError();
+    }
+  }, [open, initialMode, clearError]);
 
   if (!open) return null;
 
