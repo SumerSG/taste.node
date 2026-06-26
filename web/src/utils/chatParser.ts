@@ -10,25 +10,71 @@ export function parseChatQuery(input: string): ParsedChat {
   const text = input.toLowerCase();
   const updates: Partial<Filters> = {};
 
-  // Cuisine extraction
+  // Cuisine extraction — map English keywords to the actual Japanese
+  // cuisine labels used in the venue data so filters match exactly.
   const cuisineKeywords: Record<string, string> = {
-    japanese: "Japanese", ramen: "Japanese", sushi: "Japanese",
-    italian: "Italian", pizza: "Italian", pasta: "Italian",
-    american: "American", burger: "American",
-    mexican: "Mexican", taco: "Mexican", burrito: "Mexican",
-    french: "French", bistro: "French",
-    indian: "Indian", curry: "Indian",
-    vietnamese: "Vietnamese", pho: "Vietnamese",
-    korean: "Korean", bbq: "Korean",
-    thai: "Thai",
-    "middle eastern": "Middle Eastern", falafel: "Middle Eastern", shawarma: "Middle Eastern",
-    seafood: "Seafood", fish: "Seafood",
-    steakhouse: "Steakhouse", steak: "Steakhouse",
-    salad: "Salad",
-    vegetarian: "Vegetarian",
-    vegan: "Vegan",
-    bakery: "Bakery", pastry: "Bakery",
-    taiwanese: "Taiwanese",
+    // Japanese / washoku
+    japanese: "日本料理",
+    washoku: "日本料理",
+    traditional: "日本料理",
+    izakaya: "居酒屋",
+    pub: "居酒屋",
+    yakitori: "焼き鳥",
+    skewer: "焼き鳥",
+    yakiniku: "焼肉",
+    bbq: "焼肉",
+    grilled: "焼肉",
+    steak: "ステーキ",
+    teppanyaki: "鉄板焼き",
+    iron: "鉄板焼き",
+    ramen: "ラーメン",
+    noodle: "ラーメン",
+    sushi: "寿司",
+    sashimi: "寿司",
+    seafood: "海鮮",
+    fish: "海鮮",
+    nabe: "鍋",
+    hotpot: "鍋",
+    shabu: "しゃぶしゃぶ",
+    shabushabu: "しゃぶしゃぶ",
+    tonkatsu: "とんかつ",
+    pork: "とんかつ",
+
+    // Italian
+    italian: "イタリアン",
+    pizza: "イタリアン",
+    pasta: "パスタ",
+
+    // Chinese
+    chinese: "中華料理",
+    gyoza: "中華料理",
+    dumpling: "中華料理",
+
+    // Korean
+    korean: "韓国料理",
+
+    // French / creative
+    french: "創作料理",
+    creative: "創作料理",
+    fusion: "創作料理",
+
+    // Cafe
+    cafe: "カフェ",
+    coffee: "カフェ",
+
+    // Curry / Indian
+    curry: "カレー",
+    indian: "インド料理",
+
+    // American
+    american: "アメリカ料理",
+    burger: "アメリカ料理",
+    lobster: "アメリカ料理",
+
+    // Diet-forward
+    vegetarian: "ベジタリアン",
+    vegan: "ベジタリアン",
+    salad: "サラダ",
   };
   for (const [kw, cuisine] of Object.entries(cuisineKeywords)) {
     if (text.includes(kw)) {

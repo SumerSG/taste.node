@@ -40,9 +40,13 @@ export function filterVenues(
     );
   }
 
-  // Cuisine
+  // Cuisine — case-insensitive partial match so English queries can
+  // match Japanese cuisine labels (e.g. "italian" matches "イタリアン")
   if (filters.cuisine) {
-    pool = pool.filter((v) => v.cuisines.includes(filters.cuisine));
+    const q = filters.cuisine.toLowerCase();
+    pool = pool.filter((v) =>
+      v.cuisines.some((c) => c.toLowerCase().includes(q))
+    );
   }
 
   // Diet
@@ -192,7 +196,7 @@ export function scoreVenueForChat(
     if (venue.name.toLowerCase().includes(q)) score += 0.25;
     if (venue.cuisines.some((c) => c.toLowerCase().includes(q))) score += 0.2;
   }
-  if (filters.cuisine && venue.cuisines.includes(filters.cuisine)) score += 0.25;
+  if (filters.cuisine && venue.cuisines.some((c) => c.toLowerCase().includes(filters.cuisine.toLowerCase()))) score += 0.25;
   if (filters.diet) {
     const dietMap: Record<string, string[]> = {
       meat: ["meat"],

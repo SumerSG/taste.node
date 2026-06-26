@@ -81,6 +81,7 @@ export function FilterPanel({ filters, onChange, open, onClose }: Props) {
       review_count_min: 0,
       visit_status: "any",
       sort_by: "relevance",
+      with_user: "",
     });
   };
 

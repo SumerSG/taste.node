@@ -9,12 +9,12 @@ describe('parseChatQuery', () => {
 
   it('detects Japanese cuisine', () => {
     const result = parseChatQuery('Good ramen near me');
-    expect(result.filters.cuisine).toBe('Japanese');
+    expect(result.filters.cuisine).toBe('ラーメン');
   });
 
   it('detects Italian cuisine', () => {
     const result = parseChatQuery('Best pasta in town');
-    expect(result.filters.cuisine).toBe('Italian');
+    expect(result.filters.cuisine).toBe('パスタ');
   });
 
   it('detects vegan diet', () => {
@@ -79,7 +79,7 @@ describe('parseChatQuery', () => {
 
   it('combines multiple filters', () => {
     const result = parseChatQuery('Healthy vegan Italian under $$ near 3km');
-    expect(result.filters.cuisine).toBe('Italian');
+    expect(result.filters.cuisine).toBe('イタリアン');
     expect(result.filters.diet).toBe('vegan');
     expect(result.filters.price_tier).toBe(2);
     expect(result.filters.healthiness_min).toBe(0.7);
