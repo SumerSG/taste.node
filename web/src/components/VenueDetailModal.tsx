@@ -169,6 +169,29 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-ink-muted flex items-center gap-1.5">
+                    <Tag size={13} /> Taste impact
+                  </label>
+                  <button
+                    onClick={() => setClassic(!classic)}
+                    className={`text-xs font-medium rounded-full px-3 py-1 ring-1 transition ${
+                      classic
+                        ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
+                        : "bg-cream text-ink-faint ring-cream-dark hover:text-ink-muted"
+                    }`}
+                  >
+                    {classic ? "Timeless ✓" : "Mark timeless"}
+                  </button>
+                </div>
+                <p className="text-xs text-ink-faint leading-relaxed">
+                  <strong>Timeless</strong> means this place defines your taste forever — the algorithm
+                  never forgets it, even years later. <strong>Favourite</strong> is just a label for your profile.
+                  Use both for the places that truly shaped you.
+                </p>
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-medium text-ink-muted">Occasion</label>
                 <div className="flex flex-wrap gap-2">
@@ -205,16 +228,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
                     <label className="mb-1 block text-sm font-medium text-ink-muted flex items-center gap-1"><Calendar size={12}/> Visited on</label>
                     <input type="date" value={visited} onChange={(e) => setVisited(e.target.value)} className="w-full rounded-xl border-cream-dark bg-cream px-3 py-2 text-sm shadow-sm focus:border-sienna-400 focus:ring-sienna-100" />
                   </div>
-                  <div className="flex items-end">
-                    <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer rounded-xl border border-cream-dark bg-cream px-3 py-2 w-full">
-                      <input type="checkbox" checked={classic} onChange={(e) => setClassic(e.target.checked)} className="rounded border-cream-dark accent-sienna-500" />
-                      <Tag size={13} /> Classic
-                    </label>
-                  </div>
                 </div>
-                <p className="text-xs text-ink-faint mt-2">
-                  Classics never lose importance over time — they always count at full weight in your taste profile.
-                </p>
               </div>
 
               <div>
