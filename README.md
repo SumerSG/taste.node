@@ -56,10 +56,13 @@ Built during a 6-week internship focused on AI tools.
 | **API Surface** | FastAPI + Pydantic v2 | ✅ Yes | ASGI-native, tightly integrated with Pydantic v2 `@computed_field`. |
 | **Similarity Engine** | SciPy `kendalltau` + NumPy | ✅ Yes | Authoritative statistical implementation for rank correlation. |
 | **Clustering Engine** | `hdbscan` (precomputed metric) | ✅ Yes | Only mature library for density-based clustering on custom distance matrices. |
-| **Persistence (MVP)** | SQLite + SQLAlchemy Core | ✅ Yes | Eliminates ops overhead; Core (not ORM) preserves Pydantic model boundaries. |
+| **Persistence (Dev)** | SQLite + SQLAlchemy Core | ✅ Yes | Eliminates ops overhead for local dev. Core (not ORM) preserves Pydantic model boundaries. |
+| **Persistence (Production)** | Supabase Postgres | ✅ Locked | Auth, social graph, venue catalog, profiles, contexts. RLS policies enforced. Fallback to SQLite when env vars missing. |
 | **Recommendation Scoring** | Pure Python (in-memory) | ✅ Yes | For ≤1K users, Python loops over cluster members are sufficient. No vector DB needed. |
+| **Auth** | Supabase Auth (Google OAuth + Email) | ✅ Yes | Handles OAuth, JWT sessions, refresh tokens. Frontend via `gotrue-js`. |
 | **Logging** | python-json-logger | ✅ Yes | Structured logs belong in the application layer, not the data layer. |
 | **Testing** | pytest | ✅ Yes | Dev-only dependency; correctly placed in `[project.optional-dependencies]`. |
+| **Deployment** | Build.io (frontend + backend) | ✅ Live | `taste-node-frontend` serves static SPA. `taste-node-api` runs FastAPI. |
 | **Future ANN** | faiss-cpu / hnswlib | ✅ Yes (Future) | Only needed for >10K users. Operates on precomputed distance matrices, not raw embeddings. |
 | **Vector DB** | *None planned* | ✅ N/A | Correctly absent. Vector DBs are mismatched for Kendall Tau space. |
 | **Scraping** | *None planned* | ✅ N/A | Correctly forbidden. Public APIs only for production. |
@@ -73,12 +76,15 @@ Built during a 6-week internship focused on AI tools.
 | Validation | Pydantic 2.9.0 | ✅ Locked |
 | Math / Stats | SciPy 1.14.0 + NumPy 1.26.0 | ✅ Locked |
 | Clustering | HDBSCAN 0.8.40 | ✅ Locked |
-| Database | SQLite (MVP) + SQLAlchemy 2.0 Core | ✅ Locked |
+| Database (Dev) | SQLite + SQLAlchemy 2.0 Core | ✅ Locked |
+| Database (Production) | Supabase Postgres | ✅ Locked |
+| Auth | Supabase Auth (Google OAuth + Email) | ✅ Locked |
 | Testing | pytest 9.0.0 | ✅ Locked |
 | Logging | python-json-logger 3.0.0 | ✅ Locked |
 | HTTP Client | httpx 0.27.0 | ✅ Locked |
 | Frontend | React 19 + Vite + Tailwind v3 | ✅ Included |
-| Deployment | Render / Vercel | 🟡 Pending Week 5 |
+| Frontend State | localStorage (guest) / Supabase (auth) | ✅ Dual-mode |
+| Deployment | Build.io | ✅ Live |
 
 ## Project Structure
 
@@ -86,11 +92,15 @@ Built during a 6-week internship focused on AI tools.
 taste.node/
 ├── requirements.txt         # Python dependencies (exact pinned versions)
 ├── pyproject.toml           # Build system, project metadata, exact pins, pytest config
-├── README.md                # This file
-├── PLANNING_HYGIENE.md      # ~~Repository policy: no code until Phase 0~~ **Superseded**
-├── Procfile                 # Heroku/Render process definitions (web + api)
-├── alembic/                 # Alembic DB migrations
+├── Procfile                 # Build.io process definitions (web + api)
+├── .env.example             # Environment variable template (Supabase, CORS, API key)
+├── alembic/                 # Alembic DB migrations (SQLite schema drift)
 │   └── versions/
+├── supabase/                # Supabase migrations + seed scripts
+│   ├── migrations/
+│   │   ├── 001_venues.sql   # Initial venues table (from web/supabase/migrations/001_venues.sql)
+│   │   └── 002_full_schema.sql  # Complete app schema (profiles, contexts, ranked_items, feed_posts, follows)
+│   └── 000_complete_schema.sql  # One-shot run-everything migration for fresh projects
 ├── docs/                    # Project documentation
 │   ├── AGENTS.md            # Supreme architecture (immutable reference)
 │   ├── ADR-001_REJECTED_TOOLS.md
@@ -103,15 +113,18 @@ taste.node/
 │   ├── SECURITY_BOUNDARIES.md
 │   ├── TDD.md               # AI-executable technical design (v0.2)
 │   ├── VENUE_INGESTION_PIPELINE.md
-│   └── ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md
-├── src/                     # Backend (FastAPI + SQLAlchemy Core)
-│   ├── main.py
-│   ├── models.py
-│   ├── db.py
-│   ├── similarity.py
-│   ├── clustering.py
-│   ├── recommendations.py
-│   └── mock_database.py
+│   ├── EVALUATION_PLAN.md
+│   └── UIUX_REVIEW.md       # 15 prioritized UI/UX fixes (Sprint A/B/C)
+├── src/                     # Backend (FastAPI + SQLAlchemy Core + Supabase fallback)
+│   ├── main.py              # FastAPI surface: routes, rate limiting, CORS
+│   ├── models.py            # Pydantic v2 models: TasteProfile, RankedItem, Venue, etc.
+│   ├── db.py                # SQLite/SQLAlchemy persistence (dev mode)
+│   ├── supabase_db.py       # Supabase-py client persistence (production)
+│   ├── similarity.py        # Kendall Tau similarity engine
+│   ├── clustering.py        # HDBSCAN clustering on precomputed distance matrix
+│   ├── recommendations.py   # Contextual scoring + cluster-based venue suggestions
+│   ├── mock_database.py     # Synthetic data generator (seeded PRNG)
+│   └── data/                # venues.json — 20 Tokyo restaurants
 ├── tests/                   # pytest suite
 │   ├── test_models.py
 │   ├── test_similarity.py
@@ -121,10 +134,17 @@ taste.node/
 │   └── generate_synthetic_data.py
 ├── web/                     # Frontend (React 19 + Vite + Tailwind v3)
 │   ├── src/
+│   │   ├── App.tsx              # Root component: nav stack, auth, route switching
+│   │   ├── index.css            # Tailwind + custom design tokens
+│   │   ├── data/                # Types, API layer, venues, filters, chat parser
+│   │   ├── components/          # Layout, VenueCard, VenueDetailModal, AuthModal, FilterPanel, ChatPanel, FabOverlay
+│   │   ├── views/               # FeedView, SearchView, RankingView, LibraryView, VenuePage, LandingView, UserProfileView
+│   │   ├── hooks/               # useAuth, useModalTrap, useChatEngine
+│   │   └── context/             # AuthContext, ToastContext
 │   ├── public/
-│   ├── scripts/
-│   └── dist/                # Build artifacts (tracked for deploy)
-└── .gitignore               # Blocks .env, .venv, node_modules, *.db
+│   ├── scripts/                 # seed-venues.ts, migrate-venues.ts
+│   └── dist/                # Build artifacts (tracked for Build.io deploy)
+└── .gitignore               # Blocks .env, .venv, node_modules, *.db, dist/
 ```
 
 ## Installation Notes
@@ -159,101 +179,162 @@ pip install fastapi==0.115.0 uvicorn[standard]==0.32.0 pydantic==2.9.0 scipy==1.
 
 ## Security & Deployment Notes
 
-- **Rate Limiting:** The MVP demo API implements `slowapi` rate limiting (30 req/min default). See `docs/SECURITY_BOUNDARIES.md` for `slowapi`/nginx configuration.
+- **Rate Limiting:** The API implements `slowapi` rate limiting (30 req/min default, 100/min for recommendations). See `docs/SECURITY_BOUNDARIES.md`.
 - **CORS:** Configured via `TASTE_NODE_CORS_ORIGINS`. Default is `http://localhost:5173`. `allow_origins = ["*"]` is forbidden for public demos.
-- **Auth:** `POST /users` and `PUT /users/{user_id}/contexts/{context_id}` have optional API-key auth via `TASTE_NODE_API_KEY`. See `docs/SECURITY_BOUNDARIES.md` for the OAuth2/API-key migration path.
-- **API Key:** Mutations require `X-API-Key` header when `TASTE_NODE_API_KEY` is set. Unset = open for local dev.
+- **Auth:** Supabase Auth (Google OAuth + email/password). JWT sessions managed by `@supabase/supabase-js` `gotrue` client. Backend falls back to `localStorage` when Supabase credentials are absent (guest mode).
+- **API Key:** Mutations are optionally protected by `X-API-Key` header when `TASTE_NODE_API_KEY` is set. Unset = open for local dev. Only `POST /users` and `PUT /users/{user_id}/contexts/{context_id}` require it when active.
+- **RLS:** All production tables have Row Level Security policies (see `supabase/000_complete_schema.sql`). Users can only read/write their own data.
+- **Service Role:** Backend uses `SUPABASE_SERVICE_KEY` (server-side only, never exposed to the browser) for writes. Frontend uses `VITE_SUPABASE_ANON_KEY` (public-safe) for auth and reads.
 - **Known Security Gaps:** Documented in `docs/SECURITY_BOUNDARIES.md` and `docs/PRD.md`.
+
+## Supabase Setup (one-time)
+
+### 1. Create schema
+Open the Supabase SQL Editor, create a new query, and paste the entire contents of `supabase/000_complete_schema.sql`. Run it.
+
+### 2. Enable Google OAuth
+1. **Authentication → Providers → Google** → Toggle **Enabled**
+2. **Authentication → URL Configuration** → Add:
+   - **Site URL:** `https://taste-node-frontend-1624e477.onbld.com`
+   - **Redirect URLs:** `https://taste-node-frontend-1624e477.onbld.com`
+
+### 3. Seed venue data (20 Tokyo restaurants)
+The backend will auto-seed the `venues` table on first boot if it is empty. Or run locally:
+
+```bash
+python -c "
+from supabase import create_client
+import json, os
+client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_SERVICE_KEY'))
+with open('web/src/data/venues.json') as f: venues = json.load(f)
+for v in venues: v['id'] = v.pop('venue_id'); v['location'] = json.dumps({'lat': v.pop('lat'), 'lng': v.pop('lng')})
+client.table('venues').upsert(venues, on_conflict='id').execute()
+print('Done:', len(venues), 'venues')
+"
+```
+
+### 4. Set Build.io config vars (already done)
+| App | Var | Value |
+|---|---|---|
+| `taste-node-frontend` | `VITE_SUPABASE_URL` | `https://zhygstfypymsspfinhqc.supabase.co` |
+| `taste-node-frontend` | `VITE_SUPABASE_ANON_KEY` | (anon public key) |
+| `taste-node-api` | `SUPABASE_URL` | `https://zhygstfypymsspfinhqc.supabase.co` |
+| `taste-node-api` | `SUPABASE_SERVICE_KEY` | (service role key) |
+| `taste-node-api` | `TASTE_NODE_CORS_ORIGINS` | `https://taste-node-frontend-1624e477.onbld.com` |
 
 ---
 
 ## Frontend MVP (React + Vite + Tailwind v3)
 
-A redesigned web-only frontend lives in `web/`. It is fully client-side, persists to `localStorage`, and wires to typed mock data matching `docs/DATA_CONTRACT.md` schemas.
+A redesigned web-only frontend lives in `web/`. It supports **dual-mode persistence**: localStorage for guest browsing, and Supabase for authenticated users. The app is fully client-side rendered (CSR) with no backend runtime dependency — but when `VITE_API_URL` is set, it offloads recommendations and clustering to the FastAPI backend.
 
 ### Stack
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Framework | React 19 + Vite | TypeScript, SPA |
+| Framework | React 19 + Vite | TypeScript, SPA, component-level hot reload |
 | Styling | Tailwind CSS v3 | Custom design tokens (`brand`, `surface`, `card`, `btn-primary`, etc.) |
 | Drag & Drop | `@dnd-kit/core` + `@dnd-kit/sortable` | Reorder your ranked list |
 | Icons | `lucide-react` | Consistent, lightweight |
-| Static Serve | `serve` (npx) | Heroku/Build.io compatible |
+| Auth | `@supabase/supabase-js` | Google OAuth + email/password, JWT sessions |
+| Static Serve | `serve` (npx) | Build.io compatible; `dist/` tracked in git |
+| State | localStorage (guest) / Supabase (auth) | Dual-mode: guests browse freely, signed-in users sync to cloud |
 
-### Three views
+### Views
 
-| View | What it does | Inspiration |
-|-------|--------|-------|
-| **Discover** | Chat-driven search + Booking.com-style filter rail + sortable recommendation cards with match scores and one-sentence "why" explanations. | Booking.com hotel search |
-| **Library** | Browsable catalog grid of all venues with cover photos, cuisine/diet chips, price & health badges. Searchable and filterable. Click opens a detail modal to add to your ranking. | MyAnimeList library grid |
-| **My Ranking** | Your personal ranked list with position numbers (#1, #2…), drag-to-reorder, status selector (want to try / visited / favourite / regular), and cover thumbnails. | Kitsu.io / MyAnimeList tracker |
+| View | What it does | Key Features |
+|-------|--------|--------|
+| **Landing** | Auth gate + guest entry | Supabase OAuth (Google) + email sign-in |
+| **For You** | Social feed | Following-only, cluster recommendations, global posts; click author → profile; add post directly |
+| **Search** | Venue discovery | Chat-driven search + filter rail + sortable cards; clicking venue opens detail modal |
+| **Top Picks** | My ranked list | Drag-to-reorder, status selector (want/visited/favourite/regular), context switcher, list management |
+| **Saved / Profile** | My library | Wishlist/grid toggle, visit metadata (date, rating, dishes, reaction), friend rankings |
+| **Venue Page** | Venue detail | Hero image, recommendations, save-to-library / add-to-ranking |
+| **User Profile** | Public profile | View other users' favourites, ranked list, following count |
 
-The cluster label appears as a dismissible banner across all views once you have ≥3 items.
+### Complete Feature Checklist (Sprint A–C)
 
-### Images
+All 10 UI/UX fixes from `docs/UIUX_REVIEW.md` have been implemented:
 
-Every venue card shows a photo. The mock data includes `image_url` on every `Venue` — a cuisine-mapped Unsplash food photo (e.g. Japanese → ramen shot, Italian → pasta shot). Real venue data from `data/venues.json` doesn't have this field yet — **this is a schema gap to fill** when real data is wired in.
+- ✅ **Tab labels** renamed: Feed → For You, Ranking → Top Picks, Library → Saved
+- ✅ **Toasts** for follow/unfollow/post/save/delete/list actions
+- ✅ **Image placeholders** with `bg-cream-dark` loading state and aspect-ratio wrappers
+- ✅ **Mobile filter drawer** with sticky header/footer and `min-h-[44px]` touch targets
+- ✅ **Browser back-navigation stack** with `pushState`/`popstate` sync for SPA routes
+- ✅ **Thumb-safe destructive buttons** moved to bottom-left of cards with expanded hit areas
+- ✅ **Focus trapping + ESC-to-close** on all modals via `useModalTrap()` hook
+- ✅ **Confirmation dialogs** for all destructive actions (delete post, remove ranking, delete list)
+- ✅ **Aria-labels** on all 12+ icon-only buttons
+- ✅ **Cluster banner removed** from Layout (clutter reduction)
 
-### Chat parser
-
-A lightweight rule-based natural-language parser (`web/src/utils/chatParser.ts`) maps free-text queries (e.g. *"vegan-friendly Italian under $$, healthy, near Shibuya"*) into the typed `Filters` schema. It extracts cuisine, diet, price tier, healthiness, and radius by keyword matching. Parsed filters visually populate the filter rail so the user sees what was understood.
-
-### How to run locally
-
-```bash
-cd web
-npm install
-npm run dev
-# open http://localhost:5173
-```
-
-To build for production:
-```bash
-cd web
-npm run build
-npx serve -s dist
-```
-
-### Data layer & mocks
+### Data layer
 
 All data access is behind `web/src/data/`:
 
-- `types.ts` — TypeScript interfaces matching `docs/DATA_CONTRACT.md` + `image_url` and `RankStatus` additions for the tracker.
-- `mockData.ts` — 30 synthetic NYC venues with cuisine-mapped Unsplash images, cluster label logic, recommendation scorer, and sort helpers.
-- `api.ts` — Thin typed functions (`loadProfile`, `saveProfile`, `addRankedItem`, `reorderRankedList`, `updateItemStatus`, `getRecommendations`, `getCluster`). All operate on `localStorage`.
-- `utils/chatParser.ts` — Rule-based NL → Filters parser.
+- `types.ts` — TypeScript interfaces matching `docs/DATA_CONTRACT.md` + `image_url` and `RankStatus` additions.
+- `api.ts` — Universal data layer. When signed in, loads/saves to **Supabase** (`profiles`, `contexts`, `ranked_items`, `feed_posts`, `follows`). Guest mode falls back to `localStorage`. If `VITE_API_URL` is set, also routes cluster + recommendation requests to the FastAPI backend.
+- `venues.ts` — 20 real Tokyo restaurants from `venues.json` with cuisine-mapped Unsplash images.
+- `mockData.ts` — 120 synthetic user profiles, posts, and follow networks (demo data).
+- `backendApi.ts` — Thin typed fetch wrapper for the FastAPI backend (`/cluster`, `/recommendations`, `/profiles`, `/venues`).
+- `utils/chatParser.ts` — Rule-based NL → `Filters` parser (demo only; can be replaced with LLM).
 
 ### Deploy steps (exact commands used)
 
+**Frontend** (`taste-node-frontend`):
 ```bash
-# 1. Create the app (one-time)
-bld apps:create taste-node-frontend -t personal-sumer-aiand-com
-
-# 2. Set buildpacks to Node only
-bld buildpacks:clear -a taste-node-frontend
-bld buildpacks:add heroku/nodejs -a taste-node-frontend
-
-# 3. Add remote (one-time)
-GIT_URL=$(bld apps:info -a taste-node-frontend -j | jq -r '.git_url')
-git remote add bld "$GIT_URL"
-
-# 4. Build locally and commit dist (the buildpack doesn't auto-build)
+# Build locally (env vars come from .env.local or Build.io config)
 cd web && npm run build && cd ..
+
+# Commit built dist (static serve, no Node runtime on dyno)
 git add web/dist && git commit -m "deploy: built dist"
 
-# 5. Push
+# Deploy
 git push bld main
 
-# 6. Verify
-curl -s https://taste-node-frontend-1624e477.onbld.com | head -5
+# Verify
+curl -s https://taste-node-frontend-1624e477.onbld.com | head -10
 ```
 
-**Live URL:** https://taste-node-frontend-1624e477.onbld.com
+**Backend** (`taste-node-api`):
+```bash
+git push bld-backend main
 
-### Known gaps to fill when real data arrives
+# Verify
+curl -s https://taste-node-api.onbld.com/venues
+```
 
-1. **User auth:** Currently single-device `localStorage`. Replace with `POST /users` + `GET /users/{user_id}` API calls.
-2. **Chat backend:** Swap the rule parser for an LLM call once an endpoint is available.
-3. **Rank derivation:** `RankedItem.rank` is a stub (`0.0`). Replace with time-decayed, context-boosted derived score.
+**Set config vars ( Build.io)**:
+```bash
+# Frontend
+bld config:set --app=taste-node-frontend \
+  VITE_SUPABASE_URL=https://zhygstfypymsspfinhqc.supabase.co \
+  VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
+
+# Backend
+bld config:set --app=taste-node-api \
+  SUPABASE_URL=https://zhygstfypymsspfinhqc.supabase.co \
+  SUPABASE_SERVICE_KEY=sb_secret_...
+
+# Optional: enable API-key auth on backend
+bld config:set --app=taste-node-api TASTE_NODE_API_KEY=your-secret-here
+```
+
+**Live URLs:**
+- Frontend: https://taste-node-frontend-1624e477.onbld.com
+- Backend: https://taste-node-api.onbld.com
+
+### Completed Items
+
+1. ✅ **User auth:** Dual-mode `localStorage` + Supabase Auth (Google OAuth + email/password)
+2. ✅ **Persisted profiles + contexts + feed:** Saved to Supabase Postgres when authenticated; guest mode uses localStorage fallback
+3. ✅ **Supabase UI/UX fixes:** Complete Sprint A/B/C (toasts, accessible modals, thumb-safe layout)
+4. ✅ **Click-through navigation:** Feed post → author profile → venue detail → back
+
+### Known gaps / TODO
+
+1. **Chat backend:** Swap rule parser for LLM call once an endpoint is available
+2. **External API ingestion:** Seed real venues from Google Places / Yelp Fusion (currently 20 hand-curated tokyo restaurants + NYC test data)
+3. **Backend score endpoint:** Add `VITE_API_URL` to use cluster-based recommendations from FastAPI instead of client-side similarity engine
+4. **Image persistence:** Upload user-submitted venue images to Supabase Storage
+5. **Cloud Functions:** Supabase Edge Functions for async operations (e.g. expensive cluster recomputation on user write)
 
