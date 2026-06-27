@@ -125,7 +125,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
                   )}
                 </div>
                 <button onClick={() => setStep("experience")} className="btn-primary w-full gap-2">
-                  How was it? <ChevronRight size={14} />
+                  Add to library <ChevronRight size={14} />
                 </button>
               </div>
             </div>
@@ -212,6 +212,9 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
                     </label>
                   </div>
                 </div>
+                <p className="text-xs text-ink-faint mt-2">
+                  Classics never lose importance over time — they always count at full weight in your taste profile.
+                </p>
               </div>
 
               <div>
