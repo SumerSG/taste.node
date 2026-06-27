@@ -62,16 +62,28 @@
 
 ---
 
-## Pillar 4: Scraping is Internal-Demo-Only; Production Requires Clean Data
+## Pillar 4: Production Persistence via Supabase Postgres
+
+**The Problem:** MVP used a local SQLite file. This fails in containerized deployment (Build.io dynos are ephemeral, so data is lost on deploy), prevents multi-device usage, and cannot support social features.
+
+**The Fix:**
+- **Supabase Postgres** is the production persistence layer. Backend uses `supabase-py` client with `SUPABASE_SERVICE_KEY` (server-side only, never exposed to the browser).
+- **Row Level Security (RLS):** All user-data tables have RLS policies enforcing that `auth.uid() = user_id`. See `supabase/000_complete_schema.sql` for full policies.
+- **Auth:** Supabase Auth handles Google OAuth and email/password. JWT sessions are managed by `@supabase/supabase-js` `gotrue` client on the frontend.
+- **Tables:** `profiles`, `contexts`, `ranked_items`, `venues`, `feed_posts`, `follows`. Created via migration `002_full_schema.sql`.
+- **Fallback:** When `SUPABASE_URL` or `SUPABASE_SERVICE_KEY` is missing (local dev), backend falls back to the existing SQLite + SQLAlchemy path. No env var = SQLite. Both paths share the same `src/db.py` public API so route code is unchanged.
+- **RLS bypass for seed scripts:** Service role key bypasses RLS; seed scripts use `TO service_role` policies (see `supabase/000_complete_schema.sql`).
+
+**Architectural Implication:** Backend route handlers never change persistence technology. They call functions in `src/db.py` which are conditionally re-exported to `src/supabase_db.py` when Supabase env vars are present. All tests use SQLite (no env vars set). Production uses Supabase. Both pass identical tests.
+
+### Pillar 4.1: Scraping is Internal-Demo-Only
 
 **Policy:**
-1. **MVP (Development & Internal Demo):** Use a **fully synthetic dataset** bootstrapped by a seeded PRNG script. This validates clustering and recommendation logic without legal risk.
-2. **Production:** Only integrate real data through **documented public APIs** (e.g., Yelp Fusion, Google Places) with proper attribution and rate-limiting.
-3. **Scraping public rating pages** (e.g., scraping Yelp HTML) is **explicitly out of scope** for the MVP. If ever reconsidered, it requires a separate legal review document and explicit sign-off.
+1. **MVP (Development & Internal Demo):** Use a **fully synthetic dataset** bootstrapped by a seeded PRNG script.
+2. **Production:** Only integrate real data through **documented public APIs** (e.g., Yelp Fusion, Google Places).
+3. **Scraping public rating pages** (e.g., scraping Yelp HTML) is **explicitly out of scope** for the MVP.
 
-**Architectural Implication:** No production scrapers. No reliance on scraped seed data for the demo trajectory. No `BeautifulSoup`, `Scrapy`, or raw HTML parsing in dependencies.
-
-### Pillar 4.1: Formal Rejection Record
+**Architectural Implication:** No production scrapers. No `BeautifulSoup`, `Scrapy`, or raw HTML parsing in dependencies.
 
 All rejected tools — including K-Means, AHC, Spectral Clustering, silhouette analysis, vector databases (Pinecone, Weaviate, pgvector), and scraping tools — are formally documented in `docs/ADR-001_REJECTED_TOOLS.md`. This ADR is an immutable dependency of `AGENTS.md`.
 
