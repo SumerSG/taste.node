@@ -17,7 +17,9 @@ def time_decay_weight(
 ) -> float:
     """Exponential time-decay weight.
 
-    A visit >365 days ago receives a decay factor unless ``is_classic`` is True.
+    Recent visits have higher weight. A visit >365 days ago receives a decay
+    factor unless ``is_classic`` is True. This ensures your latest visit to
+    each place is what shapes your taste cluster most.
     """
     if is_classic:
         return 1.0
@@ -42,9 +44,9 @@ def _extract_shared_ranks(
     if not a_ctx or not b_ctx:
         return None
 
-    # Build venue_id -> (position, item) maps (1-indexed rank = position)
-    a_map = {item.venue.id: (idx + 1, item) for idx, item in enumerate(a_ctx.ranked_list)}
-    b_map = {item.venue.id: (idx + 1, item) for idx, item in enumerate(b_ctx.ranked_list)}
+    # Build venue_id -> (position, item) maps, excluding "not_for_me" items
+    a_map = {item.venue.id: (idx + 1, item) for idx, item in enumerate(a_ctx.ranked_list) if item.status != "not_for_me"}
+    b_map = {item.venue.id: (idx + 1, item) for idx, item in enumerate(b_ctx.ranked_list) if item.status != "not_for_me"}
 
     shared_ids = set(a_map.keys()) & set(b_map.keys())
     if not shared_ids:

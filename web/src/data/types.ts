@@ -14,7 +14,7 @@ export interface Venue {
   review_count?: number;
 }
 
-export type RankStatus = "want_to_try" | "visited" | "favourite" | "regular";
+export type RankStatus = "wishlist" | "visited" | "favourite" | "not_for_me";
 
 export interface RankedItem {
   venue: Venue;

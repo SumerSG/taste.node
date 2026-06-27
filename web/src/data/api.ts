@@ -46,7 +46,11 @@ function loadLocalProfile(): TasteProfile {
       // Migrate old profiles without include_in_clustering (default true)
       if (parsed.include_in_clustering === undefined) parsed.include_in_clustering = true;
       Object.values(parsed.contexts).forEach((ctx) => {
-        ctx.ranked_list.forEach((item) => {
+          ctx.ranked_list.forEach((item) => {
+          // Migrate old status names (cast to string to avoid TS errors after type change)
+          const s = item.status as string;
+          if (s === "want_to_try") item.status = "wishlist";
+          if (s === "regular") item.status = "favourite";
           if (!item.status) item.status = "visited";
           if (item.personal_rating === undefined) item.personal_rating = undefined;
           if (item.reaction === undefined) item.reaction = undefined;

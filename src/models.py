@@ -29,7 +29,7 @@ class RankedItem(BaseModel):
     occasion_tag: Literal["solo", "date", "business", "group", "comfort"] = "solo"
     is_classic: bool = False
     # MVP frontend fields — persisted so backend can round-trip full profiles
-    status: Optional[Literal["want_to_try", "visited", "favourite", "regular"]] = None
+    status: Optional[Literal["wishlist", "visited", "favourite", "not_for_me"]] = None
     personal_rating: Optional[int] = None
     reaction: Optional[str] = None
     meal_type: Optional[Literal["lunch", "dinner"]] = None
@@ -90,7 +90,7 @@ class RankedItemInput(BaseModel):
     occasion_tag: Literal["solo", "date", "business", "group", "comfort"] = "solo"
     is_classic: bool = False
     # Optional frontend fields
-    status: Optional[Literal["want_to_try", "visited", "favourite", "regular"]] = None
+    status: Optional[Literal["wishlist", "visited", "favourite", "not_for_me"]] = None
     personal_rating: Optional[int] = None
     reaction: Optional[str] = None
     meal_type: Optional[Literal["lunch", "dinner"]] = None

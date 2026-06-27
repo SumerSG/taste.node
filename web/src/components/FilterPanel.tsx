@@ -48,10 +48,10 @@ const SORT_OPTIONS = [
 
 const VISIT_STATUS_OPTIONS: { value: RankStatus | "any"; label: string }[] = [
   { value: "any", label: "Any" },
-  { value: "want_to_try", label: "Want to try" },
+  { value: "wishlist", label: "Wishlist" },
   { value: "visited", label: "Visited" },
   { value: "favourite", label: "Favourite" },
-  { value: "regular", label: "Regular" },
+  { value: "not_for_me", label: "Not for me" },
 ];
 
 const REVIEW_COUNT_PRESETS = [

@@ -21,7 +21,7 @@ Available filter dimensions:
 - radius_km: distance from user
 - rating_min: Tabelog-style 3.0–5.0
 - review_count_min: 0, 50, 100, 500, 1000
-- visit_status: want_to_try, visited, favourite, regular (filters to user's library)
+  - visit_status: wishlist, visited, favourite, not_for_me (filters to user's library)
 - sort_by: relevance, name, price_asc, price_desc, health_desc, distance, rating_desc, review_count_desc
 
 When the user gives you a constraint, acknowledge it briefly and move on. Don't repeat back a full list of filters.

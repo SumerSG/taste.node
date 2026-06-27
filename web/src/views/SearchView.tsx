@@ -171,6 +171,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
       {selectedVenue && (
         <VenueDetailModal
           venue={selectedVenue}
+          profile={profile}
           open={!!selectedVenue}
           onClose={() => setSelectedVenue(null)}
           onAdd={handleAdd}

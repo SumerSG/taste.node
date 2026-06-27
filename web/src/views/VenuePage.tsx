@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { Venue, TasteProfile, RankedItem } from "../data/types";
 import type { FeedData } from "../data/types";
-import { addRankedItem } from "../data/api";
+import { addRankedItem, removeRankedItem, createContext } from "../data/api";
 import { getAllVenues } from "../data/venues";
 import { VenueDetailModal } from "../components/VenueDetailModal";
 import { VenueCard } from "../components/VenueCard";
@@ -12,7 +12,10 @@ import {
   Star,
   Heart,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
+import { statusLabel, statusColor } from "../data/mockData";
+import { useToast } from "../context/ToastContext";
 
 interface Props {
   venue: Venue;
@@ -23,12 +26,24 @@ interface Props {
   onNavigateToProfile?: (userId: string, userName: string) => void;
 }
 
-export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNavigateToProfile }: Props) {
+export function VenuePage({
+  venue,
+  profile,
+  feed,
+  onProfileChange,
+  onBack,
+  onNavigateToProfile,
+}: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const toast = useToast();
 
+  // Search across ALL contexts for this venue
   const existing = useMemo(() => {
-    const ctx = profile.contexts[profile.default_context];
-    return ctx?.ranked_list.find((r) => r.venue.id === venue.id);
+    for (const ctx of Object.values(profile.contexts)) {
+      const found = ctx.ranked_list.find((r) => r.venue.id === venue.id);
+      if (found) return found;
+    }
+    return undefined;
   }, [profile, venue]);
 
   const venuePosts = useMemo(() => {
@@ -46,10 +61,31 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
     return scored.slice(0, 4).map((s) => s.venue);
   }, [venue]);
 
-  const handleAdd = (item: RankedItem) => {
-    onProfileChange(addRankedItem(profile, item));
+  const handleAdd = (item: RankedItem, contextId: string) => {
+    let p = profile;
+    // Create list if it doesn't exist yet
+    if (!p.contexts[contextId]) {
+      p = createContext(p, contextId);
+    }
+    // Remove first if already there so we replace with the latest visit
+    p = removeRankedItem(p, venue.id, contextId);
+    p = addRankedItem(p, item, undefined, contextId);
+    onProfileChange(p);
     setShowAddModal(false);
   };
+
+  const handleRemove = () => {
+    let p = profile;
+    for (const ctxId of Object.keys(profile.contexts)) {
+      if (profile.contexts[ctxId].ranked_list.some((r) => r.venue.id === venue.id)) {
+        p = removeRankedItem(p, venue.id, ctxId);
+      }
+    }
+    onProfileChange(p);
+    toast.show("Removed from library", "info");
+  };
+
+  const isInWishlist = existing?.status === "wishlist";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -63,17 +99,11 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
 
       {/* Hero */}
       <div className="relative w-full overflow-hidden rounded-3xl bg-cream-dark shadow-card" style={{ aspectRatio: "2/1" }}>
-        <img
-          src={venue.image_url}
-          alt={venue.name}
-          className="h-full w-full object-cover"
-        />
+        <img src={venue.image_url} alt={venue.name} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-5 left-5 right-5">
           <h1 className="font-serif text-3xl text-white drop-shadow">{venue.name}</h1>
-          <p className="text-sm text-white/80 mt-1">
-            {venue.cuisines.join(" · ")}
-          </p>
+          <p className="text-sm text-white/80 mt-1">{venue.cuisines.join(" · ")}</p>
         </div>
       </div>
 
@@ -106,27 +136,49 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
       </div>
 
       {/* Action bar */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {existing ? (
           <>
-            <span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
-              Saved as {existing.status?.replace(/_/g, " ")}
-            </span>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-ghost gap-1.5 text-sm text-sienna-600 hover:text-sienna-700"
+            <span
+              className={`rounded-xl px-4 py-2 text-sm font-medium ring-1 ${statusColor(
+                existing.status
+              )}`}
             >
-              <Heart size={15} /> Add another visit
-            </button>
+              {existing.status === "wishlist"
+                ? "In wishlist"
+                : `Saved as ${statusLabel(existing.status)}`}
+            </span>
+
+            {isInWishlist ? (
+              <>
+                <button
+                  onClick={handleRemove}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                >
+                  <Trash2 size={14} /> Remove
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="btn-primary gap-2"
+                >
+                  <Heart size={15} /> Log visit
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary gap-2"
+              >
+                <Heart size={15} /> Log another visit
+              </button>
+            )}
           </>
         ) : (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary gap-2"
-          >
-            <Heart size={15} /> Add to Library
+          <button onClick={() => setShowAddModal(true)} className="btn-primary gap-2">
+            <Heart size={15} /> Add to library
           </button>
         )}
+
         {venue.source_url && (
           <a
             href={venue.source_url}
@@ -146,10 +198,7 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
           <h3 className="font-serif text-lg text-ink">Posts about {venue.name}</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {venuePosts.map((post) => (
-              <div
-                key={post.id}
-                className="rounded-2xl border border-cream-dark bg-paper p-4 shadow-sm"
-              >
+              <div key={post.id} className="rounded-2xl border border-cream-dark bg-paper p-4 shadow-sm">
                 <button
                   className="flex items-center gap-2 mb-2 text-left"
                   onClick={() => onNavigateToProfile?.(post.author_id, post.author_name)}
@@ -160,7 +209,7 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
                   <span className="text-xs font-medium text-ink">{post.author_name}</span>
                 </button>
                 <p className="text-sm text-ink-light leading-relaxed line-clamp-3">
-                  “{post.text}”
+                  "{post.text}"
                 </p>
               </div>
             ))}
@@ -183,10 +232,11 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
       {showAddModal && (
         <VenueDetailModal
           venue={venue}
+          profile={profile}
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAdd}
-          existingStatus={existing?.status}
+          existingData={existing}
         />
       )}
     </div>

@@ -115,7 +115,7 @@ function SortableRow({
           onChange={(e) => onStatusChange(e.target.value as RankStatus)}
           className={`rounded-lg px-2 py-1 text-xs font-medium ring-1 outline-none ${statusColor(item.status)}`}
         >
-          {["want_to_try", "visited", "favourite", "regular"].map((s) => (
+          {["wishlist", "visited", "favourite", "not_for_me"].map((s) => (
             <option key={s} value={s}>{statusLabel(s as RankStatus)}</option>
           ))}
         </select>
@@ -274,6 +274,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onN
       {selectedVenue && (
         <VenueDetailModal
           venue={selectedVenue}
+          profile={profile}
           open={!!selectedVenue}
           onClose={() => setSelectedVenue(null)}
           onAdd={(item) => {

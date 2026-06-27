@@ -277,9 +277,9 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
         is_classic: (rnd() % 100) < 15,
         status,
         personal_rating: getPersonalRating(rnd),
-        reaction: status === "favourite" || status === "regular" ? getReaction(venue, rnd) : undefined,
+        reaction: status === "favourite" || status === "visited" ? getReaction(venue, rnd) : undefined,
         meal_type: MEALS[rnd() % MEALS.length],
-        dishes: status !== "want_to_try" ? getDishes(venue, rnd) : undefined,
+        dishes: status !== "wishlist" ? getDishes(venue, rnd) : undefined,
         rank: selected.length + 1,
       });
     }
@@ -335,9 +335,9 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
 
 const STATUS_WEIGHTS: RankStatus[] = [
   "favourite", "favourite", "favourite",
-  "regular", "regular",
+  "favourite", "favourite",
   "visited", "visited", "visited", "visited", "visited", "visited",
-  "want_to_try", "want_to_try",
+  "wishlist", "wishlist",
 ];
 
 function offsetDate(rndVal: number, daysOffset: number): string {
@@ -669,20 +669,48 @@ export function sortRecommendations(recs: Recommendation[], sortBy: string): Rec
 
 export function statusLabel(s: RankStatus | undefined): string {
   const map: Record<string, string> = {
-    want_to_try: "Want to try",
+    wishlist: "Wishlist",
     visited: "Visited",
     favourite: "Favourite",
-    regular: "Regular",
+    not_for_me: "Not for me",
   };
   return map[s ?? "visited"] ?? "Visited";
 }
 
+export function statusDescription(s: RankStatus | undefined): string {
+  const map: Record<string, string> = {
+    wishlist: "Haven't been yet. Save for later.",
+    visited: "Been there. It was okay.",
+    favourite: "Loved it. You'd recommend it.",
+    not_for_me: "Didn't enjoy it. You'd skip it.",
+  };
+  return map[s ?? "visited"] ?? "";
+}
+
 export function statusColor(s: RankStatus | undefined): string {
   const map: Record<string, string> = {
-    want_to_try: "bg-amber-50 text-amber-700 ring-amber-200",
-    visited: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    wishlist: "bg-amber-50 text-amber-700 ring-amber-200",
+    visited: "bg-stone-100 text-stone-600 ring-stone-200",
     favourite: "bg-brand-50 text-brand-700 ring-brand-200",
-    regular: "bg-blue-50 text-blue-700 ring-blue-200",
+    not_for_me: "bg-gray-100 text-gray-500 ring-gray-200",
   };
   return map[s ?? "visited"] ?? map.visited;
+}
+
+export function parseListSentiment(name: string): number {
+  const lower = name.toLowerCase();
+  const positive = [
+    "fav", "best", "love", "good", "great", "amazing", "top", "recommend",
+    "like", "enjoy", "top pick", "essential", "must", "perfect", "wonderful",
+  ];
+  const negative = [
+    "bad", "worst", "never", "avoid", "hate", "disappoint", "terrible",
+    "awful", "regret", "nope", "skip", "pass", "avoid", "meh", "overrated",
+    "wouldnt", "wouldn't", "dont go", "don't go",
+  ];
+  const posCount = positive.filter((w) => lower.includes(w)).length;
+  const negCount = negative.filter((w) => lower.includes(w)).length;
+  if (posCount > negCount) return 1;
+  if (negCount > posCount) return -1;
+  return 0;
 }
