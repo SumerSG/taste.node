@@ -1,7 +1,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 pydantic==2.9.0
-scipy==1.14.0
+scipy>=1.17.0
 hdbscan==0.8.40
 numpy==1.26.0
 sqlalchemy==2.0.0
