@@ -10,17 +10,17 @@
 
 ## 1. Repository Purpose
 
-This repository is a **pure planning environment** for the taste.node restaurant recommendation platform. It contains architectural constraints, technical designs, product requirements, data contracts, and demo scripts. It **does not contain runnable application code**.
+This document was originally a **pure planning environment** policy for the taste.node restaurant recommendation platform. Phase 0 has since commenced, and the repository now contains implementation code in `src/`, `tests/`, `web/`, and `.github/workflows/`. This policy is retained for historical reference only.
 
-## 2. Forbidden Artifacts
+## 2. Forbidden Artifacts (Historical — No Longer Enforced)
 
-The following file types and directories **shall not be committed** until Phase 0 code consolidation is formally kicked off:
+The following were blocked until Phase 0 formally kicked off. They are now present in the repository:
 
-- **Implementation code:** `*.py`, `*.js`, `*.ts`, `*.sql`, `*.ipynb`
-- **Test code:** `tests/` directory or `test_*.py` files
-- **CI/CD workflows:** `.github/workflows/*.yml`, `.github/workflows/*.yaml`
-- **Compiled artifacts:** `__pycache__/`, `*.pyc`, `dist/`, `build/`
-- **Application entry points:** `src/main.py`, `src/app.py`, or equivalent
+- **Implementation code:** `*.py`, `*.js`, `*.ts`, `*.sql`, `*.ipynb` — Present in `src/` and `web/src/`.
+- **Test code:** `tests/` directory — Present.
+- **CI/CD workflows:** `.github/workflows/ci.yml` — Present.
+- **Compiled artifacts:** `__pycache__/`, `*.pyc` — Blocked by `.gitignore`; `dist/` is tracked for deployment.
+- **Application entry points:** `src/main.py` — Present.
 
 ## 3. Permitted Artifacts
 
@@ -30,11 +30,11 @@ The following file types and directories **shall not be committed** until Phase 
 - Environment metadata (`.venv/` is gitignored but may exist locally)
 - Script stubs **only** in `scripts/` (once Phase 0 begins)
 
-## 4. Enforcement
+## 4. Enforcement (Historical)
 
-- `.gitignore` explicitly blocks `src/`, `tests/`, and `.github/workflows/`.
-- Any PR containing forbidden artifacts will be rejected regardless of content quality.
-- Once Phase 0 is authorized, all code must live in a **separate development branch** or a **dedicated implementation repository**.
+- ~~`.gitignore` explicitly blocks `src/`, `tests/`, and `.github/workflows/`.~~ `.gitignore` was updated to allow these directories.
+- ~~Any PR containing forbidden artifacts will be rejected regardless of content quality.~~ Phase 0 code is merged.
+- ~~Once Phase 0 is authorized, all code must live in a **separate development branch** or a **dedicated implementation repository**.~~ Code lives in the `main` branch.
 
 ## 5. Rationale
 

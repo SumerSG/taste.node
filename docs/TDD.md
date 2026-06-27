@@ -745,7 +745,7 @@ ranked_items_table = Table(
 | `docs/VENUE_INGESTION_PIPELINE.md` | Public API ingestion, deduplication, normalization | Aligned with TDD Chapter 2 `Venue` schema |
 | `docs/ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md` | Superseded v0.1 document | **Do not implement. Do not feed to AI agents.** |
 
-**Audit Closure:** All repository hygiene actions from `docs/PROJECT_AUDIT.md` (2026-06-22) have been executed. Implementation code will be introduced only during the formal Phase 0 consolidation sprint.
+**Audit Closure:** All repository hygiene actions from `docs/PROJECT_AUDIT.md` (2026-06-22) have been executed. Phase 0 consolidation sprint has completed; implementation code now exists in `src/`, `tests/`, `web/`, and `.github/workflows/`.
 
 ---
 

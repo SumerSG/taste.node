@@ -26,7 +26,7 @@ Built during a 6-week internship focused on AI tools.
 | [`docs/VENUE_INGESTION_PIPELINE.md`](docs/VENUE_INGESTION_PIPELINE.md) | Public API ingestion contract, deduplication, and normalization |
 | [`docs/EVALUATION_PLAN.md`](docs/EVALUATION_PLAN.md) | Offline quantitative evaluation protocol (Precision@K, MRR, nDCG) |
 | [`docs/SECURITY_BOUNDARIES.md`](docs/SECURITY_BOUNDARIES.md) | Demo security, rate-limiting, and auth migration path |
-| [`PLANNING_HYGIENE.md`](PLANNING_HYGIENE.md) | Repository policy: no code committed until Phase 0 |
+| [`PLANNING_HYGIENE.md`](PLANNING_HYGIENE.md) | ~~Repository policy: no code committed until Phase 0~~ **Superseded** |
 
 ## Architecture
 
