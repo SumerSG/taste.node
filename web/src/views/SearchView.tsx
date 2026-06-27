@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Venue, TasteProfile, RankedItem } from "../data/types";
 import { useChatEngine } from "../hooks/useChatEngine";
 import { defaultFilters } from "../data/filterEngine";
-import { addRankedItem } from "../data/api";
+import { addRankedItem, createContext } from "../data/api";
 import { ChatPanel } from "../components/ChatPanel";
 import { FilterPanel } from "../components/FilterPanel";
 import { VenueCard } from "../components/VenueCard";
@@ -52,8 +52,12 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
   }, []);
 
   const handleAdd = useCallback(
-    (item: RankedItem) => {
-      onProfileChange(addRankedItem(profile, item));
+    (item: RankedItem, contextId: string) => {
+      let p = profile;
+      if (!p.contexts[contextId]) {
+        p = createContext(p, contextId);
+      }
+      onProfileChange(addRankedItem(p, item, undefined, contextId));
       setSelectedVenue(null);
     },
     [profile, onProfileChange]

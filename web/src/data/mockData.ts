@@ -5,131 +5,11 @@ import {
   computeUserLocation,
   haversine,
 } from "./venues";
+import { SAMPLE_USERS, GENERATED_POSTS } from "./generatedUsers";
 
-/* ─── Sample users (120 accounts) ─── */
+/* ─── Sample users imported from generatedUsers.ts (100 accounts) ─── */
 
-export const SAMPLE_USERS: { id: string; name: string }[] = [
-  { id: "alex_12", name: "Alex M." },
-  { id: "jordan_34", name: "Jordan T." },
-  { id: "sam_88", name: "Sam K." },
-  { id: "taylor_09", name: "Taylor R." },
-  { id: "casey_22", name: "Casey L." },
-  { id: "morgan_45", name: "Morgan B." },
-  { id: "riley_17", name: "Riley S." },
-  { id: "quinn_63", name: "Quinn J." },
-  { id: "avery_29", name: "Avery P." },
-  { id: "jules_51", name: "Jules D." },
-  { id: "kenji_08", name: "Kenji Y." },
-  { id: "priya_41", name: "Priya N." },
-  { id: "luca_77", name: "Luca R." },
-  { id: "sofia_33", name: "Sofia G." },
-  { id: "hugo_19", name: "Hugo B." },
-  { id: "mei_55", name: "Mei L." },
-  { id: "omar_02", name: "Omar F." },
-  { id: "inara_66", name: "Inara K." },
-  { id: "dmitri_24", name: "Dmitri V." },
-  { id: "yuki_11", name: "Yuki S." },
-  { id: "eloise_38", name: "Eloise M." },
-  { id: "rafael_49", name: "Rafael C." },
-  { id: "zara_72", name: "Zara A." },
-  { id: "nico_05", name: "Nico P." },
-  // Expanded set
-  { id: "haruto_91", name: "Haruto T." },
-  { id: "sakura_27", name: "Sakura W." },
-  { id: "wei_63", name: "Wei C." },
-  { id: "minji_48", name: "Minji K." },
-  { id: "diego_19", name: "Diego R." },
-  { id: "kaia_76", name: "Kaia N." },
-  { id: "amir_54", name: "Amir H." },
-  { id: "chloe_08", name: "Chloe B." },
-  { id: "kaz_33", name: "Kaz O." },
-  { id: "layla_90", name: "Layla A." },
-  { id: "ethan_11", name: "Ethan J." },
-  { id: "nuwa_67", name: "Nuwa L." },
-  { id: "igor_42", name: "Igor S." },
-  { id: "freya_83", name: "Freya O." },
-  { id: "ren_05", name: "Ren T." },
-  { id: "anika_29", name: "Anika P." },
-  { id: "soren_71", name: "Soren K." },
-  { id: "mira_14", name: "Mira D." },
-  { id: "tomas_58", name: "Tomas L." },
-  { id: "aya_96", name: "Aya F." },
-  { id: "vik_38", name: "Vik B." },
-  { id: "esme_69", name: "Esme C." },
-  { id: "jin_02", name: "Jin H." },
-  { id: "cleo_45", name: "Cleo R." },
-  { id: "bogdan_87", name: "Bogdan M." },
-  { id: "lina_21", name: "Lina Z." },
-  { id: "naoki_73", name: "Naoki I." },
-  { id: "leo_10", name: "Leo S." },
-  { id: "indra_55", name: "Indra K." },
-  { id: "faye_92", name: "Faye N." },
-  { id: "raul_36", name: "Raul G." },
-  { id: "momo_80", name: "Momo Y." },
-  { id: "cyrus_07", name: "Cyrus E." },
-  { id: "asha_62", name: "Asha B." },
-  { id: "yuuto_28", name: "Yuuto S." },
-  { id: "nadia_50", name: "Nadia H." },
-  { id: "cormac_15", name: "Cormac W." },
-  { id: "mika_93", name: "Mika L." },
-  { id: "teo_39", name: "Teo R." },
-  { id: "vera_84", name: "Vera K." },
-  { id: "xiang_06", name: "Xiang W." },
-  { id: "ilse_61", name: "Ilse D." },
-  { id: "noa_74", name: "Noa C." },
-  { id: "tariq_32", name: "Tariq A." },
-  { id: "suki_97", name: "Suki T." },
-  { id: "aldo_18", name: "Aldo M." },
-  { id: "rona_53", name: "Rona S." },
-  { id: "kito_85", name: "Kito N." },
-  { id: "isla_09", name: "Isla P." },
-  { id: "farhan_46", name: "Farhan J." },
-  { id: "umi_79", name: "Umi H." },
-  { id: "bran_03", name: "Bran W." },
-  { id: "solana_68", name: "Solana C." },
-  { id: "taro_25", name: "Taro F." },
-  { id: "anya_94", name: "Anya T." },
-  { id: "joao_56", name: "Joao R." },
-  { id: "sai_81", name: "Sai P." },
-  { id: "keira_40", name: "Keira M." },
-  { id: "oskar_12", name: "Oskar L." },
-  { id: "reina_75", name: "Reina S." },
-  { id: "zian_30", name: "Zian X." },
-  { id: "calla_98", name: "Calla N." },
-  { id: "dante_64", name: "Dante G." },
-  { id: "kira_01", name: "Kira H." },
-  { id: "ludo_44", name: "Ludo B." },
-  { id: "mana_89", name: "Mana K." },
-  { id: "elio_13", name: "Elio P." },
-  { id: "yuna_77", name: "Yuna L." },
-  { id: "fizan_35", name: "Fizan A." },
-  { id: "tove_99", name: "Tove E." },
-  { id: "ryo_57", name: "Ryo I." },
-  { id: "azesha_22", name: "Azesha N." },
-  { id: "piotr_86", name: "Piotr M." },
-  { id: "sena_70", name: "Sena O." },
-  { id: "henri_04", name: "Henri V." },
-  { id: "marin_47", name: "Marin W." },
-  { id: "khaled_82", name: "Khaled F." },
-  { id: "romy_20", name: "Romy S." },
-  { id: "tae_60", name: "Tae H." },
-  { id: "ebele_95", name: "Ebele J." },
-  { id: "arkady_37", name: "Arkady S." },
-  { id: "nori_78", name: "Nori K." },
-  { id: "omori_52", name: "Omori T." },
-  { id: "leila_16", name: "Leila B." },
-  { id: "henning_88", name: "Henning P." },
-  { id: "suri_23", name: "Suri R." },
-  { id: "jari_41", name: "Jari K." },
-  { id: "stella_31", name: "Stella M." },
-  { id: "jasper_65", name: "Jasper N." },
-  { id: "xiu_72", name: "Xiu W." },
-  { id: "filo_59", name: "Filo G." },
-  { id: "zelda_100", name: "Zelda C." },
-  { id: "benja_49", name: "Benja L." },
-  { id: "ami_66", name: "Ami F." },
-  { id: "dario_26", name: "Dario R." },
-];
+export { SAMPLE_USERS };
 
 export const CLUSTER_PEERS = SAMPLE_USERS.slice(0, 6).map((u) => u.id);
 export const FOLLOWED_USERS = SAMPLE_USERS.slice(0, 3).map((u) => u.id);
@@ -349,96 +229,11 @@ function offsetDate(rndVal: number, daysOffset: number): string {
 
 /* ─── Post generation ─── */
 
-const _postsCache: Post[] | null = null;
-const _postsGenerated = false;
-
-function buildPost(
-  userId: string,
-  userName: string,
-  venue: Venue,
-  rnd: () => number,
-  minAgo: number,
-  postIdx: number,
-  baseNow: number
-): Post {
-  const templates = [
-    () => {
-      const dish = pick(venue.cuisines, rnd);
-      const adj = pick(["incredible", "unexpected", "proper", "memorable", "next-level"], rnd);
-      return `Just had the ${dish} at ${venue.name}. ${adj} meal from start to finish.`;
-    },
-    () => {
-      const companion = pick(["a friend", "my date", "the team", "a regular here"], rnd);
-      return `Took ${companion} to ${venue.name} for ${pick(["lunch", "dinner"], rnd)}. They understood the hype immediately.`;
-    },
-    () => `Discovered ${venue.name} through a post here and it lived up to every word. ${getReaction(venue, rnd)}`,
-    () => {
-      const count = 2 + (rnd() % 3);
-      return `${count}nd visit to ${venue.name} in as many months. Still finding new things to love on the menu.`;
-    },
-    () => `When people ask for a ${pick(venue.cuisines, rnd)} rec, this is the place I send them to. ${venue.name}.`,
-    () => `Late night at ${venue.name}. ${getReaction(venue, rnd)}. Already planning round two.`,
-    () => `The ${pick(venue.cuisines, rnd)} here doesn't get talked about enough. ${venue.name} deserves more credit.`,
-    () => `Came back to ${venue.name} for the ${pick(["tasting menu", "chef's whim", "weekend special"], rnd)}. Did not disappoint.`,
-    () => `${getReaction(venue, rnd)}. ${venue.name} keeps getting better every time.`,
-    () => `New favourite in the city. ${venue.name}. ${getReaction(venue, rnd)}`,
-    () => `Solo meal at ${venue.name}. ${getReaction(venue, rnd)}. Sometimes the best company is a great plate of food.`,
-    () => `Group dinner at ${venue.name} — ${3 + (rnd() % 5)} of us and every single person left happy. Rare magic.`,
-    () => `${venue.name} doesn't look like much from the outside. Inside, it's one of the best ${pick(venue.cuisines, rnd)} spots I've found.`,
-  ];
-
-  // Some posts get a follow-up sentence
-  let text = templates[postIdx % templates.length]();
-  if ((rnd() % 100) < 35 && !text.endsWith(".")) text += ".";
-
-  const hasImage = (rnd() % 100) < 45;
-  const createdAt = new Date(baseNow - minAgo * 60_000).toISOString();
-
-  return {
-    id: `seed_${userId}_${String(postIdx).padStart(3, "0")}`,
-    author_id: userId,
-    author_name: userName,
-    text,
-    venue_id: venue.id,
-    venue_name: venue.name,
-    image_url: hasImage ? (venue.image_url ?? undefined) : undefined,
-    created_at: createdAt,
-  };
-}
-
 export function buildSeedPosts(): Post[] {
-  if (_postsGenerated && _postsCache) return _postsCache;
-
-  const venues = getAllVenues();
-  if (venues.length === 0) return [];
-
-  const posts: Post[] = [];
-  const now = Date.now();
-  let globalIdx = 0;
-
-  // Generate 3-5 posts per user
-  for (const user of SAMPLE_USERS) {
-    const seed = hashString(user.id);
-    const rnd = seededRandom(seed + 999);
-    const postCount = 3 + (rnd() % 3);
-
-    for (let i = 0; i < postCount; i++) {
-      const venueIdx = (seed + i * 7 + globalIdx * 13) % venues.length;
-      const venue = venues[venueIdx];
-      if (!venue) continue;
-      // Spread across 0-21 days ago with bias toward recent
-      const rawDays = Math.sqrt(rnd() % 441); // bias recent
-      const minutesAgo = Math.max(5, Math.round(rawDays * 24 * 60));
-      posts.push(buildPost(user.id, user.name, venue, rnd, minutesAgo, i, now));
-      globalIdx++;
-    }
-  }
-
-  // Sort newest first
-  posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  Object.freeze(posts);
-  return posts;
+  // Return the pre-generated realistic posts from generatedUsers.ts
+  return [...GENERATED_POSTS].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 }
 
 /* ─── Top cuisines ─── */

@@ -235,7 +235,7 @@ describe('api', () => {
       const feed: FeedData = {
         posts: [
           { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString() },
-          { id: 'p2', author_id: 'taylor_09', author_name: 'Taylor', text: 'B', created_at: new Date().toISOString() },
+          { id: 'p2', author_id: 'alex_12', author_name: 'Alex', text: 'B', created_at: new Date().toISOString() },
           { id: 'p3', author_id: 'unknown', author_name: 'Unknown', text: 'C', created_at: new Date().toISOString() },
         ],
       };

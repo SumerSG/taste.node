@@ -5,7 +5,10 @@
     "address": "東京都目黒区上目黒2-19-1",
     "lat": 35.6415,
     "lng": 139.6981,
-    "cuisines": ["居酒屋", "焼き鳥"],
+    "cuisines": [
+      "居酒屋",
+      "焼き鳥"
+    ],
     "dietary_tags": [],
     "price_tier": 2,
     "health_score": 0.6,
@@ -21,8 +24,13 @@
     "address": "東京都渋谷区道玄坂1-6-6",
     "lat": 35.6592,
     "lng": 139.7003,
-    "cuisines": ["焼肉", "居酒屋"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "焼肉",
+      "居酒屋"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 3,
     "health_score": 0.5,
     "source": "tabelog",
@@ -37,8 +45,12 @@
     "address": "東京都目黒区目黒1-3-18",
     "lat": 35.6339,
     "lng": 139.7157,
-    "cuisines": ["ラーメン"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 1,
     "health_score": 0.3,
     "source": "tabelog",
@@ -53,8 +65,13 @@
     "address": "東京都港区六本木1-4-5",
     "lat": 35.6628,
     "lng": 139.7394,
-    "cuisines": ["寿司", "日本料理"],
-    "dietary_tags": ["fish"],
+    "cuisines": [
+      "寿司",
+      "日本料理"
+    ],
+    "dietary_tags": [
+      "fish"
+    ],
     "price_tier": 4,
     "health_score": 0.8,
     "source": "tabelog",
@@ -69,8 +86,13 @@
     "address": "東京都渋谷区恵比寿1-30-10",
     "lat": 35.6467,
     "lng": 139.7101,
-    "cuisines": ["イタリアン", "パスタ"],
-    "dietary_tags": ["vegetarian"],
+    "cuisines": [
+      "イタリアン",
+      "パスタ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
     "price_tier": 2,
     "health_score": 0.7,
     "source": "tabelog",
@@ -85,8 +107,14 @@
     "address": "東京都渋谷区神宮前6-28-5",
     "lat": 35.6614,
     "lng": 139.7041,
-    "cuisines": ["カフェ", "ベジタリアン"],
-    "dietary_tags": ["vegan", "vegetarian"],
+    "cuisines": [
+      "カフェ",
+      "ベジタリアン"
+    ],
+    "dietary_tags": [
+      "vegan",
+      "vegetarian"
+    ],
     "price_tier": 2,
     "health_score": 0.9,
     "source": "tabelog",
@@ -101,8 +129,13 @@
     "address": "東京都港区南青山2-6-15",
     "lat": 35.6713,
     "lng": 139.7188,
-    "cuisines": ["創作料理", "フレンチ"],
-    "dietary_tags": ["vegetarian"],
+    "cuisines": [
+      "創作料理",
+      "フレンチ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
     "price_tier": 4,
     "health_score": 0.85,
     "source": "tabelog",
@@ -117,8 +150,13 @@
     "address": "東京都渋谷区神宮前6-2-4",
     "lat": 35.6701,
     "lng": 139.7026,
-    "cuisines": ["中華料理", "餃子"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "中華料理",
+      "餃子"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 1,
     "health_score": 0.55,
     "source": "tabelog",
@@ -133,8 +171,13 @@
     "address": "東京都港区六本木6-2-31",
     "lat": 35.6605,
     "lng": 139.7292,
-    "cuisines": ["ラーメン", "和食"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "ラーメン",
+      "和食"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 1,
     "health_score": 0.6,
     "source": "tabelog",
@@ -149,8 +192,13 @@
     "address": "東京都新宿区西新宿3-7-1",
     "lat": 35.6852,
     "lng": 139.6926,
-    "cuisines": ["鉄板焼き", "ステーキ"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "鉄板焼き",
+      "ステーキ"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 4,
     "health_score": 0.65,
     "source": "tabelog",
@@ -165,8 +213,13 @@
     "address": "東京都渋谷区神宮前4-8-5",
     "lat": 35.6671,
     "lng": 139.7054,
-    "cuisines": ["和食", "とんかつ"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "和食",
+      "とんかつ"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 2,
     "health_score": 0.5,
     "source": "tabelog",
@@ -181,8 +234,13 @@
     "address": "東京都渋谷区神宮前6-7-1",
     "lat": 35.6655,
     "lng": 139.7062,
-    "cuisines": ["アメリカ料理", "シーフード"],
-    "dietary_tags": ["pescatarian"],
+    "cuisines": [
+      "アメリカ料理",
+      "シーフード"
+    ],
+    "dietary_tags": [
+      "pescatarian"
+    ],
     "price_tier": 2,
     "health_score": 0.7,
     "source": "tabelog",
@@ -197,8 +255,13 @@
     "address": "東京都港区西麻布1-13-11",
     "lat": 35.6598,
     "lng": 139.7228,
-    "cuisines": ["居酒屋", "和食"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "居酒屋",
+      "和食"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 2,
     "health_score": 0.6,
     "source": "tabelog",
@@ -213,8 +276,13 @@
     "address": "東京都世田谷区三軒茶屋1-32-10",
     "lat": 35.6407,
     "lng": 139.6688,
-    "cuisines": ["カレー", "インド料理"],
-    "dietary_tags": ["vegetarian"],
+    "cuisines": [
+      "カレー",
+      "インド料理"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
     "price_tier": 1,
     "health_score": 0.75,
     "source": "tabelog",
@@ -229,8 +297,13 @@
     "address": "東京都渋谷区神宮前2-3-18",
     "lat": 35.6718,
     "lng": 139.7109,
-    "cuisines": ["創作料理", "居酒屋"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "創作料理",
+      "居酒屋"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 3,
     "health_score": 0.8,
     "source": "tabelog",
@@ -245,8 +318,13 @@
     "address": "東京都新宿区西新宿7-14-14",
     "lat": 35.6938,
     "lng": 139.6987,
-    "cuisines": ["炉端焼き", "海鮮"],
-    "dietary_tags": ["fish"],
+    "cuisines": [
+      "炉端焼き",
+      "海鮮"
+    ],
+    "dietary_tags": [
+      "fish"
+    ],
     "price_tier": 3,
     "health_score": 0.7,
     "source": "tabelog",
@@ -261,8 +339,13 @@
     "address": "東京都渋谷区笹塚1-55-16",
     "lat": 35.6744,
     "lng": 139.6664,
-    "cuisines": ["イタリアン", "ピザ"],
-    "dietary_tags": ["vegetarian"],
+    "cuisines": [
+      "イタリアン",
+      "ピザ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
     "price_tier": 1,
     "health_score": 0.6,
     "source": "tabelog",
@@ -277,8 +360,13 @@
     "address": "東京都新宿区歌舞伎町2-32-1",
     "lat": 35.6952,
     "lng": 139.7028,
-    "cuisines": ["韓国料理", "焼肉"],
-    "dietary_tags": ["meat"],
+    "cuisines": [
+      "韓国料理",
+      "焼肉"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
     "price_tier": 2,
     "health_score": 0.55,
     "source": "tabelog",
@@ -293,8 +381,14 @@
     "address": "東京都渋谷区神宮前5-12-3",
     "lat": 35.6651,
     "lng": 139.7098,
-    "cuisines": ["サラダ", "ベジタリアン"],
-    "dietary_tags": ["vegan", "vegetarian"],
+    "cuisines": [
+      "サラダ",
+      "ベジタリアン"
+    ],
+    "dietary_tags": [
+      "vegan",
+      "vegetarian"
+    ],
     "price_tier": 1,
     "health_score": 0.95,
     "source": "tabelog",
@@ -309,7 +403,9 @@
     "address": "東京都千代田区神田須田町1-16-12",
     "lat": 35.6987,
     "lng": 139.7729,
-    "cuisines": ["台湾料理"],
+    "cuisines": [
+      "台湾料理"
+    ],
     "dietary_tags": [],
     "price_tier": 1,
     "health_score": 0.65,
@@ -318,5 +414,1013 @@
     "rating": 3.55,
     "review_count": 188,
     "image_url": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop"
+  },
+  {
+    "venue_id": "v1",
+    "name": "Shibuya Crossing Burger",
+    "address": "東京都Burger区2-24-2",
+    "lat": 35.661731,
+    "lng": 139.6928,
+    "cuisines": [
+      "ハンバーガー"
+    ],
+    "dietary_tags": [],
+    "price_tier": 1,
+    "health_score": 0.44,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9935/",
+    "rating": 3.65,
+    "review_count": 1200,
+    "image_url": "https://picsum.photos/seed/tokyov1/600/400"
+  },
+  {
+    "venue_id": "v2",
+    "name": "Nonbei Yokocho Izakaya",
+    "address": "東京都Izakaya区2-17-10",
+    "lat": 35.652891,
+    "lng": 139.699151,
+    "cuisines": [
+      "居酒屋",
+      "串焼き"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.27,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/1434/",
+    "rating": 3.72,
+    "review_count": 890,
+    "image_url": "https://picsum.photos/seed/tokyov2/600/400"
+  },
+  {
+    "venue_id": "v3",
+    "name": "Shibuya Stream Tacos",
+    "address": "東京都Tacos区2-15-10",
+    "lat": 35.66048,
+    "lng": 139.703856,
+    "cuisines": [
+      "タコス"
+    ],
+    "dietary_tags": [],
+    "price_tier": 1,
+    "health_score": 0.74,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5557/",
+    "rating": 3.45,
+    "review_count": 560,
+    "image_url": "https://picsum.photos/seed/tokyov3/600/400"
+  },
+  {
+    "venue_id": "v4",
+    "name": "Shibuya Scramble Cafe",
+    "address": "東京都Cafe区4-11-5",
+    "lat": 35.664451,
+    "lng": 139.692504,
+    "cuisines": [
+      "カフェ",
+      "パンケーキ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.81,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/3547/",
+    "rating": 3.68,
+    "review_count": 780,
+    "image_url": "https://picsum.photos/seed/tokyov4/600/400"
+  },
+  {
+    "venue_id": "v5",
+    "name": "Stand Shibuya",
+    "address": "東京都Shibuya区1-12-14",
+    "lat": 35.654945,
+    "lng": 139.704616,
+    "cuisines": [
+      "バー"
+    ],
+    "dietary_tags": [],
+    "price_tier": 1,
+    "health_score": 0.32,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6635/",
+    "rating": 3.52,
+    "review_count": 420,
+    "image_url": "https://picsum.photos/seed/tokyov5/600/400"
+  },
+  {
+    "venue_id": "v6",
+    "name": "Shinjuku Yakitori Alley",
+    "address": "東京都Alley区1-30-7",
+    "lat": 35.69546,
+    "lng": 139.708314,
+    "cuisines": [
+      "串焼き",
+      "居酒屋"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.76,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/2291/",
+    "rating": 3.61,
+    "review_count": 1340,
+    "image_url": "https://picsum.photos/seed/tokyov6/600/400"
+  },
+  {
+    "venue_id": "v7",
+    "name": "L'Atelier Shinjuku",
+    "address": "東京都Shinjuku区3-19-4",
+    "lat": 35.694633,
+    "lng": 139.70867,
+    "cuisines": [
+      "フレンチ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 4,
+    "health_score": 0.68,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/2139/",
+    "rating": 4.32,
+    "review_count": 230,
+    "image_url": "https://picsum.photos/seed/tokyov7/600/400"
+  },
+  {
+    "venue_id": "v8",
+    "name": "Shinjuku Omoide Yokocho",
+    "address": "東京都Yokocho区2-28-2",
+    "lat": 35.686533,
+    "lng": 139.699046,
+    "cuisines": [
+      "居酒屋",
+      "焼肉"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.45,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7227/",
+    "rating": 3.55,
+    "review_count": 1560,
+    "image_url": "https://picsum.photos/seed/tokyov8/600/400"
+  },
+  {
+    "venue_id": "v9",
+    "name": "Nabezo Shinjuku",
+    "address": "東京都Shinjuku区3-7-11",
+    "lat": 35.690248,
+    "lng": 139.705571,
+    "cuisines": [
+      "鍋"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.51,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5374/",
+    "rating": 3.48,
+    "review_count": 670,
+    "image_url": "https://picsum.photos/seed/tokyov9/600/400"
+  },
+  {
+    "venue_id": "v10",
+    "name": "Tsunahachi Shinjuku",
+    "address": "東京都Shinjuku区2-18-12",
+    "lat": 35.697029,
+    "lng": 139.706337,
+    "cuisines": [
+      "天ぷら"
+    ],
+    "dietary_tags": [
+      "fish",
+      "vegetarian"
+    ],
+    "price_tier": 3,
+    "health_score": 0.3,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5010/",
+    "rating": 4.15,
+    "review_count": 890,
+    "image_url": "https://picsum.photos/seed/tokyov10/600/400"
+  },
+  {
+    "venue_id": "v11",
+    "name": "Marion Crepe Harajuku",
+    "address": "東京都Harajuku区5-8-11",
+    "lat": 35.664814,
+    "lng": 139.700971,
+    "cuisines": [
+      "パンケーキ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.94,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6313/",
+    "rating": 3.42,
+    "review_count": 2100,
+    "image_url": "https://picsum.photos/seed/tokyov11/600/400"
+  },
+  {
+    "venue_id": "v12",
+    "name": "Harajuku Gyoza Lou",
+    "address": "東京都Lou区3-13-5",
+    "lat": 35.675686,
+    "lng": 139.707316,
+    "cuisines": [
+      "餃子",
+      "中華料理"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.41,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/2084/",
+    "rating": 3.44,
+    "review_count": 876,
+    "image_url": "https://picsum.photos/seed/tokyov12/600/400"
+  },
+  {
+    "venue_id": "v13",
+    "name": "Bills Omotesando",
+    "address": "東京都Omotesando区2-21-8",
+    "lat": 35.660476,
+    "lng": 139.716887,
+    "cuisines": [
+      "カフェ",
+      "パンケーキ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.86,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7482/",
+    "rating": 3.58,
+    "review_count": 1100,
+    "image_url": "https://picsum.photos/seed/tokyov13/600/400"
+  },
+  {
+    "venue_id": "v14",
+    "name": "Sakuratei Harajuku",
+    "address": "東京都Harajuku区2-24-9",
+    "lat": 35.676355,
+    "lng": 139.705186,
+    "cuisines": [
+      "モンジャ焼き"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.35,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9830/",
+    "rating": 3.38,
+    "review_count": 650,
+    "image_url": "https://picsum.photos/seed/tokyov14/600/400"
+  },
+  {
+    "venue_id": "v15",
+    "name": "Pablo Omotesando",
+    "address": "東京都Omotesando区3-8-3",
+    "lat": 35.661304,
+    "lng": 139.711153,
+    "cuisines": [
+      "カフェ",
+      "パンケーキ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.88,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9348/",
+    "rating": 3.52,
+    "review_count": 920,
+    "image_url": "https://picsum.photos/seed/tokyov15/600/400"
+  },
+  {
+    "venue_id": "v16",
+    "name": "Roppongi Hills Brasserie",
+    "address": "東京都Brasserie区2-26-11",
+    "lat": 35.662696,
+    "lng": 139.735393,
+    "cuisines": [
+      "フレンチ",
+      "ビストロ"
+    ],
+    "dietary_tags": [
+      "meat",
+      "vegetarian"
+    ],
+    "price_tier": 3,
+    "health_score": 0.85,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7916/",
+    "rating": 4.05,
+    "review_count": 340,
+    "image_url": "https://picsum.photos/seed/tokyov16/600/400"
+  },
+  {
+    "venue_id": "v17",
+    "name": "Gonpachi Roppongi",
+    "address": "東京都Roppongi区5-9-9",
+    "lat": 35.664343,
+    "lng": 139.729456,
+    "cuisines": [
+      "居酒屋",
+      "和食"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.67,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/1188/",
+    "rating": 3.41,
+    "review_count": 421,
+    "image_url": "https://picsum.photos/seed/tokyov17/600/400"
+  },
+  {
+    "venue_id": "v18",
+    "name": "Two Rooms Grill",
+    "address": "東京都Grill区3-25-11",
+    "lat": 35.665685,
+    "lng": 139.725133,
+    "cuisines": [
+      "ステーキ"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 4,
+    "health_score": 0.87,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6573/",
+    "rating": 4.28,
+    "review_count": 280,
+    "image_url": "https://picsum.photos/seed/tokyov18/600/400"
+  },
+  {
+    "venue_id": "v19",
+    "name": "Genkai Hasshodo",
+    "address": "東京都Hasshodo区3-17-13",
+    "lat": 35.656585,
+    "lng": 139.730256,
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.57,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/3927/",
+    "rating": 3.62,
+    "review_count": 540,
+    "image_url": "https://picsum.photos/seed/tokyov19/600/400"
+  },
+  {
+    "venue_id": "v20",
+    "name": "Museum Cafe Roppongi",
+    "address": "東京都Roppongi区5-20-4",
+    "lat": 35.662923,
+    "lng": 139.725003,
+    "cuisines": [
+      "カフェ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.69,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/3504/",
+    "rating": 3.55,
+    "review_count": 410,
+    "image_url": "https://picsum.photos/seed/tokyov20/600/400"
+  },
+  {
+    "venue_id": "v21",
+    "name": "Sukiyabashi Jiro",
+    "address": "東京都Jiro区1-20-6",
+    "lat": 35.669683,
+    "lng": 139.759585,
+    "cuisines": [
+      "寿司"
+    ],
+    "dietary_tags": [
+      "fish"
+    ],
+    "price_tier": 4,
+    "health_score": 0.92,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9005/",
+    "rating": 4.88,
+    "review_count": 320,
+    "image_url": "https://picsum.photos/seed/tokyov21/600/400"
+  },
+  {
+    "venue_id": "v22",
+    "name": "Tempura Kondo",
+    "address": "東京都Kondo区3-8-1",
+    "lat": 35.664012,
+    "lng": 139.771866,
+    "cuisines": [
+      "天ぷら"
+    ],
+    "dietary_tags": [
+      "fish",
+      "vegetarian"
+    ],
+    "price_tier": 4,
+    "health_score": 0.87,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/4946/",
+    "rating": 4.72,
+    "review_count": 450,
+    "image_url": "https://picsum.photos/seed/tokyov22/600/400"
+  },
+  {
+    "venue_id": "v23",
+    "name": "Ginza Kagari",
+    "address": "東京都Kagari区1-25-9",
+    "lat": 35.677748,
+    "lng": 139.772151,
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.31,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/3060/",
+    "rating": 3.78,
+    "review_count": 780,
+    "image_url": "https://picsum.photos/seed/tokyov23/600/400"
+  },
+  {
+    "venue_id": "v24",
+    "name": "Ginza Bairin",
+    "address": "東京都Bairin区5-28-10",
+    "lat": 35.665754,
+    "lng": 139.764605,
+    "cuisines": [
+      "とんかつ"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.63,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7932/",
+    "rating": 3.82,
+    "review_count": 650,
+    "image_url": "https://picsum.photos/seed/tokyov24/600/400"
+  },
+  {
+    "venue_id": "v25",
+    "name": "Les Saisons",
+    "address": "東京都Saisons区2-23-5",
+    "lat": 35.67913,
+    "lng": 139.771863,
+    "cuisines": [
+      "フレンチ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 4,
+    "health_score": 0.78,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7537/",
+    "rating": 4.45,
+    "review_count": 180,
+    "image_url": "https://picsum.photos/seed/tokyov25/600/400"
+  },
+  {
+    "venue_id": "v26",
+    "name": "Ivy Place",
+    "address": "東京都Place区4-4-4",
+    "lat": 35.657122,
+    "lng": 139.704498,
+    "cuisines": [
+      "カフェ",
+      "イタリアン"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.56,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/4681/",
+    "rating": 3.68,
+    "review_count": 560,
+    "image_url": "https://picsum.photos/seed/tokyov26/600/400"
+  },
+  {
+    "venue_id": "v27",
+    "name": "Daikanyama T-Site",
+    "address": "東京都T-Site区2-1-2",
+    "lat": 35.642224,
+    "lng": 139.694437,
+    "cuisines": [
+      "カフェ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.64,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/1964/",
+    "rating": 3.55,
+    "review_count": 890,
+    "image_url": "https://picsum.photos/seed/tokyov27/600/400"
+  },
+  {
+    "venue_id": "v28",
+    "name": "Cafe Mame-Hico",
+    "address": "東京都Mame-Hico区5-8-5",
+    "lat": 35.644863,
+    "lng": 139.708587,
+    "cuisines": [
+      "カフェ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.85,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/8953/",
+    "rating": 3.42,
+    "review_count": 340,
+    "image_url": "https://picsum.photos/seed/tokyov28/600/400"
+  },
+  {
+    "venue_id": "v29",
+    "name": "Spiral Market Cafe",
+    "address": "東京都Cafe区5-16-4",
+    "lat": 35.644628,
+    "lng": 139.696217,
+    "cuisines": [
+      "カフェ",
+      "パスタ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.9,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/8749/",
+    "rating": 3.38,
+    "review_count": 210,
+    "image_url": "https://picsum.photos/seed/tokyov29/600/400"
+  },
+  {
+    "venue_id": "v30",
+    "name": "Spring Valley Brewery",
+    "address": "東京都Brewery区3-14-7",
+    "lat": 35.65412,
+    "lng": 139.697147,
+    "cuisines": [
+      "ビストロ"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.32,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/8651/",
+    "rating": 3.62,
+    "review_count": 430,
+    "image_url": "https://picsum.photos/seed/tokyov30/600/400"
+  },
+  {
+    "venue_id": "v31",
+    "name": "Shimokita Curry",
+    "address": "東京都Curry区1-2-7",
+    "lat": 35.668021,
+    "lng": 139.659767,
+    "cuisines": [
+      "カレー"
+    ],
+    "dietary_tags": [
+      "meat",
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.71,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6559/",
+    "rating": 3.58,
+    "review_count": 720,
+    "image_url": "https://picsum.photos/seed/tokyov31/600/400"
+  },
+  {
+    "venue_id": "v32",
+    "name": "Flamingo Shimokitazawa",
+    "address": "東京都Shimokitazawa区4-5-7",
+    "lat": 35.667009,
+    "lng": 139.660648,
+    "cuisines": [
+      "カフェ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.38,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/4006/",
+    "rating": 3.35,
+    "review_count": 480,
+    "image_url": "https://picsum.photos/seed/tokyov32/600/400"
+  },
+  {
+    "venue_id": "v33",
+    "name": "Village Vanguard Diner",
+    "address": "東京都Diner区5-4-1",
+    "lat": 35.658657,
+    "lng": 139.662897,
+    "cuisines": [
+      "ハンバーガー"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.9,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9856/",
+    "rating": 3.45,
+    "review_count": 560,
+    "image_url": "https://picsum.photos/seed/tokyov33/600/400"
+  },
+  {
+    "venue_id": "v34",
+    "name": "Shimokita Tacos Stand",
+    "address": "東京都Stand区2-6-7",
+    "lat": 35.667576,
+    "lng": 139.674404,
+    "cuisines": [
+      "タコス"
+    ],
+    "dietary_tags": [],
+    "price_tier": 1,
+    "health_score": 0.9,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/8956/",
+    "rating": 3.28,
+    "review_count": 340,
+    "image_url": "https://picsum.photos/seed/tokyov34/600/400"
+  },
+  {
+    "venue_id": "v35",
+    "name": "Bar Noguchi",
+    "address": "東京都Noguchi区4-1-7",
+    "lat": 35.661902,
+    "lng": 139.672734,
+    "cuisines": [
+      "バー"
+    ],
+    "dietary_tags": [],
+    "price_tier": 1,
+    "health_score": 0.88,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5345/",
+    "rating": 3.52,
+    "review_count": 290,
+    "image_url": "https://picsum.photos/seed/tokyov35/600/400"
+  },
+  {
+    "venue_id": "v36",
+    "name": "Brasserie Va-tout",
+    "address": "東京都Va-tout区5-22-12",
+    "lat": 35.653524,
+    "lng": 139.714662,
+    "cuisines": [
+      "フレンチ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 3,
+    "health_score": 0.45,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/8973/",
+    "rating": 3.85,
+    "review_count": 310,
+    "image_url": "https://picsum.photos/seed/tokyov36/600/400"
+  },
+  {
+    "venue_id": "v37",
+    "name": "Afuri Nakameguro",
+    "address": "東京都Nakameguro区5-2-12",
+    "lat": 35.635977,
+    "lng": 139.694847,
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.93,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6138/",
+    "rating": 3.55,
+    "review_count": 760,
+    "image_url": "https://picsum.photos/seed/tokyov37/600/400"
+  },
+  {
+    "venue_id": "v38",
+    "name": "Nakameguro Koyama",
+    "address": "東京都Koyama区5-6-1",
+    "lat": 35.634415,
+    "lng": 139.699447,
+    "cuisines": [
+      "居酒屋"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.6,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9320/",
+    "rating": 3.48,
+    "review_count": 430,
+    "image_url": "https://picsum.photos/seed/tokyov38/600/400"
+  },
+  {
+    "venue_id": "v39",
+    "name": "Sidewalk Stand",
+    "address": "東京都Stand区2-13-2",
+    "lat": 35.639982,
+    "lng": 139.705073,
+    "cuisines": [
+      "カフェ"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.67,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5033/",
+    "rating": 3.42,
+    "review_count": 520,
+    "image_url": "https://picsum.photos/seed/tokyov39/600/400"
+  },
+  {
+    "venue_id": "v40",
+    "name": "Yakitori Imai",
+    "address": "東京都Imai区5-19-9",
+    "lat": 35.647963,
+    "lng": 139.702736,
+    "cuisines": [
+      "串焼き"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.31,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6183/",
+    "rating": 3.88,
+    "review_count": 640,
+    "image_url": "https://picsum.photos/seed/tokyov40/600/400"
+  },
+  {
+    "venue_id": "v41",
+    "name": "Mutekiya Ikebukuro",
+    "address": "東京都Ikebukuro区3-13-3",
+    "lat": 35.735555,
+    "lng": 139.705668,
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.75,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5915/",
+    "rating": 3.72,
+    "review_count": 890,
+    "image_url": "https://picsum.photos/seed/tokyov41/600/400"
+  },
+  {
+    "venue_id": "v42",
+    "name": "Ikebukuro Gyoza",
+    "address": "東京都Gyoza区4-20-10",
+    "lat": 35.727916,
+    "lng": 139.717264,
+    "cuisines": [
+      "餃子",
+      "中華料理"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.91,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/2638/",
+    "rating": 3.38,
+    "review_count": 670,
+    "image_url": "https://picsum.photos/seed/tokyov42/600/400"
+  },
+  {
+    "venue_id": "v43",
+    "name": "Yakiniku King",
+    "address": "東京都King区1-29-4",
+    "lat": 35.721772,
+    "lng": 139.70581,
+    "cuisines": [
+      "焼肉"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 2,
+    "health_score": 0.44,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/7054/",
+    "rating": 3.45,
+    "review_count": 780,
+    "image_url": "https://picsum.photos/seed/tokyov43/600/400"
+  },
+  {
+    "venue_id": "v44",
+    "name": "Curry Station Niagara",
+    "address": "東京都Niagara区5-26-11",
+    "lat": 35.72516,
+    "lng": 139.709411,
+    "cuisines": [
+      "カレー"
+    ],
+    "dietary_tags": [
+      "meat",
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.63,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/9666/",
+    "rating": 3.25,
+    "review_count": 450,
+    "image_url": "https://picsum.photos/seed/tokyov44/600/400"
+  },
+  {
+    "venue_id": "v45",
+    "name": "Menya Musashi",
+    "address": "東京都Musashi区1-29-3",
+    "lat": 35.720725,
+    "lng": 139.715474,
+    "cuisines": [
+      "ラーメン"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.46,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5333/",
+    "rating": 3.65,
+    "review_count": 920,
+    "image_url": "https://picsum.photos/seed/tokyov45/600/400"
+  },
+  {
+    "venue_id": "v46",
+    "name": "Izu-ei Ueno",
+    "address": "東京都Ueno区3-20-4",
+    "lat": 35.708647,
+    "lng": 139.767413,
+    "cuisines": [
+      "うなぎ"
+    ],
+    "dietary_tags": [
+      "fish"
+    ],
+    "price_tier": 3,
+    "health_score": 0.64,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6617/",
+    "rating": 4.12,
+    "review_count": 560,
+    "image_url": "https://picsum.photos/seed/tokyov46/600/400"
+  },
+  {
+    "venue_id": "v47",
+    "name": "Asakusa Imahan",
+    "address": "東京都Imahan区3-29-15",
+    "lat": 35.710058,
+    "lng": 139.798848,
+    "cuisines": [
+      "すき焼き"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 3,
+    "health_score": 0.43,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/1832/",
+    "rating": 3.92,
+    "review_count": 780,
+    "image_url": "https://picsum.photos/seed/tokyov47/600/400"
+  },
+  {
+    "venue_id": "v48",
+    "name": "Tempura Daikokuya",
+    "address": "東京都Daikokuya区3-25-3",
+    "lat": 35.708277,
+    "lng": 139.795477,
+    "cuisines": [
+      "天ぷら"
+    ],
+    "dietary_tags": [
+      "fish",
+      "vegetarian"
+    ],
+    "price_tier": 2,
+    "health_score": 0.44,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/5291/",
+    "rating": 3.72,
+    "review_count": 1120,
+    "image_url": "https://picsum.photos/seed/tokyov48/600/400"
+  },
+  {
+    "venue_id": "v49",
+    "name": "Kameido Kintaro",
+    "address": "東京都Kintaro区1-4-2",
+    "lat": 35.709385,
+    "lng": 139.772769,
+    "cuisines": [
+      "うどん"
+    ],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "price_tier": 1,
+    "health_score": 0.74,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/3442/",
+    "rating": 3.45,
+    "review_count": 430,
+    "image_url": "https://picsum.photos/seed/tokyov49/600/400"
+  },
+  {
+    "venue_id": "v50",
+    "name": "Asakusa Menchi",
+    "address": "東京都Menchi区4-5-1",
+    "lat": 35.715529,
+    "lng": 139.802054,
+    "cuisines": [
+      "揚げ物"
+    ],
+    "dietary_tags": [
+      "meat"
+    ],
+    "price_tier": 1,
+    "health_score": 0.66,
+    "source": "tabelog",
+    "source_url": "https://tabelog.com/tokyo/6050/",
+    "rating": 3.35,
+    "review_count": 670,
+    "image_url": "https://picsum.photos/seed/tokyov50/600/400"
   }
 ]

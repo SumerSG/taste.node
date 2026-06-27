@@ -277,8 +277,12 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onN
           profile={profile}
           open={!!selectedVenue}
           onClose={() => setSelectedVenue(null)}
-          onAdd={(item) => {
-            onProfileChange(addRankedItem(profile, item));
+          onAdd={(item, contextId) => {
+            let p = profile;
+            if (!p.contexts[contextId]) {
+              p = createContext(p, contextId);
+            }
+            onProfileChange(addRankedItem(p, item, undefined, contextId));
             setSelectedVenue(null);
           }}
         />

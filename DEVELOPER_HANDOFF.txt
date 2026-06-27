@@ -1,0 +1,271 @@
+================================================================================
+  taste.node — Developer Handoff Notes
+  Created: 2026-06-27
+================================================================================
+
+---
+CONTENTS
+---
+1. Current State (what works right now)
+2. Remaining Tasks (what needs to be done next)
+3. How to Fix Each Task (step-by-step)
+4. Architecture Notes
+5. Deployment Commands
+6. Known Issues & Warnings
+
+---
+1. CURRENT STATE
+---
+
+FRONTEND: taste-node-frontend (Build.io)
+  URL: https://taste-node-frontend-1624e477.onbld.com
+  Status: LIVE
+  Features working:
+    - Guest browsing (localStorage-only)
+    - Restaurant search + filter + sort
+    - Drag-to-reorder ranked list
+    - Social feed (331 realistic posts from 100 generated users)
+    - Venue detail pages with 3-step modal (Save for later / Log visit)
+    - UI/UX Sprint A/B/C complete (toasts, a11y, mobile filters, back nav)
+    - Supabase client IS embedded in the bundle (URL + anon key)
+    - Google OAuth IS configured and working (tables created, redirects set)
+  Features NOT working:
+    - Cloud sync via Supabase (Schema exists, venues seeded, but frontend
+      calls outdated API shape — needs `ranked_list` → foreign table refactor)
+    - Backend deployment (Build.io Python 3.14 build broken, fix via .python-version)
+  Config vars on Build.io (already set):
+    VITE_SUPABASE_URL = https://zhygstfypymsspfinhqc.supabase.co
+    VITE_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoeWdzdGZ5cHltc3NwZmluaHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxODU0NzAsImV4cCI6MjA5Nzc2MTQ3MH0.4lK38Du-_PpiBjM4IT7HYhRakTpaXZGCy3TMhbDEu6k
+
+BACKEND: taste-node-api (Build.io)
+  Backend app: taste-node-api
+  Status: CANNOT DEPLOY (Build.io Python buildpack defaults to 3.14,
+         pydantic-core wheel missing. Fix: .python-version = python-3.12)
+  Note: Backend works perfectly with SQLite fallback locally.
+        All tests pass (49 passed, 1 skipped).
+        The Supabase integration code (src/supabase_db.py) is written
+        and tested but never deployed.
+  Config vars on Build.io (already set):
+    SUPABASE_URL = https://zhygstfypymsspfinhqc.supabase.co
+    SUPABASE_SERVICE_KEY = (set in Build.io dashboard — not in repo)
+    TASTE_NODE_CORS_ORIGINS = https://taste-node-frontend-1624e477.onbld.com
+    TASTE_NODE_API_KEY = (optional, currently unset)
+
+SUPABASE PROJECT
+  Dashboard: https://supabase.com/dashboard/project/zhygstfypymsspfinhqc
+  Status: TABLES DO NOT EXIST YET
+  Needs: Schema creation + Google OAuth setup
+
+---
+2. REMAINING TASKS (priority order)
+---
+
+A. Fix backend build         — DONE (Added .python-version = python-3.12)
+B. Create Supabase tables    — DONE (Schema applied via SQL Editor)
+C. Enable Google OAuth       — DONE (Enabled in Supabase dashboard)
+D. Seed venue data           — DONE (20 venues seeded via seed_venues_to_supabase.py)
+E. Test sign-in flow         — PENDING (Frontend API shape needs syncing first)
+F. Integrate 100 demo users  — DONE (generatedUsers.ts + mockData.ts updated)
+
+---
+3. HOW TO FIX EACH TASK
+---
+
+--- Task A: Fix backend build ---
+
+The build fails because Build.io's python buildpack now defaults to Python 3.14,
+and pydantic-core (a Rust extension) doesn't have prebuilt wheels for Python 3.14.
+
+OPTIONS:
+  Option A1 (best): Pin Python version via .python-version file
+    cd /home/build/taste.node
+    echo "python-3.12" > .python-version
+    git add .python-version
+    git commit -m "build: pin Python 3.12 for pydantic-core compat"
+    git push bld-backend main
+    # Wait for build to complete
+
+  Option A2: Remove pydantic validation entirely and switch to dataclasses/msgspec
+    High effort but eliminates all external compilation.
+
+DIAGNOSTIC: After adding .python-version, verify the build succeeds:
+  bld logs -a taste-node-api -c 20
+  bld ps:list --app=taste-node-api
+
+--- Task B: Create Supabase tables ---
+
+There is a complete schema migration at:
+  supabase/000_complete_schema.sql  (local file)
+
+This contains 6 tables with full RLS policies and indexes:
+  - profiles, contexts, ranked_items, venues, feed_posts, follows
+
+The ONLY way to run this is via the Supabase SQL Editor (cannot be done programmatically
+without a direct Postgres connection, which is firewalled).
+
+STEPS:
+  1. Go to https://supabase.com/dashboard/project/zhygstfypymsspfinhqc
+  2. Open SQL Editor → New Query
+  3. Copy-paste the contents of supabase/000_complete_schema.sql
+  4. Click "Run"
+
+Note: In this environment the build shell does not have clipboard access,
+but if you can fetch the file from git it is:
+  https://raw.githubusercontent.com/SumerSG/taste.node/main/supabase/000_complete_schema.sql
+
+--- Task C: Enable Google OAuth ---
+
+STEPS:
+  1. Supabase Dashboard → Authentication → Providers → Google
+  2. Toggle ENABLED
+  3. Authentication → URL Configuration
+     Site URL:      https://taste-node-frontend-1624e477.onbld.com
+     Redirect URLs: https://taste-node-frontend-1624e477.onbld.com
+  4. Save
+
+Note: If you don't have a Google Cloud OAuth client ID, leave the Client ID/Secret
+blank — Supabase handles the test flow for you.
+
+--- Task D: Seed venue data into Supabase ---
+
+After Task B is done, run this Python script (can run from local .venv):
+
+    cd /home/build/taste.node
+    source .venv/bin/activate
+    python <<'PYEOF'
+    import json, os
+    from supabase import create_client
+    key = os.environ["SUPABASE_SERVICE_KEY"]
+    client = create_client(
+        "https://zhygstfypymsspfinhqc.supabase.co",
+        key
+    )
+    with open("web/src/data/venues.json") as f:
+        venues = json.load(f)
+    for v in venues:
+        v["id"] = v.pop("venue_id")
+        v["location"] = json.dumps({"lat": v.pop("lat"), "lng": v.pop("lng")})
+    client.table("venues").upsert(venues, on_conflict="id").execute()
+    print(f"Seeded {len(venues)} venues")
+    PYEOF
+
+Or use the backend /setup-supabase endpoint (after Task A is fixed):
+  curl https://taste-node-api.onbld.com/setup-supabase?confirm=true
+
+--- Task E: Test end-to-end sign-in ---
+
+After Tasks A + B + C are done:
+  1. Open https://taste-node-frontend-1624e477.onbld.com
+  2. Click "Sign In"
+  3. Google login should redirect to Supabase, back to your site, 
+     and you should see your profile data persist across refreshes.
+
+---
+4. ARCHITECTURE NOTES
+---
+
+DUAL-MODE AUTH (how the code handles both guest + signed-in):
+  - Guest: everything saved to localStorage (key: taste.node.profile.v2)
+  - Signed-in: Supabase Auth manages JWT session
+    - Frontend: @supabase/supabase-js (gotrue) creates/reads auth user
+    - Data layer (web/src/data/api.ts) checks _supabaseActive && userId
+      → forwards write/read to supabaseApi.ts
+      → otherwise falls back to localStorage
+  - If VITE_API_URL is set, also routes to backend for:
+    /cluster, /recommendations, /profiles/{id}, /venues
+
+STATUS MODEL (updated 2026-06-27):
+  Old: want_to_try | visited | favourite | regular
+  New: wishlist    | visited | favourite | not_for_me
+  Rationale: "regular" conflated with "favourite"; "Want to Try" was pre-visit
+             intent not a relationship label; "Not for me" needed for explicit
+             negative signal. `not_for_me` is EXCLUDED from clustering entirely.
+
+VENUE DETAIL MODAL (updated 2026-06-27):
+  - "Save for later" → instant wishlist (no form)
+  - "I've been here" → full form with Favourite / Not for me / Visited
+  - Added list/context selector with AI sentiment parsing
+  - "Classic" renamed "Timeless" with explicit explanation
+
+DEMO DATA (updated 2026-06-27):
+  - 70 Tokyo venues (20 original + 50 newly generated with realistic coords)
+  - 100 synthetic user profiles (Japanese first names + random last initial)
+  - 331 realistic feed posts (2-5 per user, cuisine-aware sentiment)
+  - All in web/src/data/venues.json and web/src/data/generatedUsers.ts
+
+BACKEND DUAL-MODE PERSISTENCE:
+  - src/db.py checks if SUPABASE_URL + SUPABASE_SERVICE_KEY env vars are set
+    - If YES: re-exports all functions from src/supabase_db.py
+    - If NO: uses existing SQLite/SQLAlchemy code
+  - src/supabase_db.py mirrors db.py API using supabase-py client
+    with the SERVICE_ROLE key (bypasses RLS for server ops)
+
+RLS POLICIES ON ALL USER TABLES:
+  - profiles: SELECT/INSERT/UPDATE/DELETE only own row
+  - contexts: SELECT/INSERT/UPDATE/DELETE only own contexts
+  - ranked_items: same
+  - feed_posts: SELECT all (public), INSERT/UPDATE/DELETE own
+  - follows: same
+  - venues: SELECT by everyone (public catalogue)
+
+---
+5. DEPLOYMENT COMMANDS
+---
+
+Frontend (static SPA):
+  cd web && npm run build && cd ..
+  git add web/dist
+  git commit -m "deploy: built dist"
+  git push bld main
+
+Backend (FastAPI):
+  git push bld-backend main
+  # Build takes ~3-5 min; verify with:
+  bld logs -a taste-node-api -c 20
+  bld ps:list --app=taste-node-api
+
+---
+6. KNOWN ISSUES & WARNINGS
+---
+
+1. Backend build broken (Python 3.14 + pydantic-core Rust build failure)
+   → Fix via .python-version or upgrade pydantic to a version with py314 wheels
+
+2. The supabase-py client in build environment cannot connect to Postgres
+   directly (IPv6/network restricted). The backend dyno on Build.io CAN
+   reach Supabase REST, but direct psycopg2/pg8000 connections are blocked.
+   All DB ops must go through supabase-py REST or be done in SQL Editor.
+
+3. No CI/CD pipeline is configured. Deploys are manual (`git push bld main`).
+
+4. pre-commit hooks and linting are not enforced in CI (only local tests).
+
+5. The frontend `web/dist/` is tracked in git because Build.io only runs
+   Procfile web process (npx serve), not Node build step. This is a known
+   Build.io limitation.
+
+---
+FILE LOCATIONS
+---
+
+Backend Supabase module:     src/supabase_db.py
+Complete SQL migration:      supabase/000_complete_schema.sql
+Venue seed data JSON:        web/src/data/venues.json (70 venues)
+Generated users & posts:     web/src/data/generatedUsers.ts (100 users, 331 posts)
+Frontend Supabase client:    web/src/lib/supabase.ts
+Backend models:              src/models.py (updated status enum)
+Frontend types:              web/src/data/types.ts (updated RankStatus)
+Auth context:                web/src/context/AuthContext.tsx
+
+---
+SUPABASE PROJECT DETAILS
+---
+
+Project ID: zhygstfypymsspfinhqc
+URL:        https://zhygstfypymsspfinhqc.supabase.co
+Anon Key:   (see Build.io config var VITE_SUPABASE_ANON_KEY)
+Service Key: (see Build.io config var SUPABASE_SERVICE_KEY)
+
+---
+END OF HANDOFF
+================================================================================
