@@ -41,6 +41,7 @@ class TasteProfile(BaseModel):
     user_id: str
     contexts: Dict[str, TasteContext] = Field(default_factory=dict)
     default_context: str = "default"
+    include_in_clustering: bool = True  # opt-out toggle for cluster calculations
 
     @model_validator(mode="after")
     def _default_context_exists(self):
@@ -75,6 +76,11 @@ class Recommendation(BaseModel):
     score: float  # [0.0, 1.0]
     explanation: str
     context_id: str
+
+
+class SettingsUpdate(BaseModel):
+    """PATCH /users/{user_id}/settings"""
+    include_in_clustering: bool
 
 
 class ErrorResponse(BaseModel):

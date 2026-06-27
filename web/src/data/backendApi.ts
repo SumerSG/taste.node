@@ -72,6 +72,11 @@ export async function getRecommendationsBackend(
   if (filters.cuisine) params.set("cuisine", filters.cuisine);
   if (filters.diet) params.set("diet", filters.diet);
   if (filters.price_tier !== null) params.set("price_tier", String(filters.price_tier));
+  if (filters.with_users && filters.with_users.length > 0) {
+    for (const uid of filters.with_users) {
+      params.append("with_users", uid);
+    }
+  }
   if (filters.radius_km && filters.radius_km < 50) {
     // backend expects lat/lng/radius; we don't have user GPS, so skip geo filter for now
   }

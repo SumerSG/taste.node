@@ -563,15 +563,18 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
   });
 
   /* ─── mutual friend context ─── */
-  let friend: TasteProfile | null = null;
-  let friendCuisines = new Set<string>();
-  let friendName = "";
-  if (filters.with_user) {
-    friend = getSampleUserProfile(filters.with_user);
-    if (friend) {
-      const fCtx = friend.contexts[friend.default_context];
+  const friendIds = filters.with_users ?? [];
+  const friends: TasteProfile[] = [];
+  const friendCuisines = new Set<string>();
+  const friendNames: string[] = [];
+  for (const fid of friendIds) {
+    const f = getSampleUserProfile(fid);
+    if (f) {
+      friends.push(f);
+      const fCtx = f.contexts[f.default_context];
       fCtx?.ranked_list.forEach((r) => r.venue.cuisines.forEach((c) => friendCuisines.add(c)));
-      friendName = SAMPLE_USERS.find((u) => u.id === filters.with_user)?.name ?? "Your friend";
+      const name = SAMPLE_USERS.find((u) => u.id === fid)?.name ?? "Your friend";
+      friendNames.push(name);
     }
   }
 
@@ -582,31 +585,54 @@ export function computeRecommendations(profile: TasteProfile, filters: Filters):
     if (venue.health_score) score += venue.health_score * 0.1;
     if (venue.price_tier && filters.price_tier && venue.price_tier === filters.price_tier) score += 0.07;
 
-    if (filters.with_user && friendCuisines.size > 0) {
+    if (friendCuisines.size > 0) {
       const friendShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
       const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
       score += Math.min(friendShared * 0.08, 0.15);
       score += Math.min(mutual * 0.18, 0.30);
-      const fCtx = friend?.contexts[friend.default_context];
-      const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
-      if (fRank !== -1) score += 0.15 / (fRank + 1);
+      for (const friend of friends) {
+        const fCtx = friend.contexts[friend.default_context];
+        const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+        if (fRank !== -1) {
+          score += 0.15 / (fRank + 1);
+          break;
+        }
+      }
     }
 
     score = Math.min(score, 0.98);
 
     let explanation: string;
-    if (filters.with_user && friendCuisines.size > 0) {
+    if (friendCuisines.size > 0) {
       const mutualCs = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c));
-      const fCtx = friend?.contexts[friend.default_context];
-      const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
-      if (mutualCs.length > 0 && fRank !== -1) {
-        explanation = `${friendName} ranked this #${fRank + 1} — both of you love ${mutualCs[0]}.`;
+
+      let bestFriendRank = -1;
+      let bestFriendName = friendNames[0] ?? "Your friend";
+      for (let i = 0; i < friends.length; i++) {
+        const fCtx = friends[i].contexts[friends[i].default_context];
+        const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+        if (fRank !== -1 && (bestFriendRank === -1 || fRank < bestFriendRank)) {
+          bestFriendRank = fRank;
+          bestFriendName = friendNames[i] ?? "Your friend";
+        }
+      }
+
+      const formatFriendNames = (names: string[]) => {
+        if (names.length === 0) return "";
+        if (names.length === 1) return names[0];
+        if (names.length === 2) return `${names[0]} and ${names[1]}`;
+        return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+      };
+      const allFriendNames = formatFriendNames(friendNames);
+
+      if (mutualCs.length > 0 && bestFriendRank !== -1) {
+        explanation = `${bestFriendName} ranked this #${bestFriendRank + 1} — both of you love ${mutualCs[0]}.`;
       } else if (mutualCs.length > 0) {
-        explanation = `You and ${friendName} both love ${mutualCs[0]}. Strong mutual match.`;
-      } else if (fRank !== -1) {
-        explanation = `${friendName} placed this in their top ${fRank < 3 ? "3" : "10"}. You might like it as well.`;
+        explanation = `You and ${allFriendNames} both love ${mutualCs[0]}. Strong mutual match.`;
+      } else if (bestFriendRank !== -1) {
+        explanation = `${bestFriendName} placed this in their top ${bestFriendRank < 3 ? "3" : "10"}. You might like it as well.`;
       } else {
-        explanation = `${friendName}'s taste overlaps with this place. Worth trying together.`;
+        explanation = `${friendNames[0] ?? "Your friend"}'s taste overlaps with this place. Worth trying together.`;
       }
     } else {
       const refVenue = context?.ranked_list[0]?.venue.name ?? "a similar spot";

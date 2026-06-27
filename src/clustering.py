@@ -12,12 +12,12 @@ from src.similarity import compute_similarity
 def _build_distance_matrix(
     profiles: List[TasteProfile], context_id: str
 ) -> Optional[np.ndarray]:
-    """Build an N×N precomputed distance matrix for *context_id*.
+    """Build an N×N precomputed distance matrix for *context_id*, excluding opted-out users.
 
     Returns ``None`` if fewer than 2 profiles have data in the context.
     Sentinel ``-1.0`` (no overlap) is replaced with ``1.0``.
     """
-    valid = [p for p in profiles if context_id in p.contexts and p.contexts[context_id].ranked_list]
+    valid = [p for p in profiles if p.include_in_clustering and context_id in p.contexts and p.contexts[context_id].ranked_list]
     n = len(valid)
     if n < 2:
         return None
@@ -44,16 +44,28 @@ class ContextualClusterMap:
         self._results: Dict[str, ClusterResult] = {}
 
     def fit_context(self, context_id: str) -> ClusterResult:
-        """Run HDBSCAN on *context_id* and cache the result."""
-        valid = [p for p in self._profiles if context_id in p.contexts and p.contexts[context_id].ranked_list]
+        """Run HDBSCAN on *context_id* and cache the result.
+        
+        Users with ``include_in_clustering=False`` are always labeled as noise
+        and are excluded from the distance matrix.
+        """
+        # All users with data in this context
+        all_with_data = [p for p in self._profiles if context_id in p.contexts and p.contexts[context_id].ranked_list]
+        # Only opt-in users participate in clustering
+        valid = [p for p in all_with_data if p.include_in_clustering]
         n = len(valid)
-
+        
+        # Build label map for ALL users with data, defaulting opted-out to -1
+        opted_out_ids = {p.user_id for p in all_with_data if not p.include_in_clustering}
+        
         if n < self._min_cluster_size:
-            # Not enough users — everyone is noise
+            # Not enough opt-in users — everyone is noise
+            label_map: Dict[str, int] = {p.user_id: -1 for p in all_with_data}
+            noise_ids: List[str] = [p.user_id for p in all_with_data]
             result = ClusterResult(
                 context_id=context_id,
-                labels={p.user_id: -1 for p in valid},
-                noise_ids=[p.user_id for p in valid],
+                labels=label_map,
+                noise_ids=noise_ids,
                 n_clusters=0,
             )
             self._results[context_id] = result
@@ -61,10 +73,12 @@ class ContextualClusterMap:
 
         matrix = _build_distance_matrix(self._profiles, context_id)
         if matrix is None:
+            label_map = {p.user_id: -1 for p in all_with_data}
+            noise_ids = [p.user_id for p in all_with_data]
             result = ClusterResult(
                 context_id=context_id,
-                labels={p.user_id: -1 for p in valid},
-                noise_ids=[p.user_id for p in valid],
+                labels=label_map,
+                noise_ids=noise_ids,
                 n_clusters=0,
             )
             self._results[context_id] = result
@@ -77,13 +91,18 @@ class ContextualClusterMap:
         )
         labels = clusterer.fit_predict(matrix)
 
-        label_map: Dict[str, int] = {}
-        noise_ids: List[str] = []
+        label_map = {}
+        noise_ids = []
         for idx, profile in enumerate(valid):
             lab = int(labels[idx])
             label_map[profile.user_id] = lab
             if lab == -1:
                 noise_ids.append(profile.user_id)
+        
+        # Opted-out users are always noise
+        for uid in opted_out_ids:
+            label_map[uid] = -1
+            noise_ids.append(uid)
 
         n_clusters = len({lab for lab in labels if lab != -1})
 

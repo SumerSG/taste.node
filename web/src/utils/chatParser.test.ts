@@ -88,16 +88,16 @@ describe('parseChatQuery', () => {
 
   it('detects mutual friend from name', () => {
     const result = parseChatQuery('Something good with Alex');
-    expect(result.filters.with_user).toBe('alex_12');
+    expect(result.filters.with_users).toEqual(['alex_12']);
   });
 
   it('detects mutual friend from partial name', () => {
     const result = parseChatQuery('Group dinner and kenji tonight');
-    expect(result.filters.with_user).toBe('kenji_08');
+    expect(result.filters.with_users).toEqual(['kenji_08']);
   });
 
   it('does not detect friend without social context', () => {
     const result = parseChatQuery('Best sushi in town');
-    expect(result.filters.with_user).toBeUndefined();
+    expect(result.filters.with_users).toBeUndefined();
   });
 });

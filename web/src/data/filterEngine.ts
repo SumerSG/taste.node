@@ -14,7 +14,7 @@ export function defaultFilters(): Filters {
     review_count_min: 0,
     visit_status: "any",
     sort_by: "relevance",
-    with_user: "",
+    with_users: [],
   };
 }
 
@@ -141,9 +141,9 @@ export function filterVenues(
         r.venue.cuisines.forEach((c) => userCuisines.add(c))
       );
 
-      let friendCuisines = new Set<string>();
-      if (filters.with_user) {
-        const friend = getSampleUserProfile(filters.with_user);
+      const friendCuisines = new Set<string>();
+      for (const uid of filters.with_users ?? []) {
+        const friend = getSampleUserProfile(uid);
         const fCtx = friend?.contexts[friend?.default_context ?? "default"];
         fCtx?.ranked_list.forEach((r) =>
           r.venue.cuisines.forEach((c) => friendCuisines.add(c))
@@ -182,9 +182,9 @@ export function scoreVenueForChat(
     r.venue.cuisines.forEach((c) => userCuisines.add(c))
   );
 
-  let friendCuisines = new Set<string>();
-  if (filters.with_user) {
-    const friend = getSampleUserProfile(filters.with_user);
+  const friendCuisines = new Set<string>();
+  for (const uid of filters.with_users ?? []) {
+    const friend = getSampleUserProfile(uid);
     const fCtx = friend?.contexts[friend?.default_context ?? "default"];
     fCtx?.ranked_list.forEach((r) =>
       r.venue.cuisines.forEach((c) => friendCuisines.add(c))
@@ -218,7 +218,7 @@ export function scoreVenueForChat(
   const shared = venue.cuisines.filter((c) => userCuisines.has(c)).length;
   score += Math.min(shared * 0.12, 0.3);
 
-  if (filters.with_user && friendCuisines.size > 0) {
+  if ((filters.with_users ?? []).length > 0 && friendCuisines.size > 0) {
     const fShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
     const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
     score += Math.min(fShared * 0.06, 0.12);
@@ -248,6 +248,7 @@ export function filterAndSortVenues(
       rating_min: 0,
       review_count_min: 0,
       visit_status: "any",
+      with_users: [],
       sort_by: sortBy,
     },
     {

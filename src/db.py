@@ -39,6 +39,7 @@ users_table = Table(
     metadata,
     Column("user_id", String, primary_key=True),
     Column("default_context", String, nullable=False, default="default"),
+    Column("include_in_clustering", Boolean, nullable=False, default=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
@@ -184,6 +185,7 @@ def get_user_profile(conn: Any, user_id: str) -> Optional[TasteProfile]:
         user_id=user_id,
         contexts=contexts,
         default_context=user_row["default_context"],
+        include_in_clustering=user_row.get("include_in_clustering", True),
     )
 
 
@@ -194,6 +196,7 @@ def create_user(conn: Any, user_id: str) -> TasteProfile:
         insert(users_table).values(
             user_id=user_id,
             default_context="default",
+            include_in_clustering=True,
             created_at=now,
         )
     )
@@ -216,6 +219,20 @@ def create_user(conn: Any, user_id: str) -> TasteProfile:
             )
         },
         default_context="default",
+        include_in_clustering=True,
+    )
+
+
+def update_user_settings(
+    conn: Any,
+    user_id: str,
+    include_in_clustering: bool,
+) -> None:
+    """Toggle whether a user's taste data is included in cluster calculations."""
+    conn.execute(
+        update(users_table)
+        .where(users_table.c.user_id == user_id)
+        .values(include_in_clustering=include_in_clustering)
     )
 
 

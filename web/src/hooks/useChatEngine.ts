@@ -108,8 +108,11 @@ function getRefineText(count: number, topVenue: Venue | undefined): string {
 }
 
 function friendName(filters: Filters): string | undefined {
-  if (!filters.with_user) return undefined;
-  return SAMPLE_USERS.find((u) => u.id === filters.with_user)?.name;
+  const names = (filters.with_users ?? [])
+    .map((uid) => SAMPLE_USERS.find((u) => u.id === uid)?.name)
+    .filter((n): n is string => !!n);
+  if (names.length === 0) return undefined;
+  return names.join(", ");
 }
 
 /* ─── Missing-info detection ─── */

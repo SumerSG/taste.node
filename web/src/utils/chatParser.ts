@@ -145,8 +145,10 @@ export function parseChatQuery(input: string): ParsedChat {
         user.name.toLowerCase().split(" ")[0],
       ];
       if (needles.some((n) => text.includes(n))) {
-        updates.with_user = user.id;
-        break;
+        if (!updates.with_users) {
+          updates.with_users = [];
+        }
+        updates.with_users.push(user.id);
       }
     }
   }

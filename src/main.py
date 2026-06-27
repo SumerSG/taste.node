@@ -23,11 +23,13 @@ from src.models import (
     Recommendation,
     ErrorResponse,
     Venue,
+    SettingsUpdate,
 )
 from src.db import (
     get_db,
     get_user_profile,
     create_user,
+    update_user_settings,
     upsert_context,
     get_all_profiles,
     get_all_venues,
@@ -94,6 +96,23 @@ def read_user(request: Request, user_id: str, conn: Any = Depends(get_db)):
     if not profile:
         _error(404, "user_not_found", "User not found", detail={"user_id": user_id})
     return profile
+
+
+@app.patch("/users/{user_id}/settings")
+@limiter.limit("30/minute")
+def patch_user_settings(
+    request: Request,
+    user_id: str,
+    payload: SettingsUpdate,
+    conn: Any = Depends(get_db),
+):
+    profile = get_user_profile(conn, user_id)
+    if not profile:
+        _error(404, "user_not_found", "User not found", detail={"user_id": user_id})
+    update_user_settings(conn, user_id, payload.include_in_clustering)
+    # Return updated profile
+    updated = get_user_profile(conn, user_id)
+    return updated
 
 
 # ─── Contexts / Ranked Lists ───
@@ -196,6 +215,7 @@ def get_recommendations(
     cuisine: Optional[str] = Query(None),
     diet: Optional[str] = Query(None),
     price_tier: Optional[int] = Query(None),
+    with_users: Optional[List[str]] = Query(None),
     n: int = Query(10),
     conn: Any = Depends(get_db),
 ):
@@ -229,6 +249,8 @@ def get_recommendations(
         filters["lat"] = lat
     if lng is not None:
         filters["lng"] = lng
+    if with_users:
+        filters["with_users"] = with_users
 
     recs = score_recommendations(profile, resolved, all_profiles, filters=filters, n=n)
     return recs

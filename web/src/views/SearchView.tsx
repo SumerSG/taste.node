@@ -160,6 +160,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
 
       {/* Filter panel (right drawer / sidebar) */}
       <FilterPanel
+        profile={profile}
         filters={filters}
         onChange={handleManualFilters}
         open={showFilters}

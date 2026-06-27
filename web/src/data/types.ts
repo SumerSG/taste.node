@@ -42,6 +42,7 @@ export interface TasteProfile {
   contexts: Record<string, TasteContext>;
   default_context: string;
   following: string[];
+  include_in_clustering?: boolean;
 }
 
 export interface Recommendation {
@@ -62,7 +63,7 @@ export interface Filters {
   review_count_min: number;
   visit_status: RankStatus | "any";
   sort_by: string;
-  with_user?: string;
+  with_users?: string[];
 }
 
 export interface Post {

@@ -35,6 +35,8 @@ function loadLocalProfile(): TasteProfile {
       const parsed = JSON.parse(raw) as TasteProfile;
       // Migrate old profiles without following
       if (!parsed.following) parsed.following = [];
+      // Migrate old profiles without include_in_clustering (default true)
+      if (parsed.include_in_clustering === undefined) parsed.include_in_clustering = true;
       Object.values(parsed.contexts).forEach((ctx) => {
         ctx.ranked_list.forEach((item) => {
           if (!item.status) item.status = "visited";
@@ -356,6 +358,14 @@ export function filterFeedPosts(
     default:
       return feed.posts;
   }
+}
+
+/* ─── Include in clustering toggle ─── */
+
+export function toggleIncludeInClustering(profile: TasteProfile): TasteProfile {
+  const next = { ...profile, include_in_clustering: !profile.include_in_clustering };
+  saveProfile(next);
+  return next;
 }
 
 /* ─── Re-export helpers ─── */

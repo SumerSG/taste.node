@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile, RankedItem } from "../data/types";
-import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList } from "../data/api";
+import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList, toggleIncludeInClustering } from "../data/api";
 import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, ListOrdered, Users } from "lucide-react";
 
 interface Props {
@@ -106,6 +106,36 @@ export function ProfileView({ profile, onProfileChange }: Props) {
             <span className="text-lg font-bold text-ink">{profile.following.length}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Following</span>
           </div>
+        </div>
+
+        {/* Include in clustering toggle */}
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-cream px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-ink">Include my taste in clusters</p>
+            <p className="text-[11px] text-ink-faint">
+              {profile.include_in_clustering !== false
+                ? "Your rankings help shape taste clusters for everyone."
+                : "Your rankings are private and won't influence clusters."}
+            </p>
+          </div>
+          <button
+            onClick={() => onProfileChange(toggleIncludeInClustering(profile))}
+            className={`relative h-6 w-11 rounded-full transition-colors ${
+              profile.include_in_clustering !== false
+                ? "bg-sienna-500"
+                : "bg-ink-faint/30"
+            }`}
+            role="switch"
+            aria-checked={profile.include_in_clustering !== false}
+          >
+            <span
+              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                profile.include_in_clustering !== false
+                  ? "translate-x-5"
+                  : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
       </div>
 

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import type { Filters, RankStatus } from "../data/types";
-import { TOP_CUISINES } from "../data/mockData";
+import type { Filters, RankStatus, TasteProfile } from "../data/types";
+import { SAMPLE_USERS } from "../data/mockData";
 import {
   X, SlidersHorizontal, Search, Leaf, Fish, Beef,
   HeartPulse, ChevronDown, ChevronUp, Star, MessageSquare,
 } from "lucide-react";
 
 interface Props {
+  profile: TasteProfile;
   filters: Filters;
   onChange: (f: Filters) => void;
   open: boolean;
@@ -62,7 +63,79 @@ const REVIEW_COUNT_PRESETS = [
 ];
 
 
-export function FilterPanel({ filters, onChange, open, onClose }: Props) {
+import { getSampleUserProfile, TOP_CUISINES } from "../data/mockData";
+
+// ─── Helpers ───
+
+function getMutualFriends(profile: TasteProfile): { id: string; name: string }[] {
+  // Mutual = you follow them AND they follow you (from their generated profile)
+  const mutual: { id: string; name: string }[] = [];
+  for (const fid of profile.following) {
+    const friend = getSampleUserProfile(fid);
+    if (friend && friend.following.includes(profile.user_id)) {
+      mutual.push({ id: fid, name: SAMPLE_USERS.find((u) => u.id === fid)?.name ?? fid });
+    }
+  }
+  return mutual;
+}
+
+function MutualFriendSelector({
+  profile,
+  filters,
+  onChange,
+}: {
+  profile: TasteProfile;
+  filters: Filters;
+  onChange: (f: Filters) => void;
+}) {
+  const mutual = getMutualFriends(profile);
+  const selected = new Set(filters.with_users ?? []);
+
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onChange({ ...filters, with_users: Array.from(next) });
+  };
+
+  if (mutual.length === 0) {
+    return (
+      <p className="text-xs text-ink-faint">
+        Follow people who also follow you to unlock group recommendations.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {mutual.map((f) => {
+        const active = selected.has(f.id);
+        return (
+          <button
+            key={f.id}
+            onClick={() => toggle(f.id)}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition-all ${
+              active
+                ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
+                : "bg-cream text-ink-muted ring-cream-dark hover:bg-cream-warm"
+            }`}
+          >
+            <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold ${
+              active ? "bg-sienna-200 text-sienna-700" : "bg-cream-dark text-ink-faint"
+            }`}>
+              {f.name[0]}
+            </div>
+            {f.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Main panel ───
+
+export function FilterPanel({ profile, filters, onChange, open, onClose }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const update = (patch: Partial<Filters>) => {
@@ -81,7 +154,7 @@ export function FilterPanel({ filters, onChange, open, onClose }: Props) {
       review_count_min: 0,
       visit_status: "any",
       sort_by: "relevance",
-      with_user: "",
+      with_users: [],
     });
   };
 
@@ -223,6 +296,12 @@ export function FilterPanel({ filters, onChange, open, onClose }: Props) {
             );
           })}
         </div>
+      </section>
+
+      {/* Mutual Friends */}
+      <section>
+        <h4 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Mutual friends</h4>
+        <MutualFriendSelector profile={profile} filters={filters} onChange={onChange} />
       </section>
 
       {/* ── Advanced filters accordion ── */}
