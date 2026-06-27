@@ -40,7 +40,7 @@ export function Layout({
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "feed", label: "For You", icon: <Home size={16} /> },
     { id: "search", label: "Search", icon: <Search size={16} /> },
-    { id: "profile", label: "Saved", icon: <UserCircle size={16} /> },
+    { id: "profile", label: "Profile", icon: <UserCircle size={16} /> },
     { id: "ranking", label: "Top Picks", icon: <ListOrdered size={16} /> },
   ];
 

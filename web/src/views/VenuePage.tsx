@@ -108,15 +108,23 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNav
       {/* Action bar */}
       <div className="flex items-center gap-3">
         {existing ? (
-          <span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
-            Saved as {existing.status?.replace(/_/g, " ")}
-          </span>
+          <>
+            <span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
+              Saved as {existing.status?.replace(/_/g, " ")}
+            </span>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-ghost gap-1.5 text-sm text-sienna-600 hover:text-sienna-700"
+            >
+              <Heart size={15} /> Add another visit
+            </button>
+          </>
         ) : (
           <button
             onClick={() => setShowAddModal(true)}
             className="btn-primary gap-2"
           >
-            <Heart size={15} /> Add to My Favs
+            <Heart size={15} /> Add to Library
           </button>
         )}
         {venue.source_url && (
