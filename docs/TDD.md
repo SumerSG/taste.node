@@ -472,10 +472,9 @@ taste.node/
 │   ├── TDD.md                       # This document
 │   ├── VENUE_INGESTION_PIPELINE.md  # Public API ingestion design
 │   └── ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md  # Superseded; do not implement
-├── pyproject.toml                    # Exact pinned deps + build system
-├── pytest.ini                        # Test path and default flags (for Phase 0)
+├── pyproject.toml                    # Exact pinned deps + build system + pytest config
 ├── requirements.txt                  # Mirror of pyproject.toml
-├── PLANNING_HYGIENE.md               # Repository policy: no code until Phase 0
+├── PLANNING_HYGIENE.md               # ~~Repository policy: no code until Phase 0~~ **Superseded**
 └── README.md                         # Quick orientation
 ```
 
@@ -503,8 +502,7 @@ taste.node/
 │   ├── generate_synthetic_data.py   # Seeded PRNG. Validates against models.
 │   └── evaluate_offline.py          # Offline evaluation harness (P1+).
 ├── docs/                    # (as defined in 5.1)
-├── pyproject.toml
-├── pytest.ini
+├── pyproject.toml           # Build system + pytest config
 └── requirements.txt
 ```
 
@@ -583,12 +581,7 @@ pythonpath = ["src"]
 addopts = "-v --tb=short"
 ```
 
-**`pytest.ini`**
-```ini
-[pytest]
-testpaths = tests
-addopts = -v --tb=short
-```
+**`pytest.ini`** ~~Standalone `pytest.ini` was removed; config now lives in `[tool.pytest.ini_options]` inside `pyproject.toml` (see above).~~
 
 **SQLite Schema (SQLAlchemy Core)**
 ```python
@@ -649,9 +642,9 @@ ranked_items_table = Table(
 ## Chapter 8: Modular Execution Chain (The "Vibe Code" Prompts)
 
 ### Phase 1: Environment, Scaffold & Schema
-**Deliverable:** `pyproject.toml`, `pytest.ini`, `src/models.py`, and `tests/test_models.py`. Must validate backward compat migration path (if any).
+**Deliverable:** `pyproject.toml` (with `[tool.pytest.ini_options]`), `src/models.py`, and `tests/test_models.py`. Must validate backward compat migration path (if any).
 
-- Emit exact `pyproject.toml` and `pytest.ini` contents with pinned versions.
+- Emit exact `pyproject.toml` contents with pinned versions and pytest config inside `[tool.pytest.ini_options]`.
 - Implement `Venue`, `RankedItem`, `TasteContext`, `TasteProfile`, `ClusterResult` exactly as defined in Chapter 2.
 - `RankedItem` must expose a `@computed_field` + `@property` named `rank` that returns `float`. It is a stub (`return 0.0`) in Phase 1; the real logic arrives in Phase 2.
 - `tests/test_models.py` must validate:
@@ -731,8 +724,8 @@ ranked_items_table = Table(
 - [x] The clustering section explicitly names `hdbscan` and provides `metric='precomputed'`.
 - [x] The similarity section explicitly defines `(1 - tau) / 2` and distinguishes NaN from `-1`.
 - [x] Chapter 4 defines the exact `ErrorResponse` JSON schema and every error status code uses it.
-- [x] Chapter 5 file tree includes `pytest.ini` and shows `db.py` as SQLAlchemy Core tables.
-- [x] Chapter 6 locks Python to `^3.12` (not 3.14) and includes exact `pyproject.toml` / `pytest.ini` / SQLite schema contents.
+- [x] Chapter 5 file tree shows `db.py` as SQLAlchemy Core tables (standalone `pytest.ini` removed; config lives in `pyproject.toml`).
+- [x] Chapter 6 locks Python to `^3.12` (not 3.14) and includes exact `pyproject.toml` + SQLite schema contents.
 - [x] There are zero mentions of Scrapy, BeautifulSoup, or raw HTML parsing.
 - [x] The file tree shows `main.py` with **only** routes and dependency injection.
 - [x] Chapter 8 contains exactly 5 phases, each with a single, testable deliverable.

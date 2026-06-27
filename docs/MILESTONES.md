@@ -157,4 +157,4 @@ The following planning documents were created or updated as part of the 2026-06-
 - `docs/VENUE_INGESTION_PIPELINE.md` — public API ingestion contract and normalization rules
 - `docs/EVALUATION_PLAN.md` — offline quantitative evaluation protocol
 - `docs/SECURITY_BOUNDARIES.md` — demo-only security and auth migration path
-- `PLANNING_HYGIENE.md` — repository-wide policy forbidding implementation code until Phase 0
+- `PLANNING_HYGIENE.md` — ~~repository-wide policy forbidding implementation code until Phase 0~~ **Superseded** — Phase 0 commenced and code is present in `src/`, `tests/`, and `web/`.

@@ -25,7 +25,7 @@ The following file types and directories **shall not be committed** until Phase 
 ## 3. Permitted Artifacts
 
 - Markdown planning documents (`*.md`)
-- Dependency manifests (`pyproject.toml`, `requirements.txt`, `pytest.ini`) — to lock the planned stack
+- Dependency manifests (`pyproject.toml`, `requirements.txt`) — to lock the planned stack (`pytest.ini` config migrated into `pyproject.toml`)
 - `.gitignore`
 - Environment metadata (`.venv/` is gitignored but may exist locally)
 - Script stubs **only** in `scripts/` (once Phase 0 begins)

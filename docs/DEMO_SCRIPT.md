@@ -7,7 +7,7 @@
 | **Audience** | Mentors and stakeholders (non-engineers) |
 | **Prerequisites** | Python 3.12, `git`, no external API keys, no internet required |
 
-> **Planning-Only Notice:** This document describes the **intended** demo flow for Phase 5–6. Implementation code does not yet exist in this repository. See `PLANNING_HYGIENE.md`.
+> **Demo Ready:** This document describes the demo flow for Phases 5–6. Implementation code exists in `src/`, `tests/`, and `web/`. See `README.md` for quick-start commands.
 
 ---
 

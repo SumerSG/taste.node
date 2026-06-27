@@ -3,7 +3,7 @@
 > **How to use this document:**
 > You are the Founding PM. The goal is a working, demoable MVP of taste.node. This guide tells you **which role to hire (or prompt) and when**, and exactly **what to hand off** between them. Roles are strictly sequential. Do not start Role N+1 until Role N has passed the handoff checklist.
 >
-> **Planning-Only Notice:** This repository currently contains **no implementation code**. The prompts below describe the Phase 0 conveyor belt once code consolidation is formally kicked off. See `PLANNING_HYGIENE.md` for repository policy.
+> **Status:** Phase 0–6 implementation code exists in `src/`, `tests/`, and `web/`. `PLANNING_HYGIENE.md` is **superseded**. The prompts below are retained as historical reference for the Phase 0 conveyor belt.
 
 ---
 

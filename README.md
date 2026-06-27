@@ -85,10 +85,12 @@ Built during a 6-week internship focused on AI tools.
 ```
 taste.node/
 ├── requirements.txt         # Python dependencies (exact pinned versions)
-├── pyproject.toml           # Build system, project metadata, exact pins
-├── pytest.ini               # pytest defaults (for Phase 0)
+├── pyproject.toml           # Build system, project metadata, exact pins, pytest config
 ├── README.md                # This file
-├── PLANNING_HYGIENE.md      # Repository policy: no code until Phase 0
+├── PLANNING_HYGIENE.md      # ~~Repository policy: no code until Phase 0~~ **Superseded**
+├── Procfile                 # Heroku/Render process definitions (web + api)
+├── alembic/                 # Alembic DB migrations
+│   └── versions/
 ├── docs/                    # Project documentation
 │   ├── AGENTS.md            # Supreme architecture (immutable reference)
 │   ├── ADR-001_REJECTED_TOOLS.md
@@ -102,8 +104,27 @@ taste.node/
 │   ├── TDD.md               # AI-executable technical design (v0.2)
 │   ├── VENUE_INGESTION_PIPELINE.md
 │   └── ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md
-├── .gitignore               # Explicitly blocks src/, tests/, .github/workflows/
-└── (src/, tests/, scripts/ will be created during Phase 0)
+├── src/                     # Backend (FastAPI + SQLAlchemy Core)
+│   ├── main.py
+│   ├── models.py
+│   ├── db.py
+│   ├── similarity.py
+│   ├── clustering.py
+│   ├── recommendations.py
+│   └── mock_database.py
+├── tests/                   # pytest suite
+│   ├── test_models.py
+│   ├── test_similarity.py
+│   ├── test_clustering.py
+│   └── test_api.py
+├── scripts/
+│   └── generate_synthetic_data.py
+├── web/                     # Frontend (React 19 + Vite + Tailwind v3)
+│   ├── src/
+│   ├── public/
+│   ├── scripts/
+│   └── dist/                # Build artifacts (tracked for deploy)
+└── .gitignore               # Blocks .env, .venv, node_modules, *.db
 ```
 
 ## Installation Notes (Phase 0+)

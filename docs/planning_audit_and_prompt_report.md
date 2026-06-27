@@ -1,6 +1,6 @@
 # taste.node — Planning Audit & Promptable Assets Report
 
-> **AUDIT CLOSURE NOTICE (2026-06-22):** The actions mandated by `docs/PROJECT_AUDIT.md` have been executed. All non-compliant source code has been purged. Superseded documents have been archived. Missing components (incremental clustering, offline evaluation, caching, security boundaries, venue ingestion, ADR, planning hygiene policy) have been formally documented. This report is retained for historical reference. See `PLANNING_HYGIENE.md` for current repository policy.
+> **AUDIT CLOSURE NOTICE (2026-06-22):** The actions mandated by `docs/PROJECT_AUDIT.md` have been executed. All non-compliant source code has been purged. Superseded documents have been archived. Missing components (incremental clustering, offline evaluation, caching, security boundaries, venue ingestion, ADR, planning hygiene policy) have been formally documented. This report is retained for historical reference. `PLANNING_HYGIENE.md` is now **superseded**; implementation code exists in `src/`, `tests/`, and `web/`.
 
 **Auditor:** Principal TPM & Chief Architect (Autonomous AI Audit)  
 **Date:** 2026-06-22  
@@ -297,7 +297,7 @@ These PRD sections or feature specs are detailed enough to be used as a **direct
 | **PM Role 4: Contextual API Engineer** | `docs/PM_TEAM_BUILDING_PROMPT.md` Part 4, Role 4 | Complete prompt for implementing `src/main.py`. Includes `/users` endpoints, `context_id` query param fallback, and `src/db.py` SQLite persistence requirement. **Aligned with TDD Chapter 4 as of 2026-06-22.** | Phase 5 (with TDD override) |
 | **PM Role 5: Temporal Data Model Designer** | `docs/PM_TEAM_BUILDING_PROMPT.md` Part 4, Role 5 | Complete prompt for designing onboarding data capture and `docs/DATA_CONTRACT.md`. | Phase 3 |
 | **PM Role 7: Recommendation Engineer** | `docs/PM_TEAM_BUILDING_PROMPT.md` Part 4, Role 7 | Complete prompt for explanation templates, noise fallback, scoring formula (`α=0.5, β=0.3, γ=0.2`), and character limits. **Aligned with TDD Chapter 3.3 as of 2026-06-22.** | Phase 5 |
-| **TDD Phase 1 Prompt** | `docs/TDD.md` Chapter 8, Phase 1 | Exact prompt for scaffold: `pyproject.toml`, `pytest.ini`, `src/models.py`, `tests/test_models.py`. Includes Pydantic v2 `@computed_field` constraints. | Phase 1 |
+| **TDD Phase 1 Prompt** | `docs/TDD.md` Chapter 8, Phase 1 | Exact prompt for scaffold: `pyproject.toml` (with `[tool.pytest.ini_options]`), `src/models.py`, `tests/test_models.py`. Includes Pydantic v2 `@computed_field` constraints. | Phase 1 |
 | **TDD Phase 2 Prompt** | `docs/TDD.md` Chapter 8, Phase 2 | Exact prompt for `src/similarity.py` + `tests/test_similarity.py`. Includes perfect/inverse/no-overlap/time-decay test specs. | Phase 2 |
 | **TDD Phase 3 Prompt** | `docs/TDD.md` Chapter 8, Phase 3 | Exact prompt for `src/clustering.py` + `tests/test_clustering.py`. Includes HDBSCAN exact invocation and noise-point assertion. | Phase 3 |
 | **TDD Phase 4 Prompt** | `docs/TDD.md` Chapter 8, Phase 4 | Exact prompt for `scripts/generate_synthetic_data.py`. Includes seed, volume (100 users × 3 contexts), and JSONL output spec. | Phase 4 |
@@ -359,7 +359,7 @@ For an AI coding agent working on taste.node, the optimal context stack is:
 |---|---|
 | Missing `AGENTS.md` | ✅ Created and ratified |
 | `pyproject.toml` / `requirements.txt` version drift | ✅ Aligned to exact `==` pins |
-| Missing `pytest.ini` | ✅ Created |
+| Missing `pytest.ini` | ✅ Migrated into `[tool.pytest.ini_options]` inside `pyproject.toml`. Standalone file removed. |
 | Missing `docs/DATA_CONTRACT.md` | ✅ Created with exact JSON shapes |
 | Missing `docs/DEMO_SCRIPT.md` | ✅ Created with recovery paths |
 | `CLUSTER_ARCHITECTURE.md` contradicts TDD | ✅ Marked superseded |
