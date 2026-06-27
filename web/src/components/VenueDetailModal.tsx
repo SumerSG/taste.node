@@ -26,6 +26,18 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
   const [classic, setClassic] = useState(false);
   const [status, setStatus] = useState<RankStatus>(existingStatus ?? "want_to_try");
   const [personalRating, setPersonalRating] = useState<number>(0);
+
+  // When reopening for a revisit, default to "visited" since "want_to_try"
+  // doesn't make sense when you're explicitly visiting again.
+  const isRevisit = !!existingStatus;
+  const statusOptions: RankStatus[] = isRevisit
+    ? ["visited", "favourite", "regular"]
+    : ["want_to_try", "visited", "favourite", "regular"];
+
+  // Reset status to something valid when modal opens for a revisit
+  if (open && isRevisit && status === "want_to_try") {
+    setStatus("visited");
+  }
   const [reaction, setReaction] = useState("");
   const [mealType, setMealType] = useState<"lunch" | "dinner" | undefined>(undefined);
   const [dishesInput, setDishesInput] = useState("");
@@ -51,7 +63,6 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
     onClose();
   };
 
-  const statusOptions: RankStatus[] = ["want_to_try", "visited", "favourite", "regular"];
 
   const STEPS: { id: Step; label: string }[] = [
     { id: "preview", label: "Preview" },
