@@ -16,19 +16,38 @@ function fromRow(row: Record<string, unknown>): Venue {
     id: row.id as string,
     name: row.name as string,
     address: (row.address as string | null) ?? undefined,
-    location:
-      row.lat != null && row.lng != null
-        ? { lat: row.lat as number, lng: row.lng as number }
-        : null,
-    cuisines: (row.cuisines as string[] | null) ?? [],
-    dietary_tags: (row.dietary_tags as string[] | null) ?? [],
+    location: (() => {
+      if (
+        row.location &&
+        typeof row.location === "object" &&
+        row.location !== null
+      ) {
+        const loc = row.location as Record<string, unknown>;
+        if (typeof loc.lat === "number" && typeof loc.lng === "number") {
+          return { lat: loc.lat, lng: loc.lng };
+        }
+      }
+      if (row.lat != null && row.lng != null) {
+        return { lat: row.lat as number, lng: row.lng as number };
+      }
+      return null;
+    })(),
+    cuisines: Array.isArray(row.cuisines) ? (row.cuisines as string[]) : [],
+    dietary_tags: Array.isArray(row.dietary_tags)
+      ? (row.dietary_tags as string[])
+      : [],
     price_tier: (row.price_tier as number | null) ?? null,
     health_score: (row.health_score as number | null) ?? null,
     source: (row.source as Venue["source"]) ?? "tabelog",
     source_url: (row.source_url as string | null) ?? undefined,
     rating: (row.rating as number | null) ?? undefined,
     review_count: (row.review_count as number | null) ?? undefined,
-    image_url: (row.image_url as string | null) ?? pickImage((row.cuisines as string[] | null) ?? [], row.id as string),
+    image_url:
+      (row.image_url as string | null) ??
+      pickImage(
+        Array.isArray(row.cuisines) ? (row.cuisines as string[]) : [],
+        row.id as string
+      ),
   };
 }
 
