@@ -217,3 +217,21 @@ class TestErrorShape:
         detail = err["detail"]
         assert "error" in detail
         assert "message" in detail
+
+
+class TestApiKeyGuard:
+    def test_mutation_without_key_fails_when_env_is_set(self, reset_db, monkeypatch):
+        monkeypatch.setenv("TASTE_NODE_API_KEY", "demo-secret")
+        resp = client.post("/users", json={"user_id": "locked_user"})
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["error"] == "forbidden"
+
+    def test_mutation_with_correct_key_succeeds(self, reset_db, monkeypatch):
+        monkeypatch.setenv("TASTE_NODE_API_KEY", "demo-secret")
+        resp = client.post(
+            "/users",
+            json={"user_id": "locked_user"},
+            headers={"X-API-Key": "demo-secret"},
+        )
+        assert resp.status_code == 201
+

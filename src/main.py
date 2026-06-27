@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Body, Request
+from fastapi import FastAPI, HTTPException, Depends, Query, Body, Request, Header, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -47,6 +47,13 @@ app = FastAPI(title="taste.node API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+# ─── Health / Root ───
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "taste.node"}
+
+
 # ─── CORS ───
 # Default: localhost dev origins. Override with TASTE_NODE_CORS_ORIGINS env var.
 _default_origins = [
@@ -75,11 +82,28 @@ def _error(status_code: int, error: str, message: str, detail: Optional[Dict[str
     )
 
 
+# ─── API Key guard (MOC for mutation endpoints) ───
+# If TASTE_NODE_API_KEY is unset, mutations are open (local dev).
+# If set, the matching X-API-Key header is required.
+
+
+def require_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> None:
+    expected = os.environ.get("TASTE_NODE_API_KEY")
+    if expected and x_api_key != expected:
+        _error(
+            status.HTTP_403_FORBIDDEN,
+            "forbidden",
+            "Invalid or missing API key.",
+            detail={"header": "X-API-Key"},
+        )
+
+
+
 # ─── Users ───
 
 @app.post("/users", status_code=201, response_model=TasteProfile)
 @limiter.limit("30/minute")
-def create_new_user(request: Request, payload: Dict[str, str] = Body(...), conn: Any = Depends(get_db)):
+def create_new_user(request: Request, payload: Dict[str, str] = Body(...), conn: Any = Depends(get_db), _auth: None = Depends(require_api_key)):
     user_id = payload.get("user_id")
     if not user_id:
         _error(400, "missing_field", "user_id is required")
@@ -105,6 +129,7 @@ def patch_user_settings(
     user_id: str,
     payload: SettingsUpdate,
     conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
 ):
     profile = get_user_profile(conn, user_id)
     if not profile:
@@ -125,6 +150,7 @@ def update_context(
     context_id: str,
     items: List[RankedItemInput],
     conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
 ):
     if not items:
         _error(400, "invalid_context", "Empty item list", detail={"invalid_item_index": None})
@@ -190,6 +216,7 @@ def recalculate_clusters(
     request: Request,
     payload: Dict[str, str] = Body(...),
     conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
 ):
     cid = payload.get("context_id")
     if not cid:
