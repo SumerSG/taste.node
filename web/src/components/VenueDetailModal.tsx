@@ -27,9 +27,10 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
   const [status, setStatus] = useState<RankStatus>(existingStatus ?? "want_to_try");
   const [personalRating, setPersonalRating] = useState<number>(0);
 
-  // When reopening for a revisit, default to "visited" since "want_to_try"
-  // doesn't make sense when you're explicitly visiting again.
-  const isRevisit = !!existingStatus;
+  // "Add another visit" only excludes "want_to_try" if the user has already
+  // visited (status is visited/favourite/regular). If they still haven't
+  // visited (status is want_to_try), they should be able to keep or change it.
+  const isRevisit = !!existingStatus && existingStatus !== "want_to_try";
   const statusOptions: RankStatus[] = isRevisit
     ? ["visited", "favourite", "regular"]
     : ["want_to_try", "visited", "favourite", "regular"];
