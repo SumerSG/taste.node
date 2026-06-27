@@ -28,46 +28,10 @@ if (!SUPABASE_SERVICE_KEY) {
   process.exit(1);
 }
 
-// ─── Image mapping (copied from src/data/venues.ts for standalone use) ───
-const IMAGES: Record<string, string> = {
-  Japanese: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=400&fit=crop",
-  Italian: "https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=600&h=400&fit=crop",
-  American: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=400&fit=crop",
-  Mexican: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&h=400&fit=crop",
-  French: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop",
-  Indian: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop",
-  Vietnamese: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=600&h=400&fit=crop",
-  Korean: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop",
-  Thai: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=600&h=400&fit=crop",
-  "Middle Eastern": "https://images.unsplash.com/photo-1541557435984-1c79685a082b?w=600&h=400&fit=crop",
-  Seafood: "https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=600&h=400&fit=crop",
-  Steakhouse: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop",
-  Salad: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
-  Vegetarian: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
-  Vegan: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop",
-  Bakery: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&h=400&fit=crop",
-  Taiwanese: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop",
-  Nordic: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop",
-  Chinese: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop",
-  日本料理: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=400&fit=crop",
-  寿司: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&h=400&fit=crop",
-  ラーメン: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop",
-  居酒屋: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
-  焼き鳥: "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&h=400&fit=crop",
-  焼肉: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop",
-  天ぷら: "https://images.unsplash.com/photo-1615361200141-f45040f367be?w=600&h=400&fit=crop",
-  カフェ: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&h=400&fit=crop",
-  パスタ: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=400&fit=crop",
-  ピザ: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&h=400&fit=crop",
-  中華料理: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=400&fit=crop",
-  default: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
-};
-
-function pickImage(cuisines: string[]): string {
-  for (const c of cuisines) {
-    if (IMAGES[c]) return IMAGES[c];
-  }
-  return IMAGES.default;
+// ─── Image mapping (standalone copy from src/data/venues.ts) ───
+function pickImage(cuisines: string[], venueId?: string): string {
+  const seed = venueId || cuisines[0] || "default";
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/600/400`;
 }
 
 // ─── Schema transform ───
@@ -102,7 +66,7 @@ function transform(raw: RawVenue) {
     source_url: raw.source_url,
     rating: raw.rating,
     review_count: raw.review_count,
-    image_url: pickImage(raw.cuisines ?? []),
+    image_url: pickImage(raw.cuisines ?? [], raw.venue_id),
   };
 }
 

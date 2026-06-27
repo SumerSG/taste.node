@@ -27,14 +27,24 @@ This document is the **canonical JSON contract** between the taste.node FastAPI 
   "dietary_tags": ["string"],
   "price_tier": 1,
   "health_score": 0.8,
-  "source": "synthetic"
+  "image_url": "https://images.unsplash.com/photo-…/w=600&h=400&fit=crop",
+  "address": "東京都渋谷区…",
+  "source": "synthetic",
+  "source_url": "https://tabelog.com/…",
+  "rating": 3.58,
+  "review_count": 142
 }
 ```
 
 - `location` is optional (`null` allowed). Required for geo-filtering.
 - `price_tier`: `null`, `1`, `2`, `3`, or `4`.
 - `health_score`: `null` or float in `[0.0, 1.0]`.
-- `source`: enum `"synthetic" | "api" | "user_added"`.
+- `image_url`: `null` or string.
+- `address`: `null` or string.
+- `source`: enum `"synthetic" | "api" | "user_added" | "tabelog"`.
+- `source_url`: `null` or string.
+- `rating`: `null` or float.
+- `review_count`: `null` or integer.
 
 ### 2.2 RankedItem
 
@@ -45,6 +55,11 @@ This document is the **canonical JSON contract** between the taste.node FastAPI 
   "added_at": "2026-06-22T10:00:00+00:00",
   "occasion_tag": "solo",
   "is_classic": false,
+  "status": "favourite",
+  "personal_rating": 5,
+  "reaction": "Incredible meal.",
+  "meal_type": "dinner",
+  "dishes": ["Omakase", "Sake"],
   "rank": 0.0
 }
 ```
@@ -53,6 +68,11 @@ This document is the **canonical JSON contract** between the taste.node FastAPI 
 - `added_at` defaults to `datetime.now(timezone.utc)` if omitted.
 - `occasion_tag` enum: `"solo" | "date" | "business" | "group" | "comfort"`. Default: `"solo"`.
 - `is_classic` default: `false`.
+- `status` enum: `"want_to_try" | "visited" | "favourite" | "regular"`. Optional, default `null`.
+- `personal_rating` integer or `null`.
+- `reaction` string or `null`.
+- `meal_type` enum: `"lunch" | "dinner"` or `null`.
+- `dishes` array of strings or `null`.
 - `rank` is a **read-only computed field** (float). It is always present in serialization but set by the server.
 
 ### 2.3 RankedItemInput (API Request Only)
@@ -65,11 +85,17 @@ Used in `PUT /users/{user_id}/contexts/{context_id}`.
   "venue_name": "string (optional, default: venue_id)",
   "visited_at": "2025-06-15T19:30:00+00:00 (required)",
   "occasion_tag": "solo",
-  "is_classic": false
+  "is_classic": false,
+  "status": "favourite",
+  "personal_rating": 5,
+  "reaction": "Incredible meal.",
+  "meal_type": "dinner",
+  "dishes": ["Omakase", "Sake"]
 }
 ```
 
 - `venue_name` is optional. If omitted, the server copies `venue_id` into `Venue.name`.
+- `status`, `personal_rating`, `reaction`, `meal_type`, and `dishes` are optional and default to `null` if omitted.
 - All other behavior matches `RankedItem`.
 
 ### 2.4 TasteContext
@@ -115,11 +141,18 @@ curl -X POST "http://localhost:8000/users" \
 
 **Response `201`:**
 ```json
-{
-  "user_id": "alice_42",
-  "contexts": {},
-  "default_context": "default"
-}
+  {
+    "user_id": "alice_42",
+    "contexts": {
+      "default": {
+        "context_id": "default",
+        "ranked_list": [],
+        "created_at": "2026-06-22T10:00:00+00:00",
+        "updated_at": "2026-06-22T10:00:00+00:00"
+      }
+    },
+    "default_context": "default"
+  }
 ```
 
 **Response `409`:**
@@ -264,7 +297,12 @@ curl "http://localhost:8000/recommendations?user=alice_42&context_id=default&lat
       "dietary_tags": ["vegetarian"],
       "price_tier": 2,
       "health_score": 0.75,
-      "source": "synthetic"
+      "source": "synthetic",
+      "image_url": "https://images.unsplash.com/photo-…/w=600&h=400&fit=crop",
+      "address": null,
+      "source_url": null,
+      "rating": 3.48,
+      "review_count": 198
     },
     "score": 0.87,
     "explanation": "3 people in your default taste cluster ranked this in their top 3 after visiting Golden Bistro.",
@@ -314,6 +352,7 @@ Rules:
 | `visited_at` omitted in `RankedItemInput` | Default to server `now()` |
 | `occasion_tag` omitted | Default to `"solo"` |
 | `venue_name` omitted | Default to `venue_id` |
+| `status`, `personal_rating`, `reaction`, `meal_type`, `dishes` omitted | Default to `null` |
 | Duplicate `venue_id` in same `context_id` | Server deduplicates by keeping the most recent `visited_at` |
 | Unknown `venue_id` | Server creates a minimal `Venue` with `id` and `name` only |
 | `TasteProfile` has no contexts | Valid state after `POST /users`; cluster and rec endpoints return `404` |

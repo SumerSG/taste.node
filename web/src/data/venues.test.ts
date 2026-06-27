@@ -3,28 +3,31 @@ import { pickImage, haversine } from './venues';
 
 describe('venues helpers', () => {
   describe('pickImage', () => {
-    it('returns cuisine-specific image for known cuisine', () => {
-      const url = pickImage(['Japanese', 'Italian']);
-      expect(url).toContain('unsplash.com');
+    it('returns picsum.photos placeholder for a known cuisine with venue id', () => {
+      const url = pickImage(['Japanese', 'Italian'], 'v42');
+      expect(url).toContain('picsum.photos');
+      expect(url).toContain('seed/v42');
       expect(url).not.toBe('');
     });
 
-    it('falls through to second cuisine if first is unknown', () => {
-      const url = pickImage(['Unknown', 'Italian']);
-      expect(url).toContain('unsplash.com');
+    it('falls back to first cuisine seed if venue id is omitted', () => {
+      const url = pickImage(['Italian']);
+      expect(url).toContain('picsum.photos');
+      expect(url).toContain('seed/Italian');
       expect(url).not.toBe('');
     });
 
-    it('returns default image for unknown cuisines', () => {
-      const url = pickImage(['UnknownCuisine']);
-      expect(url).toContain('unsplash.com');
-      expect(url).not.toBe('');
-    });
-
-    it('returns default image for empty cuisines', () => {
+    it('falls through to "default" seed for unknown empty cuisines', () => {
       const url = pickImage([]);
-      expect(url).toContain('unsplash.com');
+      expect(url).toContain('picsum.photos');
+      expect(url).toContain('seed/default');
       expect(url).not.toBe('');
+    });
+
+    it('returns deterministic URL for same venue id', () => {
+      const url1 = pickImage(['Japanese', 'Italian'], 'v42');
+      const url2 = pickImage(['Japanese', 'Italian'], 'v42');
+      expect(url1).toBe(url2);
     });
   });
 

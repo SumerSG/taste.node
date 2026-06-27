@@ -72,6 +72,11 @@ ranked_items_table = Table(
     Column("added_at", DateTime(timezone=True), nullable=False),
     Column("occasion_tag", String, nullable=False, default="solo"),
     Column("is_classic", Boolean, nullable=False, default=False),
+    Column("status", String, nullable=True),
+    Column("personal_rating", Integer, nullable=True),
+    Column("reaction", String, nullable=True),
+    Column("meal_type", String, nullable=True),
+    Column("dishes", JSON, nullable=True),
     ForeignKeyConstraint(
         ["context_id", "user_id"],
         ["contexts.context_id", "contexts.user_id"],
@@ -83,13 +88,17 @@ venues_table = Table(
     metadata,
     Column("id", String, primary_key=True),
     Column("name", String, nullable=False),
+    Column("address", String, nullable=True),
     Column("location", JSON, nullable=True),
     Column("cuisines", JSON, nullable=False, default=list),
     Column("dietary_tags", JSON, nullable=False, default=list),
     Column("price_tier", Integer, nullable=True),
     Column("health_score", Float, nullable=True),
     Column("source", String, nullable=False, default="synthetic"),
+    Column("source_url", String, nullable=True),
     Column("image_url", String, nullable=True),
+    Column("rating", Float, nullable=True),
+    Column("review_count", Integer, nullable=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
@@ -117,6 +126,13 @@ def get_db() -> Generator[Connection, None, None]:
 
 
 def _row_to_ranked_item(row: Any) -> RankedItem:
+    # SQLite round-trips may strip tzinfo → re-attach UTC if needed
+    visited_at = row.visited_at
+    if visited_at and visited_at.tzinfo is None:
+        visited_at = visited_at.replace(tzinfo=timezone.utc)
+    added_at = row.added_at
+    if added_at and added_at.tzinfo is None:
+        added_at = added_at.replace(tzinfo=timezone.utc)
     return RankedItem(
         venue=Venue(
             id=row.venue_id,
@@ -128,10 +144,15 @@ def _row_to_ranked_item(row: Any) -> RankedItem:
             health_score=row.venue_health_score,
             source=row.venue_source,  # type: ignore[arg-type]
         ),
-        visited_at=row.visited_at,
-        added_at=row.added_at,
+        visited_at=visited_at,
+        added_at=added_at,
         occasion_tag=row.occasion_tag,  # type: ignore[arg-type]
         is_classic=row.is_classic,
+        status=row.status,
+        personal_rating=row.personal_rating,
+        reaction=row.reaction,
+        meal_type=row.meal_type,
+        dishes=row.dishes or [],
     )
 
 
@@ -151,6 +172,11 @@ def _ranked_item_to_row(context_id: str, user_id: str, item: RankedItem) -> Dict
         "added_at": item.added_at,
         "occasion_tag": item.occasion_tag,
         "is_classic": item.is_classic,
+        "status": item.status,
+        "personal_rating": item.personal_rating,
+        "reaction": item.reaction,
+        "meal_type": item.meal_type,
+        "dishes": item.dishes or [],
     }
 
 
@@ -300,6 +326,11 @@ def upsert_context(
                 visited_at=inp.visited_at,
                 occasion_tag=inp.occasion_tag,
                 is_classic=inp.is_classic,
+                status=inp.status,
+                personal_rating=inp.personal_rating,
+                reaction=inp.reaction,
+                meal_type=inp.meal_type,
+                dishes=inp.dishes,
             )
         )
 
@@ -339,12 +370,17 @@ def _row_to_venue(row: Any) -> Venue:
     return Venue(
         id=row.id,
         name=row.name,
+        address=row.address,
         location=row.location,
         cuisines=row.cuisines or [],
         dietary_tags=row.dietary_tags or [],
         price_tier=row.price_tier,
         health_score=row.health_score,
         source=row.source,
+        source_url=row.source_url,
+        image_url=row.image_url,
+        rating=row.rating,
+        review_count=row.review_count,
     )
 
 
@@ -360,12 +396,17 @@ def seed_venues_if_empty(conn: Any) -> None:
             insert(venues_table).values(
                 id=v.id,
                 name=v.name,
+                address=v.address,
                 location=v.location,
                 cuisines=v.cuisines or [],
                 dietary_tags=v.dietary_tags or [],
                 price_tier=v.price_tier,
                 health_score=v.health_score,
                 source=v.source,
+                source_url=v.source_url,
+                image_url=v.image_url,
+                rating=v.rating,
+                review_count=v.review_count,
                 created_at=now,
             )
         )

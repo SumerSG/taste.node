@@ -1,7 +1,7 @@
 # taste.node
 
 > Restaurant and cafe recommendation platform powered by taste-based AI clustering.
-> **Status: Planning-Only Repository. No implementation code resides here until Phase 0 is formally kicked off.**
+> **Status: MVP Implementation (Phases 1–5 complete; Phase 6 frontend in progress).**
 
 ## Overview
 
@@ -108,6 +108,24 @@ taste.node/
 
 ## Installation Notes (Phase 0+)
 
+### Quick Start (Backend + Frontend)
+
+```bash
+# 1. Backend dependencies (already pinned in pyproject.toml)
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+
+# 2. Run backend
+uvicorn src.main:app --reload
+
+# 3. Frontend (in another terminal)
+cd web
+npm install
+npm run dev
+# open http://localhost:5173
+```
+
 ### HDBSCAN Fallback
 `hdbscan==0.8.40` includes compiled C++ extensions. If `pip install -r requirements.txt` fails during HDBSCAN compilation, use the conda-forge wheel:
 
@@ -120,9 +138,10 @@ pip install fastapi==0.115.0 uvicorn[standard]==0.32.0 pydantic==2.9.0 scipy==1.
 
 ## Security & Deployment Notes
 
-- **Rate Limiting:** The MVP demo API must implement rate limiting before any public deployment. See `docs/SECURITY_BOUNDARIES.md` for `slowapi`/nginx configuration.
-- **CORS:** `allow_origins = ["*"]` is forbidden for public demos.
-- **Auth:** `POST /users` and `PUT /users/{user_id}/contexts/{context_id}` have no auth in the MVP. See `docs/SECURITY_BOUNDARIES.md` for the OAuth2/API-key migration path.
+- **Rate Limiting:** The MVP demo API implements `slowapi` rate limiting (30 req/min default). See `docs/SECURITY_BOUNDARIES.md` for `slowapi`/nginx configuration.
+- **CORS:** Configured via `TASTE_NODE_CORS_ORIGINS`. Default is `http://localhost:5173`. `allow_origins = ["*"]` is forbidden for public demos.
+- **Auth:** `POST /users` and `PUT /users/{user_id}/contexts/{context_id}` have optional API-key auth via `TASTE_NODE_API_KEY`. See `docs/SECURITY_BOUNDARIES.md` for the OAuth2/API-key migration path.
+- **API Key:** Mutations require `X-API-Key` header when `TASTE_NODE_API_KEY` is set. Unset = open for local dev.
 - **Known Security Gaps:** Documented in `docs/SECURITY_BOUNDARIES.md` and `docs/PRD.md`.
 
 ---
@@ -213,7 +232,7 @@ curl -s https://taste-node-frontend-1624e477.onbld.com | head -5
 
 ### Known gaps to fill when real data arrives
 
-1. **Venue photos:** Add `image_url: string` to the Pydantic `Venue` model and ingestion pipeline.
-2. **User auth:** Currently single-device `localStorage`. Replace with `POST /users` + `GET /users/{user_id}` API calls.
-3. **Chat backend:** Swap the rule parser for an LLM call once an endpoint is available.
+1. **User auth:** Currently single-device `localStorage`. Replace with `POST /users` + `GET /users/{user_id}` API calls.
+2. **Chat backend:** Swap the rule parser for an LLM call once an endpoint is available.
+3. **Rank derivation:** `RankedItem.rank` is a stub (`0.0`). Replace with time-decayed, context-boosted derived score.
 

@@ -43,7 +43,7 @@ class TestVenue:
 
     def test_source_enum_rejection(self):
         with pytest.raises(ValidationError):
-            Venue(id="v1", name="X", source="tabelog")  # not in Literal
+            Venue(id="v1", name="X", source="scraped")  # not in Literal
 
 
 class TestRankedItem:
@@ -75,6 +75,23 @@ class TestRankedItem:
         assert item.occasion_tag == "solo"
         assert item.is_classic is False
         assert (item.added_at - now).total_seconds() < 1
+
+    def test_mvp_fields(self):
+        item = RankedItem(
+            venue=Venue(id="v1", name="X"),
+            visited_at=datetime.now(timezone.utc),
+            status="favourite",
+            personal_rating=5,
+            reaction="Incredible.",
+            meal_type="dinner",
+            dishes=["Omakase", "Sake"],
+        )
+        data = item.model_dump(mode="json")
+        assert data["status"] == "favourite"
+        assert data["personal_rating"] == 5
+        assert data["reaction"] == "Incredible."
+        assert data["meal_type"] == "dinner"
+        assert data["dishes"] == ["Omakase", "Sake"]
 
 
 class TestTasteProfile:

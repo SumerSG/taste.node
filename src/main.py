@@ -38,6 +38,7 @@ from src.db import (
 from src.similarity import compute_similarity
 from src.clustering import ContextualClusterMap
 from src.recommendations import score_recommendations
+from src.mock_database import get_mock_users, seed_synthetic_profiles, clear_mock_data
 
 # ─── Rate limiting ───
 # 30 req/min default; 100/min for recommendations
@@ -294,3 +295,42 @@ def list_venues(request: Request, conn: Any = Depends(get_db)):
         seed_venues_if_empty(conn)
         venues = get_all_venues(conn)
     return venues
+
+
+# ─── Mock Database (demo-only) ───
+
+@app.get("/mock/users")
+@limiter.limit("30/minute")
+def list_mock_users(request: Request):
+    return get_mock_users()
+
+
+@app.post("/mock/seed")
+@limiter.limit("10/minute")
+def seed_mock_data(
+    request: Request,
+    payload: Dict[str, Any] = Body(default={}),
+    conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
+):
+    try:
+        n = int(payload.get("n", 100))
+    except (TypeError, ValueError):
+        n = 100
+    try:
+        seed = int(payload.get("seed", 42))
+    except (TypeError, ValueError):
+        seed = 42
+    count = seed_synthetic_profiles(conn, n=n, seed=seed)
+    return {"status": "ok", "seeded": count}
+
+
+@app.delete("/mock/seed")
+@limiter.limit("10/minute")
+def clear_mock_data_endpoint(
+    request: Request,
+    conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
+):
+    count = clear_mock_data(conn)
+    return {"status": "ok", "cleared_rows": count}

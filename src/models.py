@@ -13,15 +13,27 @@ class Venue(BaseModel):
     dietary_tags: List[str] = Field(default_factory=list)
     price_tier: Optional[int] = None  # 1–4
     health_score: Optional[float] = None
-    source: Literal["synthetic", "api", "user_added"] = "synthetic"
+    source: Literal["synthetic", "api", "user_added", "tabelog"] = "synthetic"
+    # Optional fields present in the frontend contract
+    image_url: Optional[str] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    address: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 class RankedItem(BaseModel):
     venue: Venue
-    visited_at: datetime  # timezone-aware UTC
+    visited_at: datetime
     added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     occasion_tag: Literal["solo", "date", "business", "group", "comfort"] = "solo"
-    is_classic: bool = False  # bypasses time-decay
+    is_classic: bool = False
+    # MVP frontend fields — persisted so backend can round-trip full profiles
+    status: Optional[Literal["want_to_try", "visited", "favourite", "regular"]] = None
+    personal_rating: Optional[int] = None
+    reaction: Optional[str] = None
+    meal_type: Optional[Literal["lunch", "dinner"]] = None
+    dishes: Optional[List[str]] = None
 
     @computed_field
     @property
@@ -42,6 +54,7 @@ class TasteProfile(BaseModel):
     contexts: Dict[str, TasteContext] = Field(default_factory=dict)
     default_context: str = "default"
     include_in_clustering: bool = True  # opt-out toggle for cluster calculations
+    following: List[str] = Field(default_factory=list)  # frontend social field
 
     @model_validator(mode="after")
     def _default_context_exists(self):
@@ -69,6 +82,12 @@ class RankedItemInput(BaseModel):
     visited_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     occasion_tag: Literal["solo", "date", "business", "group", "comfort"] = "solo"
     is_classic: bool = False
+    # Optional frontend fields
+    status: Optional[Literal["want_to_try", "visited", "favourite", "regular"]] = None
+    personal_rating: Optional[int] = None
+    reaction: Optional[str] = None
+    meal_type: Optional[Literal["lunch", "dinner"]] = None
+    dishes: Optional[List[str]] = None
 
 
 class Recommendation(BaseModel):

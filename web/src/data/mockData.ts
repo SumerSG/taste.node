@@ -350,7 +350,7 @@ function offsetDate(rndVal: number, daysOffset: number): string {
 /* ─── Post generation ─── */
 
 const _postsCache: Post[] | null = null;
-let _postsGenerated = false;
+const _postsGenerated = false;
 
 function buildPost(
   userId: string,

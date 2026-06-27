@@ -2,7 +2,7 @@
 
 | | |
 |:---|:---|
-| **Status** | Enforced |
+| **Status** | **Superseded** — Phase 0 commenced and implementation code is now present in `src/`, `tests/`, and `web/`. |
 | **Date** | 2026-06-22 |
 | **Scope** | All files in `/home/build/taste.node` and subdirectories |
 

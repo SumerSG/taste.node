@@ -7,12 +7,22 @@
  * mocks exactly as before.
  */
 
-import type { Venue, TasteProfile, Filters, Recommendation } from "./types";
+import type { Venue, TasteProfile, Filters, Recommendation, RankedItem } from "./types";
+import { pickImage } from "./venues";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export function hasBackend(): boolean {
   return !!API_BASE;
+}
+
+/** Normalize a raw venue from the backend so missing frontend fields
+ *  (image_url, etc.) are backfilled deterministically. */
+function normalizeVenue(v: Venue): Venue {
+  return {
+    ...v,
+    image_url: v.image_url ?? pickImage(v.cuisines, v.id),
+  };
 }
 
 async function _fetch<T>(path: string, init?: RequestInit): Promise<T | null> {
@@ -35,7 +45,8 @@ async function _fetch<T>(path: string, init?: RequestInit): Promise<T | null> {
 
 /** Load all venues from the backend DB (seeded from the static pool). */
 export async function loadVenuesBackend(): Promise<Venue[] | null> {
-  return _fetch<Venue[]>("/venues");
+  const data = await _fetch<Venue[]>("/venues");
+  return data ? data.map(normalizeVenue) : null;
 }
 
 /** Load a user's profile from the backend. */
@@ -55,11 +66,23 @@ export async function createUserBackend(userId: string): Promise<TasteProfile | 
 export async function saveContextBackend(
   userId: string,
   contextId: string,
-  items: { venue_id: string; venue_name?: string; visited_at: string; occasion_tag: string; is_classic: boolean }[]
+  items: RankedItem[]
 ): Promise<unknown | null> {
+  const payload = items.map((item) => ({
+    venue_id: item.venue.id,
+    venue_name: item.venue.name,
+    visited_at: item.visited_at,
+    occasion_tag: item.occasion_tag,
+    is_classic: item.is_classic,
+    status: item.status,
+    personal_rating: item.personal_rating,
+    reaction: item.reaction,
+    meal_type: item.meal_type,
+    dishes: item.dishes,
+  }));
   return _fetch(`/users/${encodeURIComponent(userId)}/contexts/${encodeURIComponent(contextId)}`, {
     method: "PUT",
-    body: JSON.stringify(items),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -80,5 +103,6 @@ export async function getRecommendationsBackend(
   if (filters.radius_km && filters.radius_km < 50) {
     // backend expects lat/lng/radius; we don't have user GPS, so skip geo filter for now
   }
-  return _fetch<Recommendation[]>(`/recommendations?${params.toString()}`);
+  const data = await _fetch<Recommendation[]>(`/recommendations?${params.toString()}`);
+  return data ? data.map((rec) => ({ ...rec, venue: normalizeVenue(rec.venue) })) : null;
 }

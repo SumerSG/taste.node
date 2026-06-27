@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "taste-node"
 version = "0.2.0"
 description = "AI-executable taste similarity and recommendation API"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.15"
 dependencies = [
     "fastapi==0.115.0",
     "uvicorn[standard]==0.32.0",

@@ -1,5 +1,31 @@
 -- Run this in the Supabase SQL Editor
 
+-- Venues table: canonical venue catalog
+CREATE TABLE IF NOT EXISTS public.venues (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  address text,
+  lat double precision,
+  lng double precision,
+  cuisines text[] DEFAULT '{}' NOT NULL,
+  dietary_tags text[] DEFAULT '{}' NOT NULL,
+  price_tier integer,
+  health_score double precision,
+  source text DEFAULT 'tabelog' NOT NULL,
+  source_url text,
+  image_url text,
+  rating double precision,
+  review_count integer,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read venues"
+  ON public.venues FOR SELECT
+  TO authenticated
+  USING (true);
+
 -- Profiles table: one row per user, stores profile-level state
 CREATE TABLE IF NOT EXISTS public.profiles (
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,

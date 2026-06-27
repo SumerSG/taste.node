@@ -9,10 +9,10 @@ venv/
 # Node
 node_modules/
 *.local
+.env
 .env.local
 
 # Build outputs
-web/dist/
 dist/
 
 # IDE

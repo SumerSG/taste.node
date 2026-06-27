@@ -143,7 +143,7 @@
 |------------------|---------|
 | Seed data is blocked by ToS | Switch to synthetic dataset (generate fake user profiles with realistic rankings) |
 | Clustering is too slow | Reduce seed set to 200 users; pre-compute similarities |
-| Frontend is too complex | Defer to Phase 6 per TDD Redline 5; use curl-based demo fallback |
+| Frontend is too complex | Phase 6 frontend is built in `web/`; fallback to curl-based demo remains possible |
 | Filters return empty results too often | Relax filter logic; show "closest match" with explanation |
 
 ---

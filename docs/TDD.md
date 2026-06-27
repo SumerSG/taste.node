@@ -81,7 +81,13 @@ class Venue(BaseModel):
     dietary_tags: List[str] = Field(default_factory=list)
     price_tier: Optional[int] = None  # 1–4
     health_score: Optional[float] = None
-    source: Literal["synthetic", "api", "user_added"] = "synthetic"
+    source: Literal["synthetic", "api", "user_added", "tabelog"] = "synthetic"
+    # Optional fields present in the frontend contract
+    image_url: Optional[str] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    address: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 class RankedItem(BaseModel):
@@ -635,7 +641,7 @@ ranked_items_table = Table(
 - **Redline 2:** If `rank` is stored as a raw integer in the database instead of derived from `visited_at`, the design is invalid.
 - **Redline 3:** If the clustering engine uses `sklearn.cluster.KMeans` or any algorithm assuming Euclidean/Gaussian geometry, the design is invalid.
 - **Redline 4:** If the document describes a scraper module, pipeline, or dependency, the design is invalid.
-- **Redline 5:** If the document proposes frontend frameworks (Next.js, Streamlit, React) without an explicit Phase 6 expansion, the design is invalid. Phase 1-5 is API-only.
+- **Redline 5:** If the document proposes frontend frameworks (Next.js, Streamlit, React) without an explicit Phase 6 expansion, the design is invalid. Phase 1-5 is API-only. **Status: Fulfilled — Phase 6 React frontend is implemented in `web/` and conforms to `docs/DATA_CONTRACT.md`.**
 - **Redline 6:** If `RankedItem.rank` accepts any parameters inside `@computed_field`, or if `occasion_tag` / `source` are typed as plain `str` instead of `Literal[...]`, the design is invalid.
 
 ---

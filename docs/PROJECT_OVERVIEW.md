@@ -21,12 +21,12 @@ Build a platform that:
 
 ### MVP (6 Weeks)
 
-- [ ] Ranked-list input (users order their favourite venues)
-- [ ] Re-ranking when a new venue is visited
+- [x] Ranked-list input (users order their favourite venues)
+- [x] Re-ranking when a new venue is visited
 - [ ] Clustering algorithm based on ranked-list similarity
 - [ ] Live preference filters (location, cuisine, diet, healthiness)
 - [ ] Recommendation engine: cluster match × filter match
-- [ ] Simple frontend to demonstrate the flow
+- [x] Simple frontend to demonstrate the flow (React 19 + Vite, implemented in `web/`)
 - [ ] Explainable recommendations (e.g., “3 people in your taste cluster loved this after visiting [X]”)
 
 ### Out of Scope
@@ -65,4 +65,4 @@ Build a platform that:
 
 ---
 
-*Last updated: 2026-06-19*
+*Last updated: 2026-06-27*

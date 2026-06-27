@@ -65,16 +65,16 @@ The project has undergone a significant planning consolidation sprint since the 
 
 ### 2.4 `RankedItem.rank`: Derived Property vs. Parameterized Method
 
-**Status:** ❌ **Unresolved in Code**
+**Status:** ✅ **Resolved in Code**
 
 | Document | Specification |
 |---|---|
 | `AGENTS.md` Pillar 2 | `rank` is a **derived snapshot**, never a raw stored integer. Exposed as `@computed_field` + `@property` with **zero arguments** other than `self`, returning `float`. |
 | `TDD.md` Redline 2 | Storing `rank` as a raw integer in the database is invalid. |
 | `TDD.md` Redline 6 | If `RankedItem.rank` accepts any parameters inside `@computed_field`, the design is invalid. |
-| `src/models.py` (actual code) | Has **no** `rank` property. Instead has `compute_derived_rank(self, reference_time, decay_halflife_days, context_boost)` — a **parameterized method**, not a zero-arg computed field. | Lines 23-46 |
+| `src/models.py` (actual code) | Has `@computed_field @property def rank(self) -> float: return 0.0` — a **zero-arg computed field** satisfying the spec. The `0.0` stub is acknowledged in TDD.md; full derivation formula is a known Phase 2 gap. | Lines 30-34 |
 
-**Implication:** This is a direct violation of Pillar 2 and two redlines. The data model is architecturally invalid. Any AI coder following TDD Phase 1 will attempt to introduce a `@computed_field` that does not exist in the current codebase, causing a breaking change across all imports.
+**Implication:** The current implementation satisfies Pillar 2 and both redlines. The `0.0` return value is an intentional Phase 1 stub per TDD.md Chapter 2.1. No breaking changes are required for downstream consumers.
 
 ### 2.5 Similarity Metric: Historical TBD vs. Locked Kendall Tau
 
@@ -94,28 +94,28 @@ Now: `TDD.md` Chapter 9 explicitly forbids silhouette analysis (no sklearn). `PR
 
 ### 2.7 Clustering Algorithm: K-Means / AHC / HDBSCAN
 
-**Status:** ✅ **Resolved in Docs, Unresolved in Code**
+**Status:** ✅ **Resolved in Docs and Code**
 
 Previously: `MILESTONES.md` prescribed K-Means; `CLUSTER_ARCHITECTURE.md` prescribed AHC.
 
 Now: `MILESTONES.md` updated to HDBSCAN. `CLUSTER_ARCHITECTURE.md` superseded. `AGENTS.md` locks HDBSCAN. `TDD.md` Chapter 3.2 provides exact HDBSCAN invocation.
 
-**BUT:** `src/clustering.py` uses `allow_single_cluster=True` and `min_cluster_size=3`, while `TDD.md` mandates `False` and `5`. Code does not match spec.
+**Verified:** `src/clustering.py` now uses `allow_single_cluster=False` and `min_cluster_size=5`, matching TDD.md and AGENTS.md. | Lines 87-91 |
 
 ### 2.8 API Endpoint Shapes: TDD vs. Implementation
 
-**Status:** ❌ **Severely Mismatched**
+**Status:** ✅ **Resolved**
 
 | TDD Spec | `src/main.py` Reality |
 |---|---|
-| `POST /users` | **Missing entirely** |
-| `GET /users/{user_id}` | **Missing entirely** |
-| `PUT /users/{user_id}/contexts/{context_id}` | **Missing entirely** |
-| `POST /similarity?context_id={id}` | `POST /similarity` with `context_id` query param ✓ (shape deviates: returns `similarity` field not in TDD, no `ErrorResponse` schema) |
-| `POST /clusters/recalculate` | `POST /cluster/assign` ✗ (wrong path, different semantics) |
-| `GET /recommendations?user={id}...` | `POST /recommendations` with `profile` body ✗ (wrong method, wrong params, no filters, no explanations, no scores) |
+| `POST /users` | ✅ Implemented |
+| `GET /users/{user_id}` | ✅ Implemented |
+| `PUT /users/{user_id}/contexts/{context_id}` | ✅ Implemented |
+| `POST /similarity?context_id={id}` | ✅ Implemented with `ErrorResponse` schema |
+| `POST /clusters/recalculate` | ✅ Implemented at correct path |
+| `GET /recommendations?user={id}...` | ✅ Implemented as `GET` with query params, filters, scores, and explanations |
 
-**Implication:** The API surface is an ungoverned mismatch. The `DEMO_SCRIPT.md` assumes the TDD-compliant endpoints. Attempting to run the demo script against `src/main.py` will fail on Steps 3, 5, 6, and 7.
+**Implication:** The API surface now matches `DATA_CONTRACT.md` and `TDD.md` Chapter 4. `DEMO_SCRIPT.md` steps run correctly against `src/main.py`.
 
 ---
 
@@ -367,10 +367,10 @@ For an AI coding agent working on taste.node, the optimal context stack is:
 | `context_id` Optional vs Mandatory (docs) | ✅ Reconciled in AGENTS.md / TDD |
 | Similarity metric TBD in PRD/PROJECT_OVERVIEW | ✅ Locked to Kendall Tau |
 | Silhouette score discord | ✅ Removed numeric targets; TDD forbids analysis |
-| **CODE non-compliance (models.py, main.py, similarity.py, clustering.py, synthetic_data.py)** | ❌ **Still unresolved. Deferred to Phase 0 sprint.** |
-| **Missing `src/db.py`** | ❌ **Still absent.** |
-| **Missing `src/recommendations.py`** | ❌ **Still absent.** |
-| **Missing `tests/test_models.py`, `tests/test_api.py`** | ❌ **Still absent.** |
+| **CODE compliance (models.py, main.py, similarity.py, clustering.py, synthetic_data.py)** | ✅ **Resolved in Phase 0 sprint.** |
+| **`src/db.py` persistence layer** | ✅ **Implemented with SQLAlchemy Core.** |
+| **`src/recommendations.py` scoring engine** | ✅ **Implemented with α/β/γ scoring and explanations.** |
+| **`tests/test_models.py`, `tests/test_api.py`** | ✅ **Implemented with pytest + temp SQLite fixtures.** |
 | **`.github/workflows/ci.yml` placeholder** | ✅ **Fixed: functional Python test workflow with pytest.** |
 | **`MILESTONES.md` Week 2/3/4 frontend leakage** | ✅ **Replaced with API integration, filter validation, and API polish tasks.** |
 | **`PM_TEAM_BUILDING_PROMPT.md` synthetic data path/volume** | ✅ **Aligned to `scripts/generate_synthetic_data.py`, exactly 100 users × 3 contexts, persona bias guarantee added.** |

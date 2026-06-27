@@ -85,3 +85,11 @@ Before sharing a demo URL:
 ---
 
 *This document is subordinate to `docs/AGENTS.md` and `docs/TDD.md`. Auth implementation details belong in `TDD.md` Chapter 4 once Phase 2 begins.*
+
+## 6. Known Credential Leaks
+
+**Status:** `.env` is correctly `.gitignore`d in current working tree, but the key exists in prior commits.
+
+- A Supabase anon key for project `zhygstfypymsspfinhqc` was committed to history in commits `e9281b5` through `ecdc8f9`. Even though `web/.env` is no longer tracked by git, the secret remains in history.
+- **Action required:** Rotate the Supabase `anon` key via the Supabase Dashboard (Project Settings → API → anon key → Regenerate). Update your local `web/.env` with the new key.
+- **Prevention:** A `.gitignore` entry for `.env` is active; never commit `.env` files. Clone `web/.env.example` to `web/.env.local` for local development.

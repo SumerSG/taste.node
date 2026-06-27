@@ -36,17 +36,16 @@ const IMAGES: Record<string, string> = {
   default: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
 };
 
-function pickImage(cuisines: string[]): string {
-  for (const c of cuisines) {
-    if (IMAGES[c]) return IMAGES[c];
-  }
-  return IMAGES.default;
+function pickImage(cuisines: string[], venueId?: string): string {
+  const seed = venueId || cuisines[0] || "default";
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/600/400`;
 }
 
 function transform(raw: Record<string, unknown>) {
   const cuisines = Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [];
+  const id = (raw.venue_id as string | undefined) ?? (raw.id as string | undefined) ?? "";
   return {
-    id: (raw.venue_id as string | undefined) ?? (raw.id as string | undefined) ?? "",
+    id,
     name: (raw.name as string) ?? "",
     address: (raw.address as string | null | undefined) ?? null,
     lat: (raw.lat as number | null | undefined) ?? null,
@@ -59,7 +58,7 @@ function transform(raw: Record<string, unknown>) {
     source_url: (raw.source_url as string | null | undefined) ?? null,
     rating: (raw.rating as number | null | undefined) ?? null,
     review_count: (raw.review_count as number | null | undefined) ?? null,
-    image_url: (raw.image_url as string | null | undefined) ?? pickImage(cuisines),
+    image_url: (raw.image_url as string | null | undefined) ?? pickImage(cuisines, id),
   };
 }
 
