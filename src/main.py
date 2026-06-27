@@ -341,10 +341,10 @@ def setup_supabase(confirm: bool = False):
     Call with ?confirm=true to actually run.
     """
     try:
-        import psycopg2
+        import pg8000
     except ImportError:
         return JSONResponse(
-            {"error": "psycopg2-binary not installed"}, status_code=500
+            {"error": "pg8000 not installed"}, status_code=500
         )
 
     url = os.environ.get("SUPABASE_URL")
@@ -402,18 +402,17 @@ def setup_supabase(confirm: bool = False):
     if not confirm:
         return JSONResponse(preview)
 
-    # Execute
+    # Execute via pg8000
     host = url.replace("https://", "").replace(".supabase.co", "")
     results = {"created": [], "skipped": [], "errors": []}
     try:
-        conn = psycopg2.connect(
+        conn = pg8000.dbapi.connect(
             host=f"db.{host}.supabase.co",
-            dbname="postgres",
+            database="postgres",
             user="postgres",
             password=key,
             port=5432,
-            sslmode="require",
-            connect_timeout=15,
+            ssl_context=True,
         )
         cur = conn.cursor()
         for stmt in statements:
@@ -424,12 +423,13 @@ def setup_supabase(confirm: bool = False):
                     if t.replace("public.", "") in stmt.lower():
                         results["created"].append(t)
                         break
-            except psycopg2.errors.lookup("42P07"):  # duplicate_table
-                conn.rollback()
-                results["skipped"].append("already exists")
             except Exception as e:
                 conn.rollback()
-                results["errors"].append(str(e)[:120])
+                err = str(e).lower()
+                if "already exists" in err or "duplicate" in err or "42p07" in err:
+                    results["skipped"].append("already exists")
+                else:
+                    results["errors"].append(str(e)[:120])
         cur.close()
         conn.close()
     except Exception as e:
