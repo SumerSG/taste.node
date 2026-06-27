@@ -183,7 +183,7 @@ export function FilterPanel({ profile, filters, onChange, open, onClose }: Props
           className="w-full rounded-xl border border-cream-dark bg-cream py-2 pl-9 pr-8 text-sm shadow-sm transition focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
         />
         {filters.query && (
-          <button onClick={() => update({ query: "" })} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-faint hover:bg-cream-warm hover:text-ink-muted">
+          <button onClick={() => update({ query: "" })} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-faint hover:bg-cream-warm hover:text-ink-muted" aria-label="Clear search">
             <X size={12} />
           </button>
         )}
@@ -229,7 +229,7 @@ export function FilterPanel({ profile, filters, onChange, open, onClose }: Props
       {/* Price */}
       <section>
         <h4 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Price</h4>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {PRICE_TIERS.map((t) => {
             const active = filters.price_tier === t.value;
             return (
@@ -418,7 +418,7 @@ export function FilterPanel({ profile, filters, onChange, open, onClose }: Props
       {activeCount > 0 && (
         <button
           onClick={clearAll}
-          className="w-full rounded-xl border border-cream-dark py-2 text-xs font-semibold text-ink-faint transition hover:bg-cream hover:text-ink-muted"
+          className="hidden lg:block w-full rounded-xl border border-cream-dark py-2 text-xs font-semibold text-ink-faint transition hover:bg-cream hover:text-ink-muted"
         >
           Clear all filters ({activeCount})
         </button>
@@ -458,20 +458,33 @@ export function FilterPanel({ profile, filters, onChange, open, onClose }: Props
           onClick={onClose}
         />
         <div
-          className={`absolute right-0 top-0 h-full w-[300px] transform overflow-y-auto bg-paper shadow-elevated transition-transform ${
+          className={`absolute right-0 top-0 h-full w-[300px] transform bg-paper shadow-elevated transition-transform flex flex-col ${
             open ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <div className="flex items-center justify-between border-b border-cream-dark p-4">
+          <div className="flex items-center justify-between border-b border-cream-dark p-4 flex-shrink-0">
             <h3 className="text-sm font-semibold text-ink">Filters</h3>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-ink-faint transition hover:bg-cream hover:text-ink-muted"
+              className="flex items-center justify-center rounded-lg p-2 text-ink-faint transition hover:bg-cream hover:text-ink-muted min-h-[44px] min-w-[44px]"
+              aria-label="Close filters"
             >
               <X size={16} />
             </button>
           </div>
-          <div className="p-4">{panelContent}</div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {panelContent}
+          </div>
+          <div className="flex-shrink-0 border-t border-cream-dark p-4">
+            {activeCount > 0 && (
+              <button
+                onClick={clearAll}
+                className="w-full min-h-[44px] rounded-xl border border-cream-dark py-2 text-xs font-semibold text-ink-faint transition hover:bg-cream hover:text-ink-muted"
+              >
+                Clear all filters ({activeCount})
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>

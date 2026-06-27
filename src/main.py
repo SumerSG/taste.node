@@ -1,11 +1,10 @@
-"""taste.node — Phase 5: FastAPI surface.
+"""taste.node — FastAPI surface.
 
 Boundary rule: routes only. All business logic delegates to
 src/db.py, src/similarity.py, src/clustering.py, src/recommendations.py.
 """
 
 import os
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Body, Request, Header, status
@@ -37,7 +36,7 @@ from src.db import (
 )
 from src.similarity import compute_similarity
 from src.clustering import ContextualClusterMap
-from src.recommendations import score_recommendations
+from src.recommendations import score_recommendations, _set_cached_cluster
 from src.mock_database import get_mock_users, seed_synthetic_profiles, clear_mock_data
 
 # ─── Rate limiting ───
@@ -71,10 +70,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# ─── Shared state (MVP: in-memory cluster cache) ───
-_cluster_cache: Dict[str, ClusterResult] = {}
-
 
 def _error(status_code: int, error: str, message: str, detail: Optional[Dict[str, Any]] = None):
     raise HTTPException(
@@ -226,7 +221,7 @@ def recalculate_clusters(
     all_profiles = get_all_profiles(conn)
     engine = ContextualClusterMap(all_profiles, min_cluster_size=5)
     result = engine.fit_context(cid)
-    _cluster_cache[cid] = result
+    _set_cached_cluster(cid, result)
     return result
 
 

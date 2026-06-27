@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { TasteProfile, FeedData, Venue } from "./data/types";
 import { loadProfile, saveProfile, loadFeed, saveFeed, setCurrentUserId } from "./data/api";
-import { loadVenues } from "./data/venues";
+import { loadVenues, getVenueById } from "./data/venues";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { useAuthState, useAuthActions } from "./hooks/useAuth";
 import { Layout, type Tab } from "./components/Layout";
 import { AuthModal } from "./components/AuthModal";
@@ -12,9 +13,24 @@ import { ProfileView } from "./views/LibraryView";
 import { RankingView } from "./views/RankingView";
 import { VenuePage } from "./views/VenuePage";
 import { LandingView } from "./views/LandingView";
+import { UserProfileView } from "./views/UserProfileView";
 import { FabOverlay } from "./components/FabOverlay";
+import { SAMPLE_USERS } from "./data/mockData";
+
+type NavEntry =
+  | { view: "landing" }
+  | { view: "feed" }
+  | { view: "search" }
+  | { view: "profile" }
+  | { view: "ranking" }
+  | { view: "venue"; venueId: string }
+  | { view: "userProfile"; userId: string; userName: string };
 
 function AppContent() {
+  const { user, loading: authLoading } = useAuthState();
+  const { logout } = useAuthActions();
+  const userId = user?.id ?? null;
+
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<TasteProfile | null>(null);
   const [feed, setFeed] = useState<FeedData | null>(null);
@@ -22,10 +38,10 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAuth, setShowAuth] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
-  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const { user, loading: authLoading } = useAuthState();
-  const { logout } = useAuthActions();
-  const userId = user?.id ?? null;
+  const [navStack, setNavStack] = useState<NavEntry[]>([
+    { view: user ? "feed" : "landing" },
+  ]);
+  const skipPopstate = useRef(false);
 
   // Sync user id with storage layer so profiles are isolated per account
   useEffect(() => {
@@ -56,6 +72,36 @@ function AppContent() {
     if (feed) saveFeed(feed);
   }, [feed]);
 
+  // Listen for browser back button (popstate)
+  useEffect(() => {
+    const handler = (e: PopStateEvent) => {
+      if (skipPopstate.current) {
+        skipPopstate.current = false;
+        return;
+      }
+      setNavStack((prev) => {
+        if (prev.length <= 1) return prev;
+        return prev.slice(0, -1);
+      });
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
+  const pushNav = useCallback((entry: NavEntry) => {
+    setNavStack((prev) => [...prev, entry]);
+    window.history.pushState(null, "", "");
+  }, []);
+
+  const popNav = useCallback(() => {
+    setNavStack((prev) => {
+      if (prev.length <= 1) return prev;
+      skipPopstate.current = true;
+      window.history.back();
+      return prev.slice(0, -1);
+    });
+  }, []);
+
   const handleProfileChange = (p: TasteProfile) => {
     setProfile(p);
   };
@@ -64,10 +110,36 @@ function AppContent() {
     setFeed(f);
   };
 
-  const handleGlobalSearch = (q: string) => {
+  const handleTabChange = useCallback((t: Tab) => {
+    setNavStack([{ view: t }]);
+    setTab(t);
+  }, []);
+
+  const handleGlobalSearch = useCallback((q: string) => {
     setSearchQuery(q);
+    setNavStack([{ view: "search" }]);
     setTab("search");
-  };
+  }, []);
+
+  const navigateToVenue = useCallback(
+    (venue: Venue) => {
+      pushNav({ view: "venue", venueId: venue.id });
+    },
+    [pushNav]
+  );
+
+  const navigateToProfile = useCallback(
+    (userIdArg: string, userNameArg: string) => {
+      const name =
+        userNameArg || SAMPLE_USERS.find((u) => u.id === userIdArg)?.name || "";
+      pushNav({ view: "userProfile", userId: userIdArg, userName: name });
+    },
+    [pushNav]
+  );
+
+  const resolveUserProfileName = useCallback((uid: string) => {
+    return SAMPLE_USERS.find((u) => u.id === uid)?.name || "";
+  }, []);
 
   if (!ready || !profile || !feed || authLoading) {
     return (
@@ -82,65 +154,104 @@ function AppContent() {
     );
   }
 
-  if (!user && !guestMode) {
+  const current = navStack[navStack.length - 1];
+
+  if (current.view === "landing") {
     return (
       <LandingView
-        onGuestEnter={() => setGuestMode(true)}
+        onGuestEnter={() => {
+          setGuestMode(true);
+          setNavStack([{ view: "feed" }]);
+        }}
       />
     );
   }
+
+  const currentVenue =
+    current.view === "venue" ? getVenueById(current.venueId) : null;
 
   return (
     <>
       <Layout
         profile={profile}
         activeTab={tab}
-        onTabChange={(t) => { setSelectedVenue(null); setTab(t); }}
+        onTabChange={handleTabChange}
         onGlobalSearch={handleGlobalSearch}
         user={user}
         onOpenAuth={() => setShowAuth(true)}
         onLogout={logout}
       >
-        {selectedVenue ? (
-          <VenuePage
-            venue={selectedVenue}
-            profile={profile}
-            feed={feed}
-            onProfileChange={handleProfileChange}
-            onBack={() => setSelectedVenue(null)}
+        {current.view === "userProfile" ? (
+          <UserProfileView
+            userId={current.userId}
+            userName={current.userName}
+            onNavigateToVenue={navigateToVenue}
+            onNavigateToProfile={(uid) => {
+              const name = resolveUserProfileName(uid);
+              pushNav({ view: "userProfile", userId: uid, userName: name });
+            }}
+            onBack={popNav}
           />
+        ) : current.view === "venue" ? (
+          currentVenue ? (
+            <VenuePage
+              venue={currentVenue}
+              profile={profile}
+              feed={feed}
+              onProfileChange={handleProfileChange}
+              onBack={popNav}
+              onNavigateToProfile={navigateToProfile}
+            />
+          ) : (
+            <div className="mx-auto max-w-3xl py-20 text-center">
+              <p className="text-ink-muted">Venue not found</p>
+              <button onClick={popNav} className="btn-primary mt-4">
+                Go back
+              </button>
+            </div>
+          )
         ) : (
           <>
-            {tab === "feed" && (
+            {current.view === "feed" && (
               <FeedView
                 profile={profile}
                 onProfileChange={handleProfileChange}
                 feed={feed}
                 onFeedChange={handleFeedChange}
-                onNavigateToSearch={() => setTab("search")}
-                onNavigateToVenue={(v) => setSelectedVenue(v)}
+                onNavigateToSearch={() => {
+                  setNavStack([{ view: "search" }]);
+                  setTab("search");
+                }}
+                onNavigateToVenue={navigateToVenue}
+                onNavigateToProfile={navigateToProfile}
               />
             )}
-            {tab === "search" && (
+            {current.view === "search" && (
               <SearchView
                 key={searchQuery}
                 profile={profile}
                 onProfileChange={handleProfileChange}
                 initialQuery={searchQuery}
-                onNavigateToVenue={(v) => setSelectedVenue(v)}
+                onNavigateToVenue={navigateToVenue}
               />
             )}
-            {tab === "profile" && (
+            {current.view === "profile" && (
               <ProfileView
                 profile={profile}
                 onProfileChange={handleProfileChange}
+                onNavigateToVenue={navigateToVenue}
+                onNavigateToProfile={navigateToProfile}
               />
             )}
-            {tab === "ranking" && (
+            {current.view === "ranking" && (
               <RankingView
                 profile={profile}
                 onProfileChange={handleProfileChange}
-                onNavigateToLibrary={() => setTab("search")}
+                onNavigateToLibrary={() => {
+                  setNavStack([{ view: "search" }]);
+                  setTab("search");
+                }}
+                onNavigateToVenue={navigateToVenue}
               />
             )}
           </>
@@ -152,7 +263,10 @@ function AppContent() {
         onProfileChange={handleProfileChange}
         feed={feed}
         onFeedChange={handleFeedChange}
-        onNavigateToSearch={() => setTab("search")}
+        onNavigateToSearch={() => {
+          setNavStack([{ view: "search" }]);
+          setTab("search");
+        }}
       />
 
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
@@ -163,14 +277,16 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AuthKeyWrapper />
+      <ToastProvider>
+        <AuthKeyWrapper />
+      </ToastProvider>
     </AuthProvider>
   );
 }
 
 function AuthKeyWrapper() {
   const { user } = useAuthState();
-  return <AppContent key={user?.id ?? 'anon'} />;
+  return <AppContent key={user?.id ?? "anon"} />;
 }
 
 export default App;

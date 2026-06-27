@@ -4,6 +4,8 @@ import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser
 import { getAllVenues } from "../data/venues";
 import { Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, MapPin } from "lucide-react";
 
+import { useToast } from "../context/ToastContext";
+
 interface Props {
   profile: TasteProfile;
   onProfileChange: (profile: TasteProfile) => void;
@@ -11,6 +13,7 @@ interface Props {
   onFeedChange: (feed: FeedData) => void;
   onNavigateToSearch: () => void;
   onNavigateToVenue: (venue: Venue) => void;
+  onNavigateToProfile: (userId: string, userName: string) => void;
 }
 
 function timeAgo(iso: string) {
@@ -34,8 +37,9 @@ const MODES: { id: FeedMode; label: string; icon: React.ReactNode }[] = [
   { id: "global", label: "Global", icon: <Globe size={13} /> },
 ];
 
-export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch, onNavigateToVenue }: Props) {
+export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch, onNavigateToVenue, onNavigateToProfile }: Props) {
   const [mode, setMode] = useState<FeedMode>("recommended");
+  const toast = useToast();
 
   const venueMap = useMemo(() => {
     const m = new Map<string, Venue>();
@@ -46,7 +50,12 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
   const filteredPosts = useMemo(() => filterFeedPosts(feed, mode, profile), [feed, mode, profile]);
 
   const handleDelete = (postId: string) => {
-    onFeedChange(deletePost(feed, postId));
+    if (!window.confirm("Delete this post?")) return;
+    const next = deletePost(feed, postId);
+    if (next !== feed) {
+      onFeedChange(next);
+      toast.show("Post deleted", "success");
+    }
   };
 
   return (
@@ -110,7 +119,14 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
             >
               {/* Header */}
               <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <button
+                  className="flex items-center gap-3 text-left"
+                  onClick={() => {
+                    if (post.author_id !== (getCurrentUserId() ?? "anonymous")) {
+                      onNavigateToProfile(post.author_id, post.author_name);
+                    }
+                  }}
+                >
                   <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
                     post.author_id === (getCurrentUserId() ?? "anonymous")
                       ? "bg-sienna-50 text-sienna-700"
@@ -122,15 +138,18 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
                     <div className="text-sm font-semibold text-ink">{post.author_name}</div>
                     <div className="text-[11px] text-ink-faint">{timeAgo(post.created_at)}</div>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center gap-1">
                   {post.author_id !== (getCurrentUserId() ?? "anonymous") && (
                     <button
                       onClick={() => {
-                        if (isFollowing(profile, post.author_id)) {
+                        const was = isFollowing(profile, post.author_id);
+                        if (was) {
                           onProfileChange(unfollowUser(profile, post.author_id));
+                          toast.show(`Unfollowed ${post.author_name}`, "success");
                         } else {
                           onProfileChange(followUser(profile, post.author_id));
+                          toast.show(`Following ${post.author_name}`, "success");
                         }
                       }}
                       className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
@@ -144,11 +163,6 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
                       ) : (
                         <><UserPlus size={12} /> Follow</>
                       )}
-                    </button>
-                  )}
-                  {post.author_id === (getCurrentUserId() ?? "anonymous") && (
-                    <button onClick={() => handleDelete(post.id)} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
-                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>
@@ -172,8 +186,16 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
 
               {/* Image */}
               {post.image_url && (
-                <div className="overflow-hidden rounded-xl">
-                  <img src={post.image_url} alt="Post" className="w-full object-cover" loading="lazy" />
+                <div className="relative w-full overflow-hidden rounded-xl bg-cream-dark" style={{ aspectRatio: "16/10" }}>
+                  <img src={post.image_url} alt="Post" className="h-full w-full object-cover" loading="lazy" />
+                </div>
+              )}
+              {/* Actions */}
+              {post.author_id === (getCurrentUserId() ?? "anonymous") && (
+                <div className="mt-3">
+                  <button onClick={() => handleDelete(post.id)} className="rounded-lg p-2 text-ink-faint hover:bg-red-50 hover:text-red-500 transition min-h-[32px] min-w-[44px] inline-flex items-center justify-center" aria-label="Delete post">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               )}
             </div>

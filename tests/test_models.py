@@ -53,10 +53,19 @@ class TestRankedItem:
             visited_at=datetime(2025, 6, 15, 19, 30, tzinfo=timezone.utc),
         )
         assert hasattr(item, "rank")
-        assert item.rank == 0.0
+        # Non-classic, past visit → rank is in (0, 1)
+        assert 0.0 < item.rank < 1.0
         data = item.model_dump(mode="json")
         assert "rank" in data
-        assert data["rank"] == 0.0
+        assert 0.0 < data["rank"] < 1.0
+
+    def test_classic_rank_is_one(self):
+        item = RankedItem(
+            venue=Venue(id="v1", name="X"),
+            visited_at=datetime(2025, 6, 15, 19, 30, tzinfo=timezone.utc),
+            is_classic=True,
+        )
+        assert item.rank == 1.0
 
     def test_occasion_tag_enum_rejection(self):
         with pytest.raises(ValidationError):

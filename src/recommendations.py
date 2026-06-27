@@ -1,11 +1,30 @@
-"""taste.node — Phase 5: Recommendation scoring + explanation (MVP)."""
+"""taste.node — Recommendation scoring + explanation (MVP)."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Set
 
-from src.models import TasteProfile, Venue, Recommendation
+from src.models import TasteProfile, Venue, Recommendation, ClusterResult
 from src.clustering import ContextualClusterMap
 from src.similarity import time_decay_weight
+
+# ─── Cluster cache ───
+_cluster_cache: Dict[str, tuple[ClusterResult, datetime]] = {}
+_CLUSTER_CACHE_TTL = timedelta(minutes=5)
+
+
+def _get_cached_cluster(context_id: str) -> Optional[ClusterResult]:
+    cached = _cluster_cache.get(context_id)
+    if cached is None:
+        return None
+    result, ts = cached
+    if datetime.now(timezone.utc) - ts > _CLUSTER_CACHE_TTL:
+        del _cluster_cache[context_id]
+        return None
+    return result
+
+
+def _set_cached_cluster(context_id: str, result: ClusterResult) -> None:
+    _cluster_cache[context_id] = (result, datetime.now(timezone.utc))
 
 # ─── Static MVP venue pool (20 synthetic Tokyo-ish venues) ───
 
@@ -104,9 +123,12 @@ def score_recommendations(
                 continue
         filtered.append(v)
 
-    # Clustering
-    cluster_engine = ContextualClusterMap(all_profiles, min_cluster_size=5)
-    cluster_result = cluster_engine.fit_context(context_id)
+    # Clustering (cached per context_id with 5-minute TTL)
+    cluster_result = _get_cached_cluster(context_id)
+    if cluster_result is None:
+        cluster_engine = ContextualClusterMap(all_profiles, min_cluster_size=5)
+        cluster_result = cluster_engine.fit_context(context_id)
+        _set_cached_cluster(context_id, cluster_result)
     user_label = cluster_result.labels.get(user.user_id)
     cluster_member_ids = [
         uid for uid, lab in cluster_result.labels.items()

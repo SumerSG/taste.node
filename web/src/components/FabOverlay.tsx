@@ -3,9 +3,12 @@ import type { Venue, FeedData, Post, TasteProfile } from "../data/types";
 import { addPost, getCurrentUserId, followUser, unfollowUser, isFollowing } from "../data/api";
 import { getAllVenues } from "../data/venues";
 import { SAMPLE_USERS } from "../data/mockData";
+import { useModalTrap } from "../hooks/useModalTrap";
 import {
   Plus, Image, X, MapPin, Send, Camera, Users, UserPlus, UserCheck, Search, UtensilsCrossed,
 } from "lucide-react";
+
+import { useToast } from "../context/ToastContext";
 
 interface Props {
   profile: TasteProfile;
@@ -16,6 +19,7 @@ interface Props {
 }
 
 export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch }: Props) {
+  const toast = useToast();
   const [fabOpen, setFabOpen] = useState(false);
   const [composing, setComposing] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
@@ -24,6 +28,10 @@ export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNav
   const [imageUrl, setImageUrl] = useState("");
   const [venueId, setVenueId] = useState("");
   const fabRef = useRef<HTMLDivElement>(null);
+  const composeRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  useModalTrap(composing, () => setComposing(false), composeRef);
+  useModalTrap(showUserSearch, () => setShowUserSearch(false), searchRef);
 
   useEffect(() => {
     if (!fabOpen) return;
@@ -58,6 +66,7 @@ export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNav
       created_at: new Date().toISOString(),
     };
     onFeedChange(addPost(feed, post));
+    toast.show("Post published", "success");
     setText("");
     setImageUrl("");
     setVenueId("");
@@ -101,11 +110,11 @@ export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNav
 
       {/* Composer overlay */}
       {composing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <div ref={composeRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div className="taste-card w-full max-w-lg rounded-2xl border border-cream-dark bg-paper p-5 shadow-elevated">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-serif text-lg text-ink">Share a place you loved</h3>
-              <button onClick={() => setComposing(false)} className="rounded-lg p-1 text-ink-faint hover:bg-cream hover:text-ink-muted">
+              <button onClick={() => setComposing(false)} className="rounded-lg p-1 text-ink-faint hover:bg-cream hover:text-ink-muted" aria-label="Close">
                 <X size={18} />
               </button>
             </div>
@@ -160,11 +169,11 @@ export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNav
 
       {/* User Search Overlay */}
       {showUserSearch && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:p-4 sm:items-center backdrop-blur-sm">
+        <div ref={searchRef} className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:p-4 sm:items-center backdrop-blur-sm">
           <div className="flex max-h-[80vh] w-full sm:max-w-md flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-paper shadow-elevated">
             <div className="flex items-center justify-between border-b border-cream-dark px-5 py-3">
               <h3 className="font-serif text-lg text-ink">Find people</h3>
-              <button onClick={() => setShowUserSearch(false)} className="rounded-full p-1 text-ink-faint hover:bg-cream transition">
+              <button onClick={() => setShowUserSearch(false)} className="rounded-full p-1 text-ink-faint hover:bg-cream transition" aria-label="Close">
                 <X size={16} />
               </button>
             </div>
@@ -196,8 +205,10 @@ export function FabOverlay({ profile, onProfileChange, feed, onFeedChange, onNav
                           onClick={() => {
                             if (following) {
                               onProfileChange(unfollowUser(profile, u.id));
+                              toast.show(`Unfollowed ${u.name}`, "success");
                             } else {
                               onProfileChange(followUser(profile, u.id));
+                              toast.show(`Following ${u.name}`, "success");
                             }
                           }}
                           className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${

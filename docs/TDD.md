@@ -102,7 +102,7 @@ class RankedItem(BaseModel):
     def rank(self) -> float:
         """Derived rank: time-decayed, context-boosted score.
         Higher = more important. No raw integer rank is stored in the DB.
-        Stub in Phase 1; real logic arrives in Phase 2 via similarity.py.
+        Stub in MVP; real logic now derived from time-decay weighting.
         """
         return 0.0
 
@@ -639,21 +639,21 @@ ranked_items_table = Table(
 
 ---
 
-## Chapter 8: Modular Execution Chain (The "Vibe Code" Prompts)
+## Chapter 8: Modular Execution Chain
 
-### Phase 1: Environment, Scaffold & Schema
+### Environment, Scaffold & Schema
 **Deliverable:** `pyproject.toml` (with `[tool.pytest.ini_options]`), `src/models.py`, and `tests/test_models.py`. Must validate backward compat migration path (if any).
 
 - Emit exact `pyproject.toml` contents with pinned versions and pytest config inside `[tool.pytest.ini_options]`.
 - Implement `Venue`, `RankedItem`, `TasteContext`, `TasteProfile`, `ClusterResult` exactly as defined in Chapter 2.
-- `RankedItem` must expose a `@computed_field` + `@property` named `rank` that returns `float`. It is a stub (`return 0.0`) in Phase 1; the real logic arrives in Phase 2.
+- `RankedItem` must expose a `@computed_field` + `@property` named `rank` that returns `float`. The real logic derives from time-decay weighting.
 - `tests/test_models.py` must validate:
   - Pydantic serialization round-trip (`.model_dump()` → re-instantiate)
   - `occasion_tag` enum rejection (invalid tag raises `ValidationError`)
   - `TasteProfile.default_context` must exist as a key in `contexts`
-- Backward compat migration path: **N/A** — no persistent storage schema exists prior to Phase 1.
+- Backward compat migration path: **N/A** — no persistent storage schema exists prior to MVP.
 
-### Phase 2: Similarity Engine
+### Similarity Engine
 **Deliverable:** `src/similarity.py` and `tests/test_similarity.py`. Must pass: perfect correlation, inverse correlation, no overlap (sentinel `-1.0`), and time-decay.
 
 - Implement `compute_similarity(a, b, context_id) -> float`
@@ -664,7 +664,7 @@ ranked_items_table = Table(
   3. No shared venues → sentinel `-1.0`
   4. Time-decay weight for a 730-day-old visit ≈ `0.5`; weight for a classic venue = `1.0`
 
-### Phase 3: Clustering Engine
+### Clustering Engine
 **Deliverable:** `src/clustering.py` and `tests/test_clustering.py`. Must generate synthetic data via script, fit HDBSCAN, and assert noise points exist.
 
 - Implement `ContextualClusterMap` using `hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=5, allow_single_cluster=False)`
@@ -674,7 +674,7 @@ ranked_items_table = Table(
   3. Assert at least one user receives label `-1` (noise points exist)
   4. Assert `n_clusters >= 1` or noise-only behavior is documented
 
-### Phase 4: Synthetic Data Generator
+### Synthetic Data Generator
 **Deliverable:** `scripts/generate_synthetic_data.py`. Seeded PRNG. Generates 100 users, 3 contexts each, outputs JSONL.
 
 - Seeded PRNG (`random.Random(seed)`)
@@ -683,7 +683,7 @@ ranked_items_table = Table(
 - Outputs JSONL to stdout; each line validates against `TasteProfile.model_validate_json()`
 - No scraping code. No external API calls.
 
-### Phase 5: API Surface, Persistence & Integration
+### API Surface, Persistence & Integration
 **Deliverable:** `src/main.py`, `src/db.py`, and `tests/test_api.py` with 100% route coverage.
 
 - `src/db.py` implements the exact SQLite schema from Chapter 6 Scaffold Appendix and exposes `get_db()` async generator.
@@ -728,7 +728,7 @@ ranked_items_table = Table(
 - [x] Chapter 6 locks Python to `^3.12` (not 3.14) and includes exact `pyproject.toml` + SQLite schema contents.
 - [x] There are zero mentions of Scrapy, BeautifulSoup, or raw HTML parsing.
 - [x] The file tree shows `main.py` with **only** routes and dependency injection.
-- [x] Chapter 8 contains exactly 5 phases, each with a single, testable deliverable.
+- [x] Chapter 8 contains the MVP implementation modules, each with a single, testable deliverable.
 - [x] No sentence contains "pending," "to be determined," "plan B," or "exact shapes will evolve."
 
 ---
@@ -745,7 +745,7 @@ ranked_items_table = Table(
 | `docs/VENUE_INGESTION_PIPELINE.md` | Public API ingestion, deduplication, normalization | Aligned with TDD Chapter 2 `Venue` schema |
 | `docs/ARCHIVE_CLUSTER_ARCHITECTURE_v0.1.md` | Superseded v0.1 document | **Do not implement. Do not feed to AI agents.** |
 
-**Audit Closure:** All repository hygiene actions from `docs/PROJECT_AUDIT.md` (2026-06-22) have been executed. Phase 0 consolidation sprint has completed; implementation code now exists in `src/`, `tests/`, `web/`, and `.github/workflows/`.
+**Audit Closure:** All repository hygiene actions from `docs/PROJECT_AUDIT.md` (2026-06-22) have been executed. MVP consolidation has completed; implementation code now exists in `src/`, `tests/`, `web/`, and `.github/workflows/`.
 
 ---
 

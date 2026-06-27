@@ -10,16 +10,24 @@ import {
   deletePostSupabase,
 } from "./supabaseApi";
 import { hasSupabase } from "../lib/supabase";
+import {
+  hasBackend,
+  loadProfileBackend,
+  createUserBackend,
+  saveContextBackend,
+} from "./backendApi";
 
 const STORAGE_KEY_BASE = "taste.node.profile.v2";
 const FEED_KEY_BASE = "taste.node.feed.v2";
 
 let _currentUserId: string | null = null;
 let _supabaseActive = false;
+let _backendActive = false;
 
 export function setCurrentUserId(id: string | null) {
   _currentUserId = id;
   _supabaseActive = !!id && hasSupabase();
+  _backendActive = hasBackend();
 }
 
 function storageKey(base: string) {
@@ -75,6 +83,13 @@ function saveLocalFeed(feed: FeedData) {
 /* ─── Async load from Supabase ─── */
 
 export async function loadProfile(): Promise<TasteProfile> {
+  if (_backendActive && _currentUserId) {
+    const remote = await loadProfileBackend(_currentUserId);
+    if (remote) {
+      saveLocalProfile(remote);
+      return remote;
+    }
+  }
   if (_supabaseActive) {
     const remote = await loadProfileSupabase();
     if (remote) {
@@ -101,8 +116,27 @@ export async function loadFeed(): Promise<FeedData> {
 
 export function saveProfile(profile: TasteProfile) {
   saveLocalProfile(profile);
+  if (_backendActive) {
+    const userId = profile.user_id ?? _currentUserId ?? "demo_user";
+    // Fire-and-forget: ensure user exists, then persist contexts
+    loadProfileBackend(userId)
+      .then((existing) => {
+        if (!existing) {
+          return createUserBackend(userId);
+        }
+        return existing;
+      })
+      .then(() => {
+        return Promise.all(
+          Object.entries(profile.contexts).map(([ctxId, ctx]) =>
+            saveContextBackend(userId, ctxId, ctx.ranked_list)
+          )
+        );
+      })
+      .catch((err) => console.error("[backend] sync failed:", err));
+  }
   if (_supabaseActive) {
-    saveProfileSupabase(profile).catch(() => {}); // fire-and-forget
+    saveProfileSupabase(profile).catch((err) => console.error("Supabase save failed:", err));
   }
 }
 
@@ -266,7 +300,7 @@ export function deleteContext(profile: TasteProfile, contextId: string): TastePr
   };
   saveProfile(next);
   if (_supabaseActive) {
-    deleteContextSupabase(contextId).catch(() => {});
+    deleteContextSupabase(contextId).catch((err) => console.error("Supabase deleteContext failed:", err));
   }
   return next;
 }
@@ -326,7 +360,7 @@ export function addPost(feed: FeedData, post: Post): FeedData {
   const next = { posts: [post, ...feed.posts] };
   saveLocalFeed(next);
   if (_supabaseActive) {
-    addPostSupabase(post).catch(() => {});
+    addPostSupabase(post).catch((err) => console.error("Supabase addPost failed:", err));
   }
   return next;
 }
@@ -335,7 +369,7 @@ export function deletePost(feed: FeedData, postId: string): FeedData {
   const next = { posts: feed.posts.filter((p) => p.id !== postId) };
   saveLocalFeed(next);
   if (_supabaseActive) {
-    deletePostSupabase(postId).catch(() => {});
+    deletePostSupabase(postId).catch((err) => console.error("Supabase deletePost failed:", err));
   }
   return next;
 }

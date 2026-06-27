@@ -1,6 +1,6 @@
-"""taste.node — Phase 5: SQLite persistence layer (SQLAlchemy Core)."""
+"""taste.node — SQLite persistence layer (SQLAlchemy Core)."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Generator, List, Optional
 
 from sqlalchemy import (
@@ -23,6 +23,13 @@ from sqlalchemy import (
     delete,
 )
 from sqlalchemy.engine import Connection, Engine
+
+try:
+    from alembic.config import Config
+    from alembic import command
+except ImportError:  # pragma: no cover
+    Config = None  # type: ignore[misc, assignment]
+    command = None  # type: ignore[misc, assignment]
 
 from src.models import (
     TasteProfile,
@@ -107,10 +114,18 @@ _engine: Optional[Engine] = None
 
 
 def init_db(database_url: str = "sqlite:///./taste_node.db") -> Engine:
-    """Create engine, tables, and return the engine instance."""
+    """Create engine, run Alembic migrations, and return the engine instance."""
     global _engine
     if _engine is None:
         _engine = create_engine(database_url, connect_args={"check_same_thread": False})
+        # Run Alembic migrations before falling back to create_all
+        if Config is not None:
+            try:
+                alembic_cfg = Config("alembic.ini")
+                command.upgrade(alembic_cfg, "head")
+            except Exception:
+                # If Alembic is unavailable or mis-configured, fall back to metadata.create_all
+                pass
         metadata.create_all(_engine)
     return _engine
 

@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { Venue, RankedItem, RankStatus } from "../data/types";
+import { useModalTrap } from "../hooks/useModalTrap";
 import { X, MapPin, Heart, Calendar, Tag, Star, UtensilsCrossed, Sun, Moon, MessageSquare, ChevronRight, ChevronLeft } from "lucide-react";
 import { statusLabel, statusColor } from "../data/mockData";
+
+import { useToast } from "../context/ToastContext";
 
 interface Props {
   venue: Venue;
@@ -14,6 +17,9 @@ interface Props {
 type Step = "preview" | "experience" | "details";
 
 export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
+  useModalTrap(open, onClose, modalRef);
   const [step, setStep] = useState<Step>("preview");
   const [occasion, setOccasion] = useState<RankedItem["occasion_tag"]>("solo");
   const [visited, setVisited] = useState(new Date().toISOString().slice(0, 10));
@@ -41,6 +47,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
       dishes: dishes.length > 0 ? dishes : undefined,
     };
     onAdd(item);
+    toast.show("Saved to library", "success");
     onClose();
   };
 
@@ -53,7 +60,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-sm">
+    <div ref={modalRef} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] sm:max-h-[90vh] w-full sm:max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-paper shadow-elevated">
         {/* Step indicator */}
         <div className="flex items-center justify-between border-b border-cream-dark px-5 py-3">
@@ -72,7 +79,7 @@ export function VenueDetailModal({ venue, open, onClose, onAdd, existingStatus }
               </div>
             ))}
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-ink-faint hover:bg-cream hover:text-ink-muted transition">
+          <button onClick={onClose} className="rounded-full p-1 text-ink-faint hover:bg-cream hover:text-ink-muted transition" aria-label="Close">
             <X size={16} />
           </button>
         </div>

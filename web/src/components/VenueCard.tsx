@@ -31,13 +31,13 @@ export function VenueCard({ venue, score, explanation, distance, onAdd, onClick,
   if (compact) {
     return (
       <div className="taste-card group cursor-pointer" onClick={onClick}>
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img
-            src={venue.image_url}
-            alt={venue.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
+      <div className="relative w-full overflow-hidden rounded-2xl bg-cream-dark" style={{ aspectRatio: "4/3" }}>
+        <img
+          src={venue.image_url}
+          alt={venue.name}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-3 left-3 right-3">
             <h3 className="text-base font-semibold text-white drop-shadow">{venue.name}</h3>
@@ -54,7 +54,7 @@ export function VenueCard({ venue, score, explanation, distance, onAdd, onClick,
 
   return (
     <div className="taste-card group flex flex-col gap-3 p-0">
-      <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={onClick}>
+      <div className="relative w-full overflow-hidden rounded-2xl bg-cream-dark" style={{ aspectRatio: "16/10" }} onClick={onClick}>
         <img
           src={venue.image_url}
           alt={venue.name}

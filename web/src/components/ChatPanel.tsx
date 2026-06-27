@@ -46,6 +46,7 @@ export function ChatPanel({ messages, isTyping, onSend, onReset, onVenueClick }:
         <button
           onClick={onReset}
           title="Start over"
+          aria-label="Start over"
           className="rounded-lg p-1.5 text-ink-faint transition hover:bg-cream hover:text-ink-muted"
         >
           <RotateCcw size={14} />

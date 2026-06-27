@@ -38,8 +38,15 @@ class RankedItem(BaseModel):
     @computed_field
     @property
     def rank(self) -> float:
-        """Derived rank: stub in Phase 1; real logic in Phase 2 via similarity.py."""
-        return 0.0
+        """Derived rank: time-decayed importance. Classics retain full weight."""
+        if self.is_classic:
+            return 1.0
+        ref = datetime.now(timezone.utc)
+        visited = self.visited_at
+        if visited.tzinfo is None:
+            visited = visited.replace(tzinfo=timezone.utc)
+        age_days = max(0.0, (ref - visited).total_seconds() / 86400.0)
+        return 2.0 ** (-age_days / 365.0)
 
 
 class TasteContext(BaseModel):

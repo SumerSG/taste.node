@@ -1,11 +1,16 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile, RankedItem } from "../data/types";
-import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList, toggleIncludeInClustering } from "../data/api";
+import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList } from "../data/api";
+import { getSampleUserProfile, SAMPLE_USERS } from "../data/mockData";
 import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, ListOrdered, Users } from "lucide-react";
+
+import { useToast } from "../context/ToastContext";
 
 interface Props {
   profile: TasteProfile;
   onProfileChange: (p: TasteProfile) => void;
+  onNavigateToVenue?: (v: RankedItem["venue"]) => void;
+  onNavigateToProfile?: (userId: string, userName: string) => void;
 }
 
 function StarRating({ value, onChange }: { value?: number; onChange?: (n: number) => void }) {
@@ -32,13 +37,15 @@ function StarRating({ value, onChange }: { value?: number; onChange?: (n: number
   );
 }
 
-export function ProfileView({ profile, onProfileChange }: Props) {
+export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNavigateToProfile }: Props) {
+  const toast = useToast();
   const items = profile.contexts[profile.default_context].ranked_list;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingDishes, setEditingDishes] = useState<string | null>(null);
   const [dishesDraft, setDishesDraft] = useState("");
   const [editingReaction, setEditingReaction] = useState<string | null>(null);
   const [reactionDraft, setReactionDraft] = useState("");
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const sorted = useMemo(() => {
     return [...items].sort(
@@ -54,14 +61,24 @@ export function ProfileView({ profile, onProfileChange }: Props) {
   items.forEach((i) => i.venue.cuisines.forEach((c) => uniqueCuisines.add(c)));
   const cuisineNames = Array.from(uniqueCuisines).slice(0, 3).join(" · ");
 
+  const followingUsers = useMemo(() => {
+    return profile.following
+      .map((id) => SAMPLE_USERS.find((u) => u.id === id))
+      .filter(Boolean) as { id: string; name: string }[];
+  }, [profile.following]);
+
+  const favItems = useMemo(() => items.filter((i) => i.status === "favourite"), [items]);
+
   const handleDateChange = (item: RankedItem, date: string) => {
     const list = items.map((i) => (i.venue.id === item.venue.id ? { ...i, visited_at: `${date}T12:00:00+00:00` } : i));
     onProfileChange(updateRankedList(profile, list));
   };
 
   const handleRemove = (venueId: string) => {
+    if (!window.confirm("Remove this restaurant from your library?")) return;
     const list = items.filter((i) => i.venue.id !== venueId);
     onProfileChange(updateRankedList(profile, list));
+    toast.show("Removed from library", "success");
   };
 
   const saveDishes = (venueId: string) => {
@@ -96,47 +113,48 @@ export function ProfileView({ profile, onProfileChange }: Props) {
             <span className="text-lg font-bold text-ink">{totalPlaces}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Ranked</span>
           </div>
-          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
+          <button
+            onClick={() => {
+              if (favItems.length > 0 && onNavigateToVenue) {
+                onNavigateToVenue(favItems[0].venue);
+              }
+            }}
+            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 hover:bg-cream-dark transition"
+          >
             <Star size={16} className="text-amber-500 mb-1" />
             <span className="text-lg font-bold text-ink">{favCount}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Favourites</span>
-          </div>
-          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
+          </button>
+          <button
+            onClick={() => setShowFollowing((s) => !s)}
+            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 hover:bg-cream-dark transition"
+          >
             <Users size={16} className="text-olive-500 mb-1" />
             <span className="text-lg font-bold text-ink">{profile.following.length}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Following</span>
-          </div>
-        </div>
-
-        {/* Include in clustering toggle */}
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-cream px-4 py-3">
-          <div>
-            <p className="text-sm font-medium text-ink">Include my taste in clusters</p>
-            <p className="text-[11px] text-ink-faint">
-              {profile.include_in_clustering !== false
-                ? "Your rankings help shape taste clusters for everyone."
-                : "Your rankings are private and won't influence clusters."}
-            </p>
-          </div>
-          <button
-            onClick={() => onProfileChange(toggleIncludeInClustering(profile))}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              profile.include_in_clustering !== false
-                ? "bg-sienna-500"
-                : "bg-ink-faint/30"
-            }`}
-            role="switch"
-            aria-checked={profile.include_in_clustering !== false}
-          >
-            <span
-              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                profile.include_in_clustering !== false
-                  ? "translate-x-5"
-                  : "translate-x-0"
-              }`}
-            />
           </button>
         </div>
+
+        {/* Following list */}
+        {showFollowing && followingUsers.length > 0 && (
+          <div className="mt-4 rounded-xl bg-cream px-4 py-3 space-y-2">
+            <h4 className="text-sm font-medium text-ink">Following</h4>
+            <div className="flex flex-wrap gap-2">
+              {followingUsers.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => onNavigateToProfile?.(u.id, u.name)}
+                  className="flex items-center gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-dark transition"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sienna-100 text-[10px] font-bold text-sienna-700">
+                    {u.name.split(" ")[0][0]}
+                  </div>
+                  {u.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Section header */}
@@ -168,18 +186,19 @@ export function ProfileView({ profile, onProfileChange }: Props) {
                 {/* Image */}
                 <div
                   className="relative aspect-[16/10] overflow-hidden cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : item.venue.id)}
+                  onClick={() => onNavigateToVenue?.(item.venue)}
                 >
                   <img src={item.venue.image_url} alt={item.venue.name} className="h-full w-full object-cover" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
+                  <div className="absolute bottom-3 left-10 right-3">
                     <h3 className="text-base font-semibold text-white drop-shadow">{item.venue.name}</h3>
                     <p className="text-xs text-white/80">{item.venue.cuisines.join(" · ")}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleRemove(item.venue.id); }}
-                    className="absolute right-2 top-2 rounded-lg bg-black/30 p-1.5 text-white backdrop-blur-md transition hover:bg-red-500/80"
+                    className="absolute left-2 bottom-2 rounded-lg bg-black/30 p-2 text-white backdrop-blur-md transition hover:bg-red-500/80 min-h-[32px] min-w-[32px] flex items-center justify-center"
                     title="Remove from library"
+                    aria-label="Remove from library"
                   >
                     <Trash2 size={13} />
                   </button>

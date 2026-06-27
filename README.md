@@ -1,7 +1,7 @@
 # taste.node
 
 > Restaurant and cafe recommendation platform powered by taste-based AI clustering.
-> **Status: MVP Implementation (Phases 1–5 complete; Phase 6 frontend in progress).**
+> **Status: MVP Implementation.**
 
 ## Overview
 
@@ -77,7 +77,7 @@ Built during a 6-week internship focused on AI tools.
 | Testing | pytest 9.0.0 | ✅ Locked |
 | Logging | python-json-logger 3.0.0 | ✅ Locked |
 | HTTP Client | httpx 0.27.0 | ✅ Locked |
-| Frontend | Phase 6 only (TDD Redline 5) | 🔒 Gated after API lock |
+| Frontend | React 19 + Vite + Tailwind v3 | ✅ Included |
 | Deployment | Render / Vercel | 🟡 Pending Week 5 |
 
 ## Project Structure
@@ -127,7 +127,7 @@ taste.node/
 └── .gitignore               # Blocks .env, .venv, node_modules, *.db
 ```
 
-## Installation Notes (Phase 0+)
+## Installation Notes
 
 ### Quick Start (Backend + Frontend)
 

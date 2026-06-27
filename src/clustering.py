@@ -1,4 +1,4 @@
-"""taste.node — Phase 3: Clustering Engine (HDBSCAN wrapper)."""
+"""taste.node — Clustering Engine (HDBSCAN wrapper)."""
 
 from typing import Dict, List, Optional
 

@@ -49,16 +49,16 @@ app.add_middleware(
 
 ## 3. Authentication Migration Path
 
-### 3.1 Phase 1 (MVP Demo): No Auth
+### 3.1 MVP Demo: No Auth
 - Localhost or password-protected sharing only.
 - `user_id` is a plain string; no ownership verification.
 
-### 3.2 Phase 2 (Soft Launch): API-Key Auth
+### 3.2 Soft Launch: API-Key Auth
 - Issue per-client API keys via a lightweight admin endpoint.
 - Keys stored hashed (bcrypt) in a separate `api_keys` table.
 - Require `X-API-Key` header on all mutating endpoints (`POST /users`, `PUT /users/...`).
 
-### 3.3 Phase 3 (Production): OAuth2 + User-Scoped Authorization
+### 3.3 Production: OAuth2 + User-Scoped Authorization
 - OAuth2 password flow or social login (Google, Apple).
 - JWT access tokens with `sub` = internal `user_id`.
 - Authorization middleware ensures `sub` matches URL `user_id` on profile-mutation endpoints.
@@ -84,7 +84,7 @@ Before sharing a demo URL:
 
 ---
 
-*This document is subordinate to `docs/AGENTS.md` and `docs/TDD.md`. Auth implementation details belong in `TDD.md` Chapter 4 once Phase 2 begins.*
+*This document is subordinate to `docs/AGENTS.md` and `docs/TDD.md`. Auth implementation details belong in `TDD.md` Chapter 4 once the soft-launch stage begins.*
 
 ## 6. Known Credential Leaks
 

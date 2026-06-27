@@ -7,7 +7,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 
 import src.db as db_module
-from src.main import app, _cluster_cache
+from src.main import app
+from src.recommendations import _cluster_cache
 from src.db import metadata, init_db
 
 client = TestClient(app)

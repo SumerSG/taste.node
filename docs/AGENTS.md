@@ -65,8 +65,8 @@
 ## Pillar 4: Scraping is Internal-Demo-Only; Production Requires Clean Data
 
 **Policy:**
-1. **Phase 1 (Development & Internal Demo):** Use a **fully synthetic dataset** bootstrapped by a seeded PRNG script. This validates clustering and recommendation logic without legal risk.
-2. **Phase 2 (Production):** Only integrate real data through **documented public APIs** (e.g., Yelp Fusion, Google Places) with proper attribution and rate-limiting.
+1. **MVP (Development & Internal Demo):** Use a **fully synthetic dataset** bootstrapped by a seeded PRNG script. This validates clustering and recommendation logic without legal risk.
+2. **Production:** Only integrate real data through **documented public APIs** (e.g., Yelp Fusion, Google Places) with proper attribution and rate-limiting.
 3. **Scraping public rating pages** (e.g., scraping Yelp HTML) is **explicitly out of scope** for the MVP. If ever reconsidered, it requires a separate legal review document and explicit sign-off.
 
 **Architectural Implication:** No production scrapers. No reliance on scraped seed data for the demo trajectory. No `BeautifulSoup`, `Scrapy`, or raw HTML parsing in dependencies.

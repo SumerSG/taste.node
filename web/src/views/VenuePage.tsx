@@ -20,9 +20,10 @@ interface Props {
   feed: FeedData;
   onProfileChange: (p: TasteProfile) => void;
   onBack: () => void;
+  onNavigateToProfile?: (userId: string, userName: string) => void;
 }
 
-export function VenuePage({ venue, profile, feed, onProfileChange, onBack }: Props) {
+export function VenuePage({ venue, profile, feed, onProfileChange, onBack, onNavigateToProfile }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
 
   const existing = useMemo(() => {
@@ -61,7 +62,7 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack }: Pro
       </button>
 
       {/* Hero */}
-      <div className="relative aspect-[2/1] overflow-hidden rounded-3xl shadow-card">
+      <div className="relative w-full overflow-hidden rounded-3xl bg-cream-dark shadow-card" style={{ aspectRatio: "2/1" }}>
         <img
           src={venue.image_url}
           alt={venue.name}
@@ -124,6 +125,7 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack }: Pro
             target="_blank"
             rel="noopener noreferrer"
             className="btn-ghost gap-1.5 text-sm"
+            aria-label="Open source page"
           >
             <ExternalLink size={14} /> Open source
           </a>
@@ -140,12 +142,15 @@ export function VenuePage({ venue, profile, feed, onProfileChange, onBack }: Pro
                 key={post.id}
                 className="rounded-2xl border border-cream-dark bg-paper p-4 shadow-sm"
               >
-                <div className="flex items-center gap-2 mb-2">
+                <button
+                  className="flex items-center gap-2 mb-2 text-left"
+                  onClick={() => onNavigateToProfile?.(post.author_id, post.author_name)}
+                >
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cream text-xs font-bold text-ink-muted">
                     {post.author_name.split(" ")[0][0]}
                   </div>
                   <span className="text-xs font-medium text-ink">{post.author_name}</span>
-                </div>
+                </button>
                 <p className="text-sm text-ink-light leading-relaxed line-clamp-3">
                   “{post.text}”
                 </p>

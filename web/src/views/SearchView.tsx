@@ -91,7 +91,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
             <div className="flex items-center rounded-lg bg-paper ring-1 ring-cream-dark lg:hidden">
               <button
                 onClick={() => setViewMode("chat")}
-                className={`flex items-center gap-1 rounded-l-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                className={`flex items-center gap-1 rounded-l-lg px-2.5 py-1.5 text-xs font-medium transition min-h-[44px] ${
                   viewMode === "chat"
                     ? "bg-sienna-50 text-sienna-700"
                     : "text-ink-faint"
@@ -101,7 +101,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
               </button>
               <button
                 onClick={() => setViewMode("grid")}
-                className={`flex items-center gap-1 rounded-r-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                className={`flex items-center gap-1 rounded-r-lg px-2.5 py-1.5 text-xs font-medium transition min-h-[44px] ${
                   viewMode === "grid"
                     ? "bg-sienna-50 text-sienna-700"
                     : "text-ink-faint"
@@ -119,7 +119,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
 
           <button
             onClick={() => setShowFilters((s) => !s)}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-sm ring-1 transition-all ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-sm ring-1 transition-all min-h-[44px] sm:min-h-0 ${
               showFilters
                 ? "bg-sienna-50 text-sienna-700 ring-sienna-200"
                 : "bg-paper text-ink-muted ring-cream-dark hover:bg-cream"

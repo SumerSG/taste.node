@@ -1,4 +1,4 @@
-"""taste.node — Phase 2: Similarity Engine (Kendall Tau + time-decay)."""
+"""taste.node — Similarity Engine (Kendall Tau + time-decay)."""
 
 from datetime import datetime, timezone
 from typing import List, Tuple

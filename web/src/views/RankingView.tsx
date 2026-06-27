@@ -8,10 +8,13 @@ import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
 import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen } from "lucide-react";
 
+import { useToast } from "../context/ToastContext";
+
 interface Props {
   profile: TasteProfile;
   onProfileChange: (p: TasteProfile) => void;
   onNavigateToLibrary: () => void;
+  onNavigateToVenue?: (v: Venue) => void;
 }
 
 function rankAccentClass(index: number) {
@@ -29,7 +32,7 @@ function rankNumberStyle(index: number) {
 }
 
 function SortableRow({
-  item, index, onRemove, onMoveUp, onMoveDown, onStatusChange, onClick,
+  item, index, onRemove, onMoveUp, onMoveDown, onStatusChange, onClick, onNavigateToVenue,
 }: {
   item: RankedItem;
   index: number;
@@ -38,6 +41,7 @@ function SortableRow({
   onMoveDown: () => void;
   onStatusChange: (s: RankStatus) => void;
   onClick: () => void;
+  onNavigateToVenue?: (v: Venue) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.venue.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -53,6 +57,11 @@ function SortableRow({
       {/* Left gradient accent line */}
       <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b ${rankAccentClass(index)}`} />
 
+      {/* Remove */}
+      <button onClick={onRemove} onPointerDown={(e) => e.stopPropagation()} className="rounded-lg p-2 text-ink-faint hover:bg-red-50 hover:text-red-500 transition min-h-[32px] min-w-[32px] flex items-center justify-center" aria-label="Remove">
+        <Trash2 size={14} />
+      </button>
+
       {/* Position number */}
       <div className={`ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold ring-1 ${rankNumberStyle(index)}`}>
         {index + 1}
@@ -66,7 +75,12 @@ function SortableRow({
       {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-ink">{item.venue.name}</span>
+          <span
+            className={`truncate text-sm font-semibold text-ink ${onNavigateToVenue ? "cursor-pointer hover:text-sienna-600" : ""}`}
+            onClick={() => onNavigateToVenue?.(item.venue)}
+          >
+            {item.venue.name}
+          </span>
           {item.venue.source_url && (
             <a
               href={item.venue.source_url}
@@ -74,6 +88,7 @@ function SortableRow({
               rel="noopener noreferrer"
               className="shrink-0 rounded p-0.5 text-ink-faint hover:text-sienna-600 transition"
               title="Open restaurant page"
+              aria-label="Open restaurant page"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
@@ -108,19 +123,15 @@ function SortableRow({
 
       {/* Reorder buttons */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition" onPointerDown={(e) => e.stopPropagation()}>
-        <button onClick={onMoveUp} className="rounded p-1 text-ink-faint hover:bg-cream"><ChevronUp size={14} /></button>
-        <button onClick={onMoveDown} className="rounded p-1 text-ink-faint hover:bg-cream"><ChevronDown size={14} /></button>
+        <button onClick={onMoveUp} className="rounded p-1 text-ink-faint hover:bg-cream" aria-label="Move up"><ChevronUp size={14} /></button>
+        <button onClick={onMoveDown} className="rounded p-1 text-ink-faint hover:bg-cream" aria-label="Move down"><ChevronDown size={14} /></button>
       </div>
-
-      {/* Remove */}
-      <button onClick={onRemove} onPointerDown={(e) => e.stopPropagation()} className="rounded p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-500 transition">
-        <Trash2 size={14} />
-      </button>
     </div>
   );
 }
 
-export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: Props) {
+export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onNavigateToVenue }: Props) {
+  const toast = useToast();
   const activeCtx = profile.default_context;
   const items = profile.contexts[activeCtx]?.ranked_list ?? [];
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -151,6 +162,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
     const name = newListName.trim().toLowerCase().replace(/\s+/g, "_");
     if (!name || profile.contexts[name]) return;
     onProfileChange(createContext(profile, name));
+    toast.show("List created", "success");
     setNewListName("");
     setShowNewList(false);
   };
@@ -184,7 +196,12 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
             </select>
             {activeCtx !== "default" && (
               <button
-                onClick={() => onProfileChange(deleteContext(profile, activeCtx))}
+                onClick={() => {
+                  if (window.confirm("Delete this list and all its restaurants?")) {
+                    onProfileChange(deleteContext(profile, activeCtx));
+                    toast.show("List deleted", "success");
+                  }
+                }}
                 className="rounded p-1 text-ink-faint hover:bg-red-50 hover:text-red-500 transition"
                 title="Delete this list"
               >
@@ -208,7 +225,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
               autoFocus
             />
             <button onClick={handleCreateList} className="btn-primary text-xs px-3 py-1.5">Create</button>
-            <button onClick={() => setShowNewList(false)} className="rounded p-1 text-ink-faint hover:bg-cream"><X size={14} /></button>
+            <button onClick={() => setShowNewList(false)} className="rounded p-1 text-ink-faint hover:bg-cream" aria-label="Cancel"><X size={14} /></button>
           </div>
         ) : (
           <button onClick={() => setShowNewList(true)} className="flex items-center gap-1.5 text-xs font-medium text-sienna-600 hover:text-sienna-700 transition">
@@ -237,11 +254,16 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary }: P
                   key={item.venue.id}
                   item={item}
                   index={idx}
-                  onRemove={() => onProfileChange(removeRankedItem(profile, item.venue.id))}
+                  onRemove={() => {
+                    if (!window.confirm("Remove this restaurant from your ranking?")) return;
+                    onProfileChange(removeRankedItem(profile, item.venue.id));
+                    toast.show("Removed from ranking", "success");
+                  }}
                   onMoveUp={() => move(idx, -1)}
                   onMoveDown={() => move(idx, 1)}
                   onStatusChange={(s) => onProfileChange(updateItemStatus(profile, item.venue.id, s))}
                   onClick={() => setSelectedVenue(item.venue)}
+                  onNavigateToVenue={onNavigateToVenue}
                 />
               ))}
             </div>

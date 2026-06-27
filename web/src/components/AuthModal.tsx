@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthState, useAuthActions } from "../hooks/useAuth";
+import { useModalTrap } from "../hooks/useModalTrap";
 import { X, Mail, Lock, LogIn, UserPlus, AlertCircle } from "lucide-react";
 
 function GoogleIcon({ size = 18 }: { size?: number }) {
@@ -22,6 +23,8 @@ interface Props {
 }
 
 export function AuthModal({ open, onClose, initialMode = "signin" }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalTrap(open, onClose, modalRef);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -87,7 +90,7 @@ export function AuthModal({ open, onClose, initialMode = "signin" }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-sm">
+    <div ref={modalRef} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] sm:max-h-[90vh] w-full sm:max-w-md flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-paper shadow-elevated">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-cream-dark px-5 py-4">
@@ -104,6 +107,7 @@ export function AuthModal({ open, onClose, initialMode = "signin" }: Props) {
           <button
             onClick={() => { resetForm(); onClose(); }}
             className="rounded-full p-1 text-ink-faint hover:bg-cream hover:text-ink-muted transition"
+            aria-label="Close"
           >
             <X size={18} />
           </button>
