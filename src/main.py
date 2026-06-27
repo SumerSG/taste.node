@@ -329,3 +329,115 @@ def clear_mock_data_endpoint(
 ):
     count = clear_mock_data(conn)
     return {"status": "ok", "cleared_rows": count}
+
+
+# ─── Supabase schema setup (one-time) ───
+
+@app.get("/setup-supabase", include_in_schema=False)
+def setup_supabase(confirm: bool = False):
+    """Preview or execute the Supabase schema migration.
+    
+    Call with no args to preview what will be created.
+    Call with ?confirm=true to actually run.
+    """
+    try:
+        import psycopg2
+    except ImportError:
+        return JSONResponse(
+            {"error": "psycopg2-binary not installed"}, status_code=500
+        )
+
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        return JSONResponse(
+            {"error": "SUPABASE_URL and SUPABASE_SERVICE_KEY env vars required"},
+            status_code=500,
+        )
+
+    # Load SQL from repo file if present
+    sql_path = os.path.join(
+        os.path.dirname(__file__), "..", "supabase", "000_complete_schema.sql"
+    )
+    if os.path.exists(sql_path):
+        with open(sql_path, "r") as f:
+            sql = f.read()
+    else:
+        return JSONResponse(
+            {"error": f"SQL file not found at {sql_path}"}, status_code=500
+        )
+
+    # Split SQL into statements (handle $$-quoted functions)
+    statements = []
+    current = ""
+    in_dollar = False
+    for line in sql.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("--"):
+            continue
+        current += line + "\n"
+        if not in_dollar and "$$" in stripped:
+            in_dollar = True
+        elif in_dollar and "$$" in stripped:
+            in_dollar = False
+        if stripped.endswith(";") and not in_dollar:
+            statements.append(current.strip())
+            current = ""
+    if current.strip():
+        statements.append(current.strip())
+
+    tables = []
+    for s in statements:
+        up = s.upper()
+        if "CREATE TABLE" in up and "IF NOT EXISTS" in up:
+            name = s.split("EXISTS")[1].split("(")[0].strip()
+            tables.append(name)
+
+    preview = {
+        "tables_to_create": tables,
+        "total_statements": len(statements),
+        "action": "PASS ?confirm=true to execute",
+    }
+
+    if not confirm:
+        return JSONResponse(preview)
+
+    # Execute
+    host = url.replace("https://", "").replace(".supabase.co", "")
+    results = {"created": [], "skipped": [], "errors": []}
+    try:
+        conn = psycopg2.connect(
+            host=f"db.{host}.supabase.co",
+            dbname="postgres",
+            user="postgres",
+            password=key,
+            port=5432,
+            sslmode="require",
+            connect_timeout=15,
+        )
+        cur = conn.cursor()
+        for stmt in statements:
+            try:
+                cur.execute(stmt)
+                conn.commit()
+                for t in tables:
+                    if t.replace("public.", "") in stmt.lower():
+                        results["created"].append(t)
+                        break
+            except psycopg2.errors.lookup("42P07"):  # duplicate_table
+                conn.rollback()
+                results["skipped"].append("already exists")
+            except Exception as e:
+                conn.rollback()
+                results["errors"].append(str(e)[:120])
+        cur.close()
+        conn.close()
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    return JSONResponse({
+        "status": "ok",
+        "tables": list(set(results["created"])),
+        "skipped": len(results["skipped"]),
+        "errors": results["errors"][:5],
+    })
