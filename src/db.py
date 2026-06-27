@@ -431,3 +431,38 @@ def get_all_venues(conn: Any) -> List[Venue]:
     """Return every venue from the DB, or an empty list."""
     rows = conn.execute(select(venues_table)).mappings().all()
     return [_row_to_venue(r) for r in rows]
+
+
+# ─── Supabase re-export (overrides SQLite funcs when configured) ───
+
+try:
+    from src.supabase_db import has_supabase
+
+    if has_supabase():
+        from src.supabase_db import (
+            get_db,
+            get_user_profile,
+            create_user,
+            update_user_settings,
+            upsert_context,
+            get_all_profiles,
+            get_all_venues,
+            seed_venues_if_empty,
+            init_db,
+        )
+
+        __all__ = [
+            "get_db",
+            "get_user_profile",
+            "create_user",
+            "update_user_settings",
+            "upsert_context",
+            "get_all_profiles",
+            "get_all_venues",
+            "seed_venues_if_empty",
+            "init_db",
+            "metadata",
+            "_engine",
+        ]
+except ImportError:
+    pass
