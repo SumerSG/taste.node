@@ -1,10 +1,17 @@
 import { createClient, type Session, type User } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+const isPlaceholder =
+  !url ||
+  !key ||
+  url.includes("your-project") ||
+  key.includes("your-anon-key") ||
+  key.includes("your-service-role-key");
 
 export const supabase =
-  url && key
+  !isPlaceholder
     ? createClient(url, key, {
         auth: {
           persistSession: true,
@@ -31,14 +38,14 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function signInWithPassword(email: string, password: string) {
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Sign-in is not available in this mode. Browse as a guest or set up Supabase.");
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
 
 export async function signUp(email: string, password: string) {
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Sign-up is not available in this mode. Browse as a guest.");
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
   return data;
@@ -62,7 +69,7 @@ function getCurrentRedirectUrl(): string {
 }
 
 export async function signInWithGoogle() {
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Google sign-in is not available in this mode. Browse as a guest.");
   const redirectTo = getCurrentRedirectUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -74,7 +81,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("No active session to sign out from.");
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
