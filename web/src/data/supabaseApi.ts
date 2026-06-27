@@ -271,6 +271,9 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     created_at: row.created_at,
   }));
 
+  // If Supabase has no posts yet, fall back to localStorage/demo feed
+  if (posts.length === 0) return null;
+
   return { posts };
 }
 
