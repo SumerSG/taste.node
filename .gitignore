@@ -22,3 +22,7 @@ dist/
 
 # Logs
 *.log
+
+# Local SQLite databases
+taste_node.db
+*.db

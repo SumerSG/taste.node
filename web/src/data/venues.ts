@@ -1,5 +1,6 @@
 import type { Venue } from "./types";
 import { supabase, hasSupabase } from "../lib/supabase";
+import { loadVenuesBackend, hasBackend } from "./backendApi";
 
 const IMAGES: Record<string, string> = {
   Japanese: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=400&fit=crop",
@@ -92,7 +93,25 @@ export async function loadVenues(): Promise<void> {
   if (_loaded) return;
   _venues = [];
 
-  // 1️⃣  Try Supabase first
+  // 1️⃣  Try backend API first (opt-in via VITE_API_URL)
+  if (hasBackend()) {
+    try {
+      const backendVenues = await loadVenuesBackend();
+      if (backendVenues && backendVenues.length > 0) {
+        _venues = backendVenues.map((v) => ({
+          ...v,
+          image_url: v.image_url ?? pickImage(v.cuisines),
+        }));
+        _loaded = true;
+        console.log(`[backend] loaded ${_venues.length} venues`);
+        return;
+      }
+    } catch (err) {
+      console.warn("[backend] venue fetch failed:", err);
+    }
+  }
+
+  // 2️⃣  Try Supabase
   if (hasSupabase()) {
     try {
       const { data, error } = await supabase!.from("venues").select("*");
@@ -110,7 +129,7 @@ export async function loadVenues(): Promise<void> {
     }
   }
 
-  // 2️⃣  Inline fallback (no external JSON needed)
+  // 3️⃣  Inline fallback (no external JSON needed)
   _venues = FALLBACK_VENUES;
   _loaded = true;
   console.log(`[fallback] loaded ${_venues.length} venues`);
