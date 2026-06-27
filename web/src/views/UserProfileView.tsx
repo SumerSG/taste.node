@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile } from "../data/types";
 import { getSampleUserProfile, SAMPLE_USERS } from "../data/mockData";
-import { getAllVenues } from "../data/venues";
-import { Star, UserCircle, ListOrdered, Users, MapPin } from "lucide-react";
+import { Star, UserCircle, ListOrdered, Users } from "lucide-react";
 
 interface Props {
   userId: string;

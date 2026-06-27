@@ -37,7 +37,7 @@ function AppContent() {
   const [tab, setTab] = useState<Tab>("feed");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAuth, setShowAuth] = useState(false);
-  const [guestMode, setGuestMode] = useState(false);
+  const [, setGuestMode] = useState(false);
   const [navStack, setNavStack] = useState<NavEntry[]>([
     { view: user ? "feed" : "landing" },
   ]);
@@ -74,7 +74,7 @@ function AppContent() {
 
   // Listen for browser back button (popstate)
   useEffect(() => {
-    const handler = (e: PopStateEvent) => {
+    const handler = (_e: PopStateEvent) => {
       if (skipPopstate.current) {
         skipPopstate.current = false;
         return;

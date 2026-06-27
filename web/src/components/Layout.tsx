@@ -26,7 +26,6 @@ interface Props {
 }
 
 export function Layout({
-  profile,
   activeTab,
   onTabChange,
   onGlobalSearch,

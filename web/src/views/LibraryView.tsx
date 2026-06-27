@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile, RankedItem } from "../data/types";
 import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList } from "../data/api";
-import { getSampleUserProfile, SAMPLE_USERS } from "../data/mockData";
+import { SAMPLE_USERS } from "../data/mockData";
 import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, ListOrdered, Users } from "lucide-react";
 
 import { useToast } from "../context/ToastContext";
