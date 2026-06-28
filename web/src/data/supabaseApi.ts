@@ -23,20 +23,27 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
   if (!supabase) return null;
   const userId = await currentUserId();
   if (!userId) return null;
+  return loadProfileSupabaseById(userId);
+}
+
+/** Load ANY user's profile from Supabase (works for authenticated + demo users). */
+export async function loadProfileSupabaseById(userId: string): Promise<TasteProfile | null> {
+  if (!supabase || !userId) return null;
 
   // 1. Load profiles row
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("default_context, include_in_clustering")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profileData) {
-    if (profileError && profileError.code !== "PGRST116") {
-      console.warn("Supabase loadProfile error:", profileError.message);
-    }
+  if (profileError) {
+    console.warn("Supabase loadProfile error:", profileError.message);
     return null;
   }
+
+  // If no profile row found, this user doesn't exist in Supabase yet.
+  if (!profileData) return null;
 
   // 2. Load contexts
   const { data: ctxData, error: ctxError } = await supabase
@@ -82,7 +89,7 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
 
   // 5. Group ranked_items by context_id
   const itemsByContext: Record<string, RankedItem[]> = {};
-  (itemsData ?? []).forEach((row) => {
+  (itemsData ?? []).forEach((row: any) => {
     if (!itemsByContext[row.context_id]) {
       itemsByContext[row.context_id] = [];
     }
@@ -102,7 +109,7 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
 
   // 6. Assemble contexts
   const contexts: Record<string, TasteProfile["contexts"][string]> = {};
-  (ctxData ?? []).forEach((row) => {
+  (ctxData ?? []).forEach((row: any) => {
     contexts[row.context_id] = {
       context_id: row.context_id,
       ranked_list: itemsByContext[row.context_id] ?? [],
@@ -111,8 +118,8 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
     };
   });
 
-  const following = (followsData ?? []).map((f) => f.following_id);
-  const followers = (followersData ?? []).map((f) => f.follower_id);
+  const following = (followsData ?? []).map((f: any) => f.following_id);
+  const followers = (followersData ?? []).map((f: any) => f.follower_id);
 
   return {
     user_id: userId,

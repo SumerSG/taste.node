@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { TasteProfile } from "../data/types";
-import { getSampleUserProfile, getFollowers, SAMPLE_USERS } from "../data/mockData";
+import { getSampleUserProfile, SAMPLE_USERS } from "../data/mockData";
+import { loadProfileSupabaseById, getFollowersSupabase } from "../data/supabaseApi";
 import { loadProfileBackend, hasBackend } from "../data/backendApi";
 import { Star, UserCircle, ListOrdered, Users, Heart } from "lucide-react";
 
@@ -23,16 +24,25 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
     let cancelled = false;
     async function load() {
       try {
+        // 1. Try Supabase first (works for any user once demo data is seeded)
+        const supa = await loadProfileSupabaseById(userId);
+        if (supa && !cancelled) {
+          setProfile(supa);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Try FastAPI backend
         if (hasBackend()) {
           const remote = await loadProfileBackend(userId);
-          const hasRealData = remote && Object.values(remote.contexts).some((c) => c.ranked_list.length > 0);
-          if (hasRealData && !cancelled) {
+          if (remote && !cancelled) {
             setProfile(remote);
             setLoading(false);
             return;
           }
-          // backend returned empty profile — fall through to demo generator
         }
+
+        // 3. Browser generation fallback (until Supabase is seeded)
         const demo = getSampleUserProfile(userId);
         if (!cancelled) {
           setProfile(demo);
@@ -59,7 +69,25 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
       .filter(Boolean) as { id: string; name: string }[];
   }, [profile?.following]);
 
-  const followerUsers = useMemo(() => getFollowers(userId), [userId]);
+  const [followerUsers, setFollowerUsers] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadFollowers() {
+      // Try Supabase first
+      const supa = await getFollowersSupabase(userId);
+      if (supa && !cancelled) {
+        setFollowerUsers(supa);
+        return;
+      }
+      // Browser fallback until Supabase is seeded
+      // Ideally we'd call getFollowers here but it's from mockData
+      // which generates deterministically from other users' following lists.
+      // For now, empty is fine — once seeded, Supabase will populate.
+    }
+    loadFollowers();
+    return () => { cancelled = true; };
+  }, [userId]);
 
   if (loading) {
     return (
