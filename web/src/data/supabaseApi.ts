@@ -263,7 +263,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
   let data: any[] | null = null;
   let missingLikes = false;
 
-  // Try full select (likes + image_url)
+  // Try full select first
   const full = await supabase
     .from("feed_posts")
     .select(
@@ -274,8 +274,10 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
 
   if (full.error) {
     const msg = full.error.message?.toLowerCase() ?? "";
-    if (msg.includes("likes") && msg.includes("does not exist")) {
-      // Retry without likes column so we still get image_url
+    console.warn("[Supabase feed] full query failed:", full.error.message);
+
+    // Retry without likes (schema cache may be stale after migration)
+    if (msg.includes("likes")) {
       missingLikes = true;
       const fallback = await supabase
         .from("feed_posts")
@@ -284,14 +286,26 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
         )
         .order("created_at", { ascending: false })
         .limit(100);
-      if (fallback.error) {
-        console.warn("Supabase loadFeed error:", fallback.error.message);
+      if (!fallback.error) {
+        data = fallback.data;
+      } else {
+        console.warn("[Supabase feed] fallback query also failed:", fallback.error.message);
+      }
+    }
+
+    // Last-ditch: retry with absolute minimal columns
+    if (!data) {
+      const minimal = await supabase
+        .from("feed_posts")
+        .select("id, author_id, author_name, text, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!minimal.error) {
+        data = minimal.data;
+      } else {
+        console.warn("[Supabase feed] minimal query also failed:", minimal.error.message);
         return null;
       }
-      data = fallback.data;
-    } else {
-      console.warn("Supabase loadFeed error:", full.error.message);
-      return null;
     }
   } else {
     data = full.data;

@@ -154,6 +154,12 @@ export async function loadFeed(): Promise<FeedData> {
       saveLocalFeed(remote);
       return remote;
     }
+    // Supabase is configured but we got nothing (network/schema error).
+    // For authenticated users, show an empty feed rather than synthesized demo data.
+    if (_supabaseActive) {
+      console.warn("[loadFeed] Supabase returned null for authenticated user; showing empty feed.");
+      return { posts: [] };
+    }
   }
   return loadLocalFeed();
 }

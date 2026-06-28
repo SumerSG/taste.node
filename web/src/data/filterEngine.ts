@@ -1,6 +1,6 @@
 import type { Venue, TasteProfile, Filters } from "./types";
 import { getAllVenues, computeUserLocation, haversine } from "./venues";
-import { getSampleUserProfile } from "./mockData";
+import { getSampleUserProfile, CLUSTER_PEERS } from "./mockData";
 
 export function defaultFilters(): Filters {
   return {
@@ -20,6 +20,91 @@ export function defaultFilters(): Filters {
 
 export function mergeFilters(base: Filters, updates: Partial<Filters>): Filters {
   return { ...base, ...updates };
+}
+
+/* ─── Unified cluster-aware venue scoring ─── */
+
+export function scoreVenue(
+  venue: Venue,
+  filters: Filters,
+  profile: TasteProfile
+): number {
+  const ctx = profile.contexts[profile.default_context];
+  const userCuisines = new Set<string>();
+  ctx?.ranked_list.forEach((r) => r.venue.cuisines.forEach((c) => userCuisines.add(c)));
+
+  // —— Base taste-cluster signal ——
+  let score = 0.45;
+
+  // Shared cuisines with user's own ranked list
+  const shared = venue.cuisines.filter((c) => userCuisines.has(c)).length;
+  score += Math.min(shared * 0.18, 0.35);
+
+  // Health bonus
+  if (venue.health_score) score += venue.health_score * 0.1;
+
+  // Price match
+  if (venue.price_tier && filters.price_tier && venue.price_tier === filters.price_tier) score += 0.07;
+
+  // —— Cluster peer popularity ——
+  // Popular among cluster peers = additional boost based on their rankings
+  if (profile.include_in_clustering !== false) {
+    let clusterRankBonus = 0;
+    for (const peerId of CLUSTER_PEERS) {
+      const peer = getSampleUserProfile(peerId);
+      if (!peer) continue;
+      const pCtx = peer.contexts[peer.default_context];
+      const pRank = pCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+      if (pRank !== -1) {
+        clusterRankBonus += 0.12 / (pRank + 1);
+      }
+    }
+    score += Math.min(clusterRankBonus, 0.25); // cap cluster bonus
+  }
+
+  // —— Friend / social context ——
+  const friendIds = filters.with_users ?? [];
+  const friendCuisines = new Set<string>();
+  const friends: TasteProfile[] = [];
+  for (const fid of friendIds) {
+    const friend = getSampleUserProfile(fid);
+    if (friend) {
+      friends.push(friend);
+      const fCtx = friend.contexts[friend.default_context];
+      fCtx?.ranked_list.forEach((r) => r.venue.cuisines.forEach((c) => friendCuisines.add(c)));
+    }
+  }
+
+  if (friendCuisines.size > 0) {
+    const friendShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
+    const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
+    score += Math.min(friendShared * 0.08, 0.15);
+    score += Math.min(mutual * 0.18, 0.30);
+    for (const friend of friends) {
+      const fCtx = friend.contexts[friend.default_context];
+      const fRank = fCtx?.ranked_list.findIndex((r) => r.venue.id === venue.id) ?? -1;
+      if (fRank !== -1) {
+        score += 0.15 / (fRank + 1);
+        break;
+      }
+    }
+  }
+
+  // —— Query-level relevance for search mode ——
+  if (filters.query) {
+    const q = filters.query.toLowerCase();
+    if (venue.name.toLowerCase().includes(q)) score += 0.2;
+    if (venue.cuisines.some((c) => c.toLowerCase().includes(q))) score += 0.15;
+  }
+  if (filters.cuisine && venue.cuisines.some((c) => c.toLowerCase().includes(filters.cuisine.toLowerCase()))) {
+    score += 0.1;
+  }
+
+  // Quality signals
+  if (venue.rating && venue.rating >= 4.0) score += 0.05;
+  if (venue.review_count && venue.review_count > 50) score += 0.03;
+
+  return Math.min(score, 0.99);
 }
 
 export function filterVenues(
@@ -137,34 +222,8 @@ export function filterVenues(
       );
       break;
     default: {
-      // relevance: boost by profile + optional friend cuisine overlap
-      const userCuisines = new Set<string>();
-      ctx?.ranked_list.forEach((r) =>
-        r.venue.cuisines.forEach((c) => userCuisines.add(c))
-      );
-
-      const friendCuisines = new Set<string>();
-      for (const uid of filters.with_users ?? []) {
-        const friend = getSampleUserProfile(uid);
-        const fCtx = friend?.contexts[friend?.default_context ?? "default"];
-        fCtx?.ranked_list.forEach((r) =>
-          r.venue.cuisines.forEach((c) => friendCuisines.add(c))
-        );
-      }
-
-      copy.sort((a, b) => {
-        const sa =
-          a.cuisines.filter((c) => userCuisines.has(c)).length * 2 +
-          a.cuisines.filter((c) => friendCuisines.has(c ? c : "")).length +
-          a.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length * 2 +
-          (a.health_score ?? 0);
-        const sb =
-          b.cuisines.filter((c) => userCuisines.has(c)).length * 2 +
-          b.cuisines.filter((c) => friendCuisines.has(c ? c : "")).length +
-          b.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length * 2 +
-          (b.health_score ?? 0);
-        return sb - sa;
-      });
+      // relevance: cluster-aware scoring = same signal used in Recommendations tab
+      copy.sort((a, b) => scoreVenue(b, filters, profile) - scoreVenue(a, filters, profile));
       break;
     }
   }
@@ -177,57 +236,7 @@ export function scoreVenueForChat(
   filters: Filters,
   profile: TasteProfile
 ): number {
-  let score = 0;
-  const ctx = profile.contexts[profile.default_context];
-  const userCuisines = new Set<string>();
-  ctx?.ranked_list.forEach((r) =>
-    r.venue.cuisines.forEach((c) => userCuisines.add(c))
-  );
-
-  const friendCuisines = new Set<string>();
-  for (const uid of filters.with_users ?? []) {
-    const friend = getSampleUserProfile(uid);
-    const fCtx = friend?.contexts[friend?.default_context ?? "default"];
-    fCtx?.ranked_list.forEach((r) =>
-      r.venue.cuisines.forEach((c) => friendCuisines.add(c))
-    );
-  }
-
-  if (filters.query) {
-    const q = filters.query.toLowerCase();
-    if (venue.name.toLowerCase().includes(q)) score += 0.25;
-    if (venue.cuisines.some((c) => c.toLowerCase().includes(q))) score += 0.2;
-  }
-  if (filters.cuisine && venue.cuisines.some((c) => c.toLowerCase().includes(filters.cuisine.toLowerCase()))) score += 0.25;
-  if (filters.diet) {
-    const dietMap: Record<string, string[]> = {
-      meat: ["meat"],
-      fish: ["pescatarian"],
-      veg: ["vegetarian"],
-      vegan: ["vegan"],
-    };
-    const required = dietMap[filters.diet] ?? [];
-    if (required.some((tag) => venue.dietary_tags.includes(tag))) score += 0.15;
-  }
-  if (filters.price_tier !== null && venue.price_tier === filters.price_tier)
-    score += 0.1;
-  if (venue.health_score !== null && venue.health_score >= filters.healthiness_min)
-    score += 0.1;
-  if (venue.rating !== undefined && venue.rating >= filters.rating_min) score += 0.1;
-  if (venue.review_count !== undefined && venue.review_count >= filters.review_count_min)
-    score += 0.05;
-
-  const shared = venue.cuisines.filter((c) => userCuisines.has(c)).length;
-  score += Math.min(shared * 0.12, 0.3);
-
-  if ((filters.with_users ?? []).length > 0 && friendCuisines.size > 0) {
-    const fShared = venue.cuisines.filter((c) => friendCuisines.has(c)).length;
-    const mutual = venue.cuisines.filter((c) => userCuisines.has(c) && friendCuisines.has(c)).length;
-    score += Math.min(fShared * 0.06, 0.12);
-    score += Math.min(mutual * 0.12, 0.20);
-  }
-
-  return score;
+  return scoreVenue(venue, filters, profile);
 }
 
 export function filterAndSortVenues(

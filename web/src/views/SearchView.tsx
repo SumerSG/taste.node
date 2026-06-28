@@ -25,6 +25,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
     send,
     reset,
     applyFilters,
+    removeFilter,
   } = useChatEngine(profile);
 
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -84,10 +85,12 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
       >
         <ChatPanel
           messages={messages}
+          filters={filters}
           isTyping={isTyping}
           onSend={send}
           onReset={reset}
           onVenueClick={handleVenueClick}
+          onRemoveFilter={removeFilter}
         />
       </div>
 

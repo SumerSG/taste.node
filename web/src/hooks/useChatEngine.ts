@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import type { Venue, TasteProfile, Filters } from "../data/types";
 import { filterVenues, defaultFilters, mergeFilters } from "../data/filterEngine";
-import { parseChatQuery } from "../utils/chatParser";
+import { computeFilterDiff, type FilterOp } from "../data/chatFilterEngine";
 import { SAMPLE_USERS } from "../data/mockData";
 
-export type ChatPhase = "greeting" | "gathering" | "presenting" | "refining";
+/* ─── Public types ─── */
+
+export type ChatPhase = "greeting" | "presenting" | "refining";
 
 export interface ChatMessage {
   id: string;
@@ -12,124 +14,92 @@ export interface ChatMessage {
   text: string;
   venues?: Venue[];
   summary?: string;
+  /** Filter operations proposed by the AI on this turn */
+  ops?: FilterOp[];
 }
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-/* ─── Personality: Well-traveled regular ─── */
+/* ─── Personality copy ─── */
 
 const OPENERS = [
-  "Alright, what are we after? Something specific, or should I just throw my best recent hits at you?",
-  "Hungry? Tell me what you're craving — or what you're definitely *not* in the mood for.",
-  "Looking for a spot. Give me a vibe, a cuisine, a budget, whatever. I'll fill in the blanks.",
-];
-
-const CUISINE_PROMPTS = [
-  "What cuisine are you gravitating toward? Or what are you *not* in the mood for?",
-  "Any cuisine in mind? I'm impartial, but I have opinions.",
-  "Japanese? Italian? Korean? Or surprise me?",
-];
-
-const BUDGET_PROMPTS = [
-  "What's the budget looking like — casual weeknight or special occasion?",
-  "Are we keeping it under 2,000 yen per head, or treating ourselves?",
-  "Price check: cheap eats, mid-range, or go all out?",
-];
-
-const VIBE_PROMPTS = [
-  "Who's joining — solo, date, group dinner? Changes the math.",
-  "What's the occasion? Just hungry, or is this a thing?",
-  "Solo decompress, date night, or group chaos?",
-];
-
-const LOCATION_PROMPTS = [
-  "How far are you willing to travel? Walking distance or train-ride committed?",
-  "Any neighborhood in mind, or should I just look nearby?",
-  "Staying local, or is a 20-minute train ride fine?",
+  "What are we after? Tell me what's important — cuisine, budget, location, health — and I'll tune the filters.",
+  "Looking for a spot. Give me a vibe or constraint and I'll set the filters right here.",
+  "Say something like 'Italian, cheap, nearby' and I'll show you exactly what's selected.",
 ];
 
 const PRESENT_TEMPLATES = [
-  (count: number, top: string) =>
-    `I'm seeing ${count} spots that fit. The standout for me is ${top} — I'd start there. Too many? Tell me what to tighten.`,
-  (count: number, top: string) =>
-    `Found ${count} places. ${top} is probably your best bet. Want me to narrow it down more?`,
-  (count: number, top: string) =>
-    `Here are ${count} spots. I'd personally try ${top} first — it's been consistent every time I've sent people there.`,
+  (count: number, top?: Venue) =>
+    `I found ${count} spot${count === 1 ? "" : "s"}.${top ? ` Top pick: **${top.name}**.` : ""}`,
+  (count: number, top?: Venue) =>
+    `${count} result${count === 1 ? "" : "s"} with those filters.${top ? ` I'd try **${top.name}** first.` : ""}`,
+  (count: number, top?: Venue) =>
+    `Got ${count}.${top ? ` **${top.name}** stands out.` : ""} Adjust the chips below if you want to loosen or tighten.`,
 ];
 
-const REFINE_TEMPLATES = [
-  (count: number, top: string) =>
-    `Narrowed it to ${count}. ${top} is still my pick. Tight enough?`,
-  (count: number, top: string) =>
-    `Down to ${count}. I'd go with ${top}. Anything else to adjust?`,
-  (count: number) =>
-    `Only ${count} left. We can back off a constraint if that's too tight.`,
-];
+const NO_MATCH_TEXT = "Nothing matches those filters. Try removing one or broadening the criteria.";
 
-const TOO_MANY_TEMPLATE =
-  "That's a lot of results. Tell me what to tighten — cuisine, budget, distance, vibe?";
-
-
-const NO_MATCH_TEMPLATE =
-  "I couldn't find anything that matches. Want to back off a constraint?";
-
-function getOpener() {
-  return OPENERS[Math.floor(Math.random() * OPENERS.length)];
-}
-
-function getPrompt(missing: string[]): string {
-  if (!missing.length) return "";
-  const next = missing[0];
-  const lists: Record<string, string[]> = {
-    cuisine: CUISINE_PROMPTS,
-    budget: BUDGET_PROMPTS,
-    vibe: VIBE_PROMPTS,
-    location: LOCATION_PROMPTS,
-  };
-  const pool = lists[next] ?? ["Tell me more."];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function getPresentText(count: number, topVenue: Venue | undefined): string {
-  if (!topVenue) return NO_MATCH_TEMPLATE;
-  const fn = PRESENT_TEMPLATES[Math.floor(Math.random() * PRESENT_TEMPLATES.length)];
-  return fn(count, topVenue.name);
-}
-
-function getRefineText(count: number, topVenue: Venue | undefined): string {
-  if (!topVenue) return NO_MATCH_TEMPLATE;
-  if (count <= 3) {
-    return `Only ${count} left. We can back off a constraint if that's too tight.`;
-  }
-  const fn = REFINE_TEMPLATES[Math.floor(Math.random() * 2)];
-  return fn(count, topVenue.name);
-}
+/* ─── Helpers ─── */
 
 function friendName(filters: Filters): string | undefined {
   const names = (filters.with_users ?? [])
-    .map((uid) => SAMPLE_USERS.find((u) => u.id === uid)?.name)
+    .map((id) => SAMPLE_USERS.find((u) => u.id === id)?.name)
     .filter((n): n is string => !!n);
   if (names.length === 0) return undefined;
   return names.join(", ");
 }
 
-/* ─── Missing-info detection ─── */
-
-function detectMissing(filters: Filters): string[] {
-  const missing: string[] = [];
-  if (!filters.cuisine && !filters.query) missing.push("cuisine");
-  if (!filters.price_tier) missing.push("budget");
-  if (filters.radius_km >= 50) missing.push("location");
-  return missing;
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-/* ─── Engine ─── */
+function buildAiText(
+  diff: { ops: FilterOp[]; confidence: number },
+  count: number,
+  top?: Venue,
+  phase: ChatPhase = "presenting"
+): string {
+  const lines: string[] = [];
+
+  // 1) Describe what changed
+  const setOps = diff.ops.filter((o) => o.type === "set");
+  const clearOps = diff.ops.filter((o) => o.type === "clear");
+
+  if (setOps.length > 0) {
+    const chips = setOps.map((o) => `${o.icon} ${o.label}`).join(", ");
+    lines.push(`Set: ${chips}.`);
+  }
+  if (clearOps.length > 0) {
+    const chips = clearOps.map((o) => `${o.icon} ${o.label}`).join(", ");
+    lines.push(`Cleared: ${chips}.`);
+  }
+
+  if (diff.confidence < 0.3 && setOps.length === 0 && clearOps.length === 0) {
+    lines.push("I didn't catch any filter changes from that. Mind rephrasing?");
+    return lines.join(" ");
+  }
+
+  // 2) Presentation copy
+  if (count === 0) {
+    lines.push(NO_MATCH_TEXT);
+  } else if (phase === "presenting" || phase === "refining") {
+    if (count > 12) {
+      lines.push(`${pick(PRESENT_TEMPLATES)(count, top)} Too many options — tighten a filter if you want fewer.`);
+    } else {
+      lines.push(pick(PRESENT_TEMPLATES)(count, top));
+    }
+  }
+
+  return lines.join("\n\n");
+}
+
+/* ─── Engine hook ─── */
 
 export function useChatEngine(profile: TasteProfile) {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: uid(), role: "ai", text: getOpener() },
+    { id: uid(), role: "ai", text: pick(OPENERS) },
   ]);
   const [phase, setPhase] = useState<ChatPhase>("greeting");
   const [filters, setFilters] = useState<Filters>(defaultFilters());
@@ -138,8 +108,7 @@ export function useChatEngine(profile: TasteProfile) {
 
   const computeResults = useCallback(
     (currentFilters: Filters) => {
-      const results = filterVenues(currentFilters, profile);
-      return results;
+      return filterVenues(currentFilters, profile);
     },
     [profile]
   );
@@ -152,77 +121,36 @@ export function useChatEngine(profile: TasteProfile) {
       turnRef.current += 1;
 
       setTimeout(() => {
-        const parsed = parseChatQuery(text);
-        const newFilters = mergeFilters(filters, parsed.filters);
-        setFilters(newFilters);
+        // Compute filter diff against CURRENT state
+        const current = filters;
+        const diff = computeFilterDiff(text, current);
 
-        const results = computeResults(newFilters);
+        // Merge changes into filter state unconditionally
+        // (the UI shows chips; user can reject by clicking them off)
+        const nextFilters = mergeFilters(current, diff.nextFilters);
+        setFilters(nextFilters);
+
+        const results = computeResults(nextFilters);
         const top = results[0];
+        const count = results.length;
+        const friend = friendName(nextFilters);
 
-        if (phase === "greeting" || phase === "gathering") {
-          const missing = detectMissing(newFilters);
-          if (missing.length > 0 && turnRef.current < 4) {
-            const prompt = getPrompt(missing);
-            setMessages((prev) => [
-              ...prev,
-              { id: uid(), role: "ai", text: prompt },
-            ]);
-            setPhase("gathering");
-          } else {
-            const count = results.length;
-            let summary: string;
-            const friend = friendName(newFilters);
-            if (count === 0) {
-              summary = NO_MATCH_TEMPLATE;
-            } else if (count > 12) {
-              summary = `${getPresentText(count, top)} ${TOO_MANY_TEMPLATE}`;
-            } else {
-              summary = getPresentText(count, top);
-            }
-            if (friend) {
-              summary = `Finding something for you and ${friend}… ${summary}`;
-            }
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: uid(),
-                role: "ai",
-                text: summary,
-                venues: results.slice(0, 6),
-                summary: `Found ${count} places. Top: ${top?.name ?? "None"}.`,
-              },
-            ]);
-            setPhase("presenting");
-          }
-        } else if (phase === "presenting" || phase === "refining") {
-          const count = results.length;
-          let summary: string;
-          const friend2 = friendName(newFilters);
-          if (count === 0) {
-            summary = NO_MATCH_TEMPLATE;
-          } else if (count <= 3) {
-            summary = getRefineText(count, top);
-          } else if (count > 12) {
-            summary = `${getRefineText(count, top)} ${TOO_MANY_TEMPLATE}`;
-          } else {
-            summary = getRefineText(count, top);
-          }
-          if (friend2) {
-            summary = `Finding something for you and ${friend2}… ${summary}`;
-          }
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: uid(),
-              role: "ai",
-              text: summary,
-              venues: results.slice(0, 6),
-              summary: `Found ${count} places. Top: ${top?.name ?? "None"}.`,
-            },
-          ]);
-          setPhase("presenting");
-        }
+        const aiText = buildAiText(diff, count, top, phase);
+        const fullText = friend ? `For you and ${friend}:\n\n${aiText}` : aiText;
 
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: "ai",
+            text: fullText,
+            venues: results.slice(0, 6),
+            summary: `${count} results. Top: ${top?.name ?? "—"}.`,
+            ops: diff.ops,
+          },
+        ]);
+
+        setPhase("presenting");
         setIsTyping(false);
       }, 500 + Math.random() * 400);
     },
@@ -230,39 +158,55 @@ export function useChatEngine(profile: TasteProfile) {
   );
 
   const reset = useCallback(() => {
-    setMessages([{ id: uid(), role: "ai", text: getOpener() }]);
+    setMessages([{ id: uid(), role: "ai", text: pick(OPENERS) }]);
     setPhase("greeting");
     setFilters(defaultFilters());
     turnRef.current = 0;
   }, []);
 
+  /** Apply new filters from the FilterPanel (or direct chip clicks) */
   const applyFilters = useCallback(
     (newFilters: Filters) => {
       setFilters(newFilters);
       const results = computeResults(newFilters);
       const top = results[0];
       const count = results.length;
-      const friend3 = friendName(newFilters);
-      let summary =
-        count === 0
-          ? NO_MATCH_TEMPLATE
-          : getPresentText(Math.min(count, 12), top);
-      if (friend3) {
-        summary = `For you and ${friend3}: ${summary}`;
-      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: uid(),
           role: "ai",
-          text: `Updated filters. ${summary}`,
+          text: count === 0 ? NO_MATCH_TEXT : `${count} result${count === 1 ? "" : "s"}.${top ? ` Top pick: **${top.name}**.` : ""}`,
           venues: results.slice(0, 6),
-          summary: `Found ${count} places. Top: ${top?.name ?? "None"}.`,
+          summary: `${count} results. Top: ${top?.name ?? "—"}.`,
+          ops: [],
         },
       ]);
       setPhase("presenting");
     },
     [computeResults]
+  );
+
+  /** Remove a single filter field (called when user clicks an active chip) */
+  const removeFilter = useCallback(
+    (key: keyof Filters) => {
+      const resetValue = defaultFilters()[key];
+      const next = { ...filters, [key]: resetValue };
+      setFilters(next);
+      const results = computeResults(next);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uid(),
+          role: "ai",
+          text: `Removed ${String(key)}. ${results.length} result${results.length === 1 ? "" : "s"} remain.`,
+          venues: results.slice(0, 6),
+          ops: [{ type: "clear", key, label: String(key), icon: "🗑️" }],
+        },
+      ]);
+    },
+    [filters, computeResults]
   );
 
   const results = computeResults(filters);
@@ -276,5 +220,6 @@ export function useChatEngine(profile: TasteProfile) {
     send,
     reset,
     applyFilters,
+    removeFilter,
   };
 }

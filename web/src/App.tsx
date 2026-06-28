@@ -26,7 +26,16 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
-const APP_VERSION = "v3.0.1"; // Bump on every deploy to bust browser cache
+const APP_VERSION = "v3.0.2"; // Bump on every deploy to bust browser cache
+
+function clearOldCaches() {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("taste.node.")) keys.push(k);
+  }
+  keys.forEach((k) => localStorage.removeItem(k));
+}
 
 function AppContent() {
   const { user, loading: authLoading } = useAuthState();
@@ -36,7 +45,7 @@ function AppContent() {
     const stored = localStorage.getItem("taste.node.app.version");
     if (stored !== APP_VERSION) {
       localStorage.setItem("taste.node.app.version", APP_VERSION);
-      localStorage.removeItem("taste.node.feed.v2");
+      clearOldCaches();
       if (stored) {
         // Hard reload to ensure browser fetches the new JS bundle
         window.location.reload();
