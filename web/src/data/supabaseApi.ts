@@ -247,7 +247,11 @@ export async function deleteContextSupabase(
 export async function loadFeedSupabase(): Promise<FeedData | null> {
   if (!supabase) return null;
 
-  const { data, error } = await supabase
+  let data: any[] | null = null;
+  let missingLikes = false;
+
+  // Try full select (likes + image_url)
+  const full = await supabase
     .from("feed_posts")
     .select(
       "id, author_id, author_name, text, venue_id, venue_name, image_url, likes, created_at"
@@ -255,15 +259,29 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (error) {
-    // Missing likes column → migration not applied yet; fall back to local seed
-    if (error.message?.toLowerCase().includes("likes") &&
-        error.message?.toLowerCase().includes("does not exist")) {
-      console.warn("Supabase likes column missing; falling back to local feed");
+  if (full.error) {
+    const msg = full.error.message?.toLowerCase() ?? "";
+    if (msg.includes("likes") && msg.includes("does not exist")) {
+      // Retry without likes column so we still get image_url
+      missingLikes = true;
+      const fallback = await supabase
+        .from("feed_posts")
+        .select(
+          "id, author_id, author_name, text, venue_id, venue_name, image_url, created_at"
+        )
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (fallback.error) {
+        console.warn("Supabase loadFeed error:", fallback.error.message);
+        return null;
+      }
+      data = fallback.data;
     } else {
-      console.warn("Supabase loadFeed error:", error.message);
+      console.warn("Supabase loadFeed error:", full.error.message);
+      return null;
     }
-    return null;
+  } else {
+    data = full.data;
   }
 
   const rows = data ?? [];
@@ -278,13 +296,13 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
         .from("post_likes")
         .select("post_id")
         .eq("user_id", userId);
-      likedSet = new Set((likeData ?? []).map((l) => l.post_id));
+      likedSet = new Set((likeData ?? []).map((l: any) => l.post_id));
     } catch {
       // post_likes table may not exist yet; ignore
     }
   }
 
-  const posts: Post[] = rows.map((row) => ({
+  const posts: Post[] = rows.map((row: any) => ({
     id: row.id,
     author_id: row.author_id,
     author_name: row.author_name,
@@ -292,7 +310,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     venue_id: row.venue_id ?? undefined,
     venue_name: row.venue_name ?? undefined,
     image_url: row.image_url ?? undefined,
-    likes: row.likes ?? 0,
+    likes: missingLikes ? 0 : (row.likes ?? 0),
     liked_by_me: likedSet.has(row.id),
     created_at: row.created_at,
   }));
@@ -305,10 +323,23 @@ export async function addPostSupabase(post: Post): Promise<boolean> {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id, likes, ...rest } = post; // let DB generate uuid
-  const { error } = await supabase.from("feed_posts").insert({ ...rest, likes: likes ?? 0 });
+  let payload: any = { ...rest };
 
-  if (error) {
-    console.warn("Supabase addPost error:", error.message);
+  // Try with likes first (once migration 005 is applied)
+  const { error: errWithLikes } = await supabase.from("feed_posts").insert({ ...payload, likes: likes ?? 0 });
+
+  if (errWithLikes && errWithLikes.message?.toLowerCase().includes("does not exist")) {
+    // Retry without likes column (migration 005 not applied yet)
+    const { error: errWithout } = await supabase.from("feed_posts").insert(payload);
+    if (errWithout) {
+      console.warn("Supabase addPost error:", errWithout.message);
+      return false;
+    }
+    return true;
+  }
+
+  if (errWithLikes) {
+    console.warn("Supabase addPost error:", errWithLikes.message);
     return false;
   }
   return true;
