@@ -198,15 +198,25 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
               {/* Actions */}
               <div className="mt-3 flex items-center gap-3">
                 <button
-                  onClick={() => handleLike(post.id)}
-                  className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-rose-500 transition"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLike(post.id);
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition select-none ${
+                    post.liked_by_me
+                      ? "text-rose-500 bg-rose-50 ring-1 ring-rose-200"
+                      : "text-ink-faint bg-cream hover:text-rose-500 hover:ring-1 hover:ring-rose-200"
+                  }`}
                   aria-label={post.liked_by_me ? "Unlike post" : "Like post"}
+                  aria-pressed={post.liked_by_me}
                 >
                   <Heart
-                    size={14}
+                    size={15}
                     className={post.liked_by_me ? "text-rose-400 fill-rose-400" : "text-ink-faint"}
+                    strokeWidth={post.liked_by_me ? 0 : 2}
                   />
-                  <span className="font-medium tabular-nums">{post.likes ?? 0}</span>
+                  <span className="tabular-nums min-w-[1ch]">{post.likes ?? 0}</span>
                 </button>
                 {post.author_id === (getCurrentUserId() ?? "anonymous") && (
                   <button onClick={() => handleDelete(post.id)} className="rounded-lg p-2 text-ink-faint hover:bg-red-50 hover:text-red-500 transition min-h-[32px] min-w-[44px] inline-flex items-center justify-center" aria-label="Delete post">
