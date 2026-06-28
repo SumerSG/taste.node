@@ -137,7 +137,11 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
   if (_profileCache.has(userId)) return _profileCache.get(userId)!;
 
   const pool = getAllVenues();
-  if (pool.length === 0) return null;
+  console.log("[getSampleUserProfile] userId:", userId, "pool.length:", pool.length);
+  if (pool.length === 0) {
+    console.warn("[getSampleUserProfile] venue pool empty — returning null. Call loadVenues() first.");
+    return null;
+  }
 
   const seed = hashString(userId);
   const rnd = seededRandom(seed);
@@ -268,6 +272,9 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
     default_context: "default",
     following,
   };
+
+  const totalItems = Object.values(contexts).reduce((sum, ctx) => sum + ctx.ranked_list.length, 0);
+  console.log("[getSampleUserProfile] built profile for", userId, "contexts:", Object.keys(contexts).join(","), "total items:", totalItems);
 
   _profileCache.set(userId, profile);
   return profile;

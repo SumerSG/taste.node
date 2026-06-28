@@ -700,27 +700,117 @@ D. Backend verification (if backend changes needed)
     - Build.io push: `git push bld-backend backend-release:main`
     - Verify: `curl https://taste-node-api-97114760.onbld.com/setup-supabase`
 
+---
+13. FIXES APPLIED (2026-06-28 — round 5)
+---
 
-A. Apply Supabase likes migration (REQUIRES SQL EDITOR RUN)
-    - File: supabase/migrations/005_full_likes_schema.sql
-    - Syntax was fixed (see J above). Ready to paste + run.
-    - Seed script: scripts/seed_likes_to_supabase.py
-    - Steps:
-        1. Open https://supabase.com/dashboard/project/zhygstfypymsspfinhqc/sql-editor
-        2. Paste full contents of supabase/migrations/005_full_likes_schema.sql
-        3. Click "Run"
-        4. Verify column exists: `python3 -c "from supabase import create_client; c=create_client(url,key); c.table('feed_posts').select('id,likes').limit(1).execute()"`
-        5. Run seed script to populate like counts:
-           source .venv/bin/activate
-           SUPABASE_URL=https://zhygstfypymsspfinhqc.supabase.co \
-           SUPABASE_SERVICE_KEY=... \
-           python scripts/seed_likes_to_supabase.py
+S. Frontend — Feed fallback images for Supabase posts
+    File: web/src/views/FeedView.tsx
+    Problem: Supabase posts dominated the "For You" tab (sorted by likes)
+      but lacked images because their `venue_id` didn't exist in the local
+      10K venue pool, and `image_url` column was empty.
+    Fix:
+      - Imported `pickImage` from venues.ts for deterministic placeholder
+        generation using `picsum.photos` (stable per post ID).
+      - Image rendering now ALWAYS shows an image; fallback chain:
+        `post.image_url` → `venueMap[venue_id].image_url` → `pickImage([], post.id)`
+      - Cold posts now get a random-looking but stable food photo instead
+        of appearing as text-only cards.
 
-B. Verify live frontend deploy (circa 2026-06-28 ~16:40 UTC)
-    - Build.io frontend build 74+ should be active (commit with chat fix)
-    - Verify "My Lists" tab label in nav bar
-    - Verify chat: "Italian under 2000 yen" sets cuisine+price, not raw text
-    - Verify RankingView: "Add from Library" opens inline search panel
+T. Frontend — explicit Global chronological sort
+    File: web/src/data/api.ts (filterFeedPosts)
+    Problem: `filterFeedPosts("global")` returned `feed.posts` raw array.
+      If another component mutated the array, order could drift.
+    Fix: Now returns `[...feed.posts].sort(...created_at descending)` so
+      Global is always strictly chronological, newest first.
+
+U. Frontend — FeedView diagnostic logging
+    File: web/src/views/FeedView.tsx
+    - Added `console.log` for every tab switch showing `mode`,
+      `feed.posts.length`, and `filteredPosts.length`.
+    - In Recommended mode, logs top 5 posts with:
+      author_name, likes, has-image boolean, venue_id, created_at.
+    - Use browser console (F12) to verify what posts are actually being
+      rendered on each tab.
+
+V. Frontend — Recent demo post dates
+    File: web/src/data/mockData.ts (buildSeedPosts)
+    Problem: All 334 demo posts had hardcoded June-18 dates, making the
+      feed look stale ("6d ago" for every post).
+    Fix: `buildSeedPosts()` now rewrites `created_at` to within the last
+      48 hours using a deterministic hash offset (0–48h per post).
+      Posts show "15m ago", "2h ago", "just now".
+
+W. Frontend — Backend error guard (UserProfileView)
+    File: web/src/views/UserProfileView.tsx
+    Problem: `loadProfileBackend()` could throw an unhandled error,
+      crashing the component before the fallback profile loaded.
+    Fix: Wrapped the async loader in `try/catch`. On any error, falls
+      back to `getSampleUserProfile(userId)` automatically.
+
+X. Frontend — Starter follows for first-time auth users
+    File: web/src/data/api.ts (loadProfile)
+    Problem: New Google sign-ins got `following: []`, making the
+      Following tab empty and their own profile look dead.
+    Fix: Auto-follow `sumer_aiand` + first 5 `SAMPLE_USERS` on first
+      sign-in. Feed Following tab is now immediately alive.
+
+Y. Demo data — Sumer superstar profile (153 restaurants)
+    File: web/src/data/mockData.ts (getSampleUserProfile)
+    Problem: Sumer only had 8–14 random demo venues like every other
+      synthetic user, making their Library/My Lists look empty.
+    Fix: When `userId === "sumer_aiand"`, generates a 153-item
+      superstar profile split across 6 curated contexts:
+        - default: 50   (core rotation: favs + visited mix)
+        - date_nights: 20  (romantic / intimate)
+        - lunch_hunts: 20  (midday quick-eats)
+        - solo_spots: 20   (quiet, solo-friendly)
+        - group_dinners: 23 (party / celebration)
+        - cheap_eats: 20    (budget finds)
+      Items get randomized status, occasion_tag, personal_rating,
+      reaction, meal_type, dishes, is_classic across all lists.
+      Added `console.log` diagnostics inside generator so the console
+      shows exactly how many venues were built per user.
+
+Z. Supabase — saveProfileSupabase retry on missing `name` column
+    File: web/src/data/supabaseApi.ts
+    Problem: `profiles` table schema cache was stale after adding the
+      `name` column DDL. Upserts with `name` threw 400 Bad Request.
+    Fix: Catches `name` + `schema cache` / `does not exist` errors
+      and retries the upsert WITHOUT the `name` field. Also logs
+      the error for visibility.
+
+---
+14. NEXT STEPS
+---
+
+A. Check browser console for profile generator logs
+    - Open sumer's profile → console should show:
+      `[getSampleUserProfile] userId: sumer_aiand pool.length: 10000`
+      `[getSampleUserProfile] built profile for sumer_aiand contexts: default,date_nights,... total items: 153`
+    - If `pool.length` is 0, the venues module hasn't loaded yet;
+      reload the page after ensuring WiFi/data is active.
+
+B. Verify sumer's Library tab
+    - Navigate to sumer's profile
+    - "Ranked" tile should show 153
+    - "Recent visits" list should show 50 venues from default context
+    - "Ranked lists" accordion should show all 6 contexts
+
+C. Verify Recommended tab images
+    - Switch to "For You" (recommended)
+    - Top posts should ALL have images now (fallback via pickImage)
+    - No more text-only cards at the top
+
+D. Verify Global chronological order
+    - Switch to "Global"
+    - First few posts should be within last 48h
+    - Scroll down should show progressively older posts
+    - No random reordering on tab switches
+
+E. Clean up duplicate section in this handoff file
+    - Lines 703–724 contain an old duplicate "A. Apply Supabase likes migration"
+      that was accidentally left behind. Remove on next edit.
 
 ---
 END OF HANDOFF

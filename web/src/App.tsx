@@ -26,7 +26,7 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
-const APP_VERSION = "v3.0.7"; // Bump on every deploy to bust browser cache
+const APP_VERSION = "v3.0.8"; // Bump on every deploy to bust browser cache
 
 function clearOldCaches() {
   try {
