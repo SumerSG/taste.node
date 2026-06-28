@@ -234,15 +234,44 @@ function offsetDate(rndVal: number, daysOffset: number): string {
   return d.toISOString();
 }
 
-/* ─── Deterministic like counts for demo posts ─── */
+/* ─── Deterministic realistic like counts for demo posts ───
+ *
+ * Uses a seeded power-law distribution so a few posts feel "viral"
+ * while most have modest engagement — just like real social feeds.
+ * Tiers (deterministic from post ID):
+ *   50%  → 0–30 likes      (casual posts)
+ *   30%  → 30–200 likes    (popular posts)
+ *   15%  → 200–800 likes   (trending posts)
+ *   5%   → 800–5 000 likes (viral posts)
+ */
+
+function seededHash(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+  return Math.abs(h >>> 0);
+}
 
 export function computeDemoLikes(postId: string): number {
-  let hash = 0;
-  for (let i = 0; i < postId.length; i++) {
-    hash = ((hash << 5) - hash) + postId.charCodeAt(i);
-    hash |= 0;
+  const h = seededHash(postId);
+  const tierRoll = h % 100;               // 0-99
+  const fineRoll = Math.floor(h / 100);    // secondary randomness
+
+  if (tierRoll < 50) {
+    // Tier 1: casual — 0-30 likes
+    return fineRoll % 31;
+  } else if (tierRoll < 80) {
+    // Tier 2: popular — 30-200 likes
+    return 30 + (fineRoll % 171);
+  } else if (tierRoll < 95) {
+    // Tier 3: trending — 200-800 likes
+    return 200 + (fineRoll % 601);
+  } else {
+    // Tier 4: viral — 800-5000 likes
+    return 800 + (fineRoll % 4201);
   }
-  return Math.abs(hash) % 500;
 }
 
 /* ─── Post generation ─── */
