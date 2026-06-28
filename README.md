@@ -245,7 +245,7 @@ A redesigned web-only frontend lives in `web/`. It supports **dual-mode persiste
 | View | What it does | Key Features |
 |-------|--------|--------|
 | **Landing** | Auth gate + guest entry | Supabase OAuth (Google) + email sign-in |
-| **For You** | Social feed | Following-only, cluster recommendations, global posts; click author → profile; add post directly |
+| **For You** | Social feed | Following-only, popular posts (sorted by likes), global posts; click author → profile; add post directly; like count badges |
 | **Search** | Venue discovery | Chat-driven search + filter rail + sortable cards; clicking venue opens detail modal |
 | **Top Picks** | My ranked list | Drag-to-reorder, status selector (want/visited/favourite/regular), context switcher, list management |
 | **Saved / Profile** | My library | Wishlist/grid toggle, visit metadata (date, rating, dishes, reaction), friend rankings |
@@ -303,6 +303,14 @@ git push bld-backend main
 curl -s https://taste-node-api.onbld.com/venues
 ```
 
+**Backend build troubleshooting**:
+If the Build.io backend build fails with `pydantic-core` compilation errors, the buildpack picked Python 3.14 (default) instead of 3.12. We pin the Python version via:
+1. `runtime.txt` (primary, deprecated but widely supported) — contains `python-3.12`
+2. `.python-version` (secondary, modern standard) — contains `3.12`
+
+If BOTH files are ignored, the buildpack is too old. Open a support ticket with Build.io or switch to a `Dockerfile` deployment.
+
+
 **Set config vars ( Build.io)**:
 ```bash
 # Frontend
@@ -329,12 +337,15 @@ bld config:set --app=taste-node-api TASTE_NODE_API_KEY=your-secret-here
 2. ✅ **Persisted profiles + contexts + feed:** Saved to Supabase Postgres when authenticated; guest mode uses localStorage fallback
 3. ✅ **Supabase UI/UX fixes:** Complete Sprint A/B/C (toasts, accessible modals, thumb-safe layout)
 4. ✅ **Click-through navigation:** Feed post → author profile → venue detail → back
+5. ✅ **Feed popularity sort:** "For You" tab sorts by likes descending; each post shows filled heart + like count badge
+6. ✅ **Deterministic demo likes:** 331 seed posts carry 0-499 likes computed from post-ID hash
 
 ### Known gaps / TODO
 
-1. **Chat backend:** Swap rule parser for LLM call once an endpoint is available
-2. **External API ingestion:** Seed real venues from Google Places / Yelp Fusion (currently 20 hand-curated tokyo restaurants + NYC test data)
-3. **Backend score endpoint:** Add `VITE_API_URL` to use cluster-based recommendations from FastAPI instead of client-side similarity engine
-4. **Image persistence:** Upload user-submitted venue images to Supabase Storage
-5. **Cloud Functions:** Supabase Edge Functions for async operations (e.g. expensive cluster recomputation on user write)
+1. **Backend build verification:** Confirm Build.io picks Python 3.12 via `runtime.txt` (currently untested on Build.io infrastructure)
+2. **Chat backend:** Swap rule parser for LLM call once an endpoint is available
+3. **External API ingestion:** Seed real venues from Google Places / Yelp Fusion (currently 10K generated Tokyo restaurants + NYC test data)
+4. **Backend score endpoint:** Add `VITE_API_URL` to use cluster-based recommendations from FastAPI instead of client-side similarity engine
+5. **Image persistence:** Upload user-submitted venue images to Supabase Storage
+6. **Cloud Functions:** Supabase Edge Functions for async operations (e.g. expensive cluster recomputation on user write)
 

@@ -1,6 +1,6 @@
 ================================================================================
   taste.node — Developer Handoff Notes
-  Created: 2026-06-27  |  Updated: 2026-06-28
+  Created: 2026-06-27  |  Updated: 2026-06-28 (feed likes + runtime.txt fix)
 ================================================================================
 
 ---
@@ -33,17 +33,23 @@ FRONTEND: taste-node-frontend (Build.io)
   Features NOT working:
     - Cloud sync via Supabase (Cannot verify — no live Supabase credentials in
       this environment. Schema and API shapes have been validated against code.)
-    - Backend deployment (Build.io Python buildpack needs verification)
+    - Backend deployment (Build.io Python buildpack — runtime.txt fallback added,
+      needs verification after next push. See Known Issues #1.)
   Config vars on Build.io (already set):
     VITE_SUPABASE_URL = https://zhygstfypymsspfinhqc.supabase.co
     VITE_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoeWdzdGZ5cHltc3NwZmluaHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxODU0NzAsImV4cCI6MjA5Nzc2MTQ3MH0.4lK38Du-_PpiBjM4IT7HYhRakTpaXZGCy3TMhbDEu6k
 
 BACKEND: taste-node-api (Build.io)
   Backend app: taste-node-api
-  Status: CANNOT DEPLOY — .python-version present but needs verification
-    The local .venv is currently running Python 3.14.6 (not 3.12).
-    The Build.io buildpack might still pick up 3.14 if .python-version
-    is not honoured. Need to verify after next push.
+  Status: CANNOT DEPLOY — runtime.txt + .python-version both present
+    Build.io uses Heroku-style Python buildpack. Research confirms:
+    - .python-version should contain "3.12" (no "python-" prefix)
+    - runtime.txt (deprecated but widely supported) should contain "python-3.12"
+    - runtime.txt takes PRECEDENCE over .python-version if both exist
+    - If neither is found, buildpack defaults to Python 3.14, which breaks
+      pydantic-core wheel compilation.
+    We now have BOTH files in the repo. If runtime.txt is honoured, the build
+    should pick Python 3.12 and succeed. Need to verify after next push.
   Note: Backend works perfectly with SQLite fallback locally.
         All tests pass (50 passed, 1 skipped).
         The Supabase integration code (src/supabase_db.py) is validated
@@ -65,8 +71,8 @@ SUPABASE PROJECT
 2. REMAINING TASKS (priority order)
 ---
 
-A. Fix backend build         — IN PROGRESS (.python-version = 3.12 added;
-    needs build verification after push to Build.io)
+A. Fix backend build         — IN PROGRESS (.python-version = 3.12 + runtime.txt
+    added; needs build verification after push to Build.io)
 B. Create Supabase tables    — PENDING VERIFICATION (Reported done by prior
     dev, but /setup-supabase shows empty result because tables may not exist
     OR credentials are missing locally. Only verifiable with live Service Key.)
@@ -186,12 +192,14 @@ VENUE DETAIL MODAL (updated 2026-06-27):
   - Added list/context selector with AI sentiment parsing
   - "Classic" renamed "Timeless" with explicit explanation
 
-DEMO DATA (updated 2026-06-27):
+DEMO DATA (updated 2026-06-28):
   - 10,000 Tokyo venues in web/src/data/venues.json (4.4 MB)
   - 100,000 Japan venues in src/data/venues.json (49 MB) — TEMP data,
     capped to 2,000 for local SQLite to keep boot fast.
   - 100 synthetic user profiles (Japanese first names + random last initial)
   - 331 realistic feed posts (2-5 per user, cuisine-aware sentiment)
+  - Each demo post now carries deterministic like counts (0-499) computed
+    from a hash of the post ID. The "For You" feed sorts by likes descending.
 
 BACKEND DUAL-MODE PERSISTENCE:
   - src/db.py checks if SUPABASE_URL + SUPABASE_SERVICE_KEY env vars are set
@@ -235,8 +243,13 @@ Backend (FastAPI):
 6. KNOWN ISSUES & WARNINGS
 ---
 
-1. Backend Python version uncertainty (.python-version format untested on Build.io)
-   → Current file says "3.12". If buildpack rejects it, try "python-3.12".
+1. Backend Python version uncertainty (.python-version + runtime.txt added)
+    → .python-version contains "3.12" (correct per Heroku buildpack docs).
+    → runtime.txt contains "python-3.12" (deprecated but takes precedence).
+    → If the build STILL fails, the buildpack may be running an old version
+      that doesn't support either file. Last resort: switch to a Dockerfile
+      or pin Python in Pipfile.
+    → Buildpack default is Python 3.14; pydantic-core lacks wheels for 3.14.
 
 2. The supabase-py client cannot connect to Postgres directly
    (IPv6/network restricted). Direct psycopg2/pg8000 connections are blocked.
@@ -296,6 +309,17 @@ d. SQLite venue seeding performance (src/db.py)
 
 e. All backend tests still pass (50 passed, 1 skipped).
    Frontend tests still pass (65 passed).
+
+f. "For You" feed popularity sort (web/src/data/api.ts, web/src/views/FeedView.tsx)
+   - Added `likes` field to Post type and demo data
+   - Deterministic like counts computed from post-ID hash (0-499)
+   - "recommended" mode now sorts posts by likes descending
+   - UI shows filled heart + like count badge on each post
+
+g. Backend build stability (runtime.txt)
+   - Added `runtime.txt` with `python-3.12` as fallback
+   - Heroku-style buildpack checks runtime.txt BEFORE .python-version
+   - Ensures Build.io picks Python 3.12 instead of default 3.14
 
 ---
 FILE LOCATIONS

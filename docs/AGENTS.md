@@ -70,11 +70,23 @@
 - **Supabase Postgres** is the production persistence layer. Backend uses `supabase-py` client with `SUPABASE_SERVICE_KEY` (server-side only, never exposed to the browser).
 - **Row Level Security (RLS):** All user-data tables have RLS policies enforcing that `auth.uid() = user_id`. See `supabase/000_complete_schema.sql` for full policies.
 - **Auth:** Supabase Auth handles Google OAuth and email/password. JWT sessions are managed by `@supabase/supabase-js` `gotrue` client on the frontend.
-- **Tables:** `profiles`, `contexts`, `ranked_items`, `venues`, `feed_posts`, `follows`. Created via migration `002_full_schema.sql`.
+- **Tables:** `profiles`, `contexts`, `ranked_items`, `venues`, `feed_posts`, `follows`. Created via migration `002_full_schema.sql` and `003_add_likes_to_feed_posts.sql`.
 - **Fallback:** When `SUPABASE_URL` or `SUPABASE_SERVICE_KEY` is missing (local dev), backend falls back to the existing SQLite + SQLAlchemy path. No env var = SQLite. Both paths share the same `src/db.py` public API so route code is unchanged.
 - **RLS bypass for seed scripts:** Service role key bypasses RLS; seed scripts use `TO service_role` policies (see `supabase/000_complete_schema.sql`).
 
 **Architectural Implication:** Backend route handlers never change persistence technology. They call functions in `src/db.py` which are conditionally re-exported to `src/supabase_db.py` when Supabase env vars are present. All tests use SQLite (no env vars set). Production uses Supabase. Both pass identical tests.
+
+### Pillar 4.2: Deployment Targets
+
+**Build.io (Current):**
+- Frontend: static SPA served via `npx serve` (Build.io web process)
+- Backend: FastAPI via `uvicorn` (Build.io api process)
+- Buildpack: Heroku Python buildpack (looks for `runtime.txt`, then `.python-version`)
+- **Runtime pinning:** `runtime.txt` with `python-3.12` is primary; `.python-version` with `3.12` is secondary fallback.
+- Known limitation: buildpack defaults to Python 3.14 if no version file is found.
+
+**Alternative (Future):**
+- If Build.io buildpack continues to fail, switching to a `Dockerfile` would give full control over Python version and dependency installation, at the cost of larger slug size and slower builds.
 
 ### Pillar 4.1: Scraping is Internal-Demo-Only
 
