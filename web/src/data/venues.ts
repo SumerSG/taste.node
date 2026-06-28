@@ -51,32 +51,33 @@ function fromRow(row: Record<string, unknown>): Venue {
   };
 }
 
-import venuesJson from "./venues.json";
-
-/* ─── Fallback inline data (loaded from canonical venues.json) ─── */
-const FALLBACK_VENUES: Venue[] = venuesJson.map((raw: Record<string, unknown>) => ({
-  id: (raw.venue_id ?? raw.id) as string,
-  name: raw.name as string,
-  address: raw.address ? String(raw.address) : undefined,
-  location:
-    raw.lat != null && raw.lng != null
-      ? { lat: Number(raw.lat), lng: Number(raw.lng) }
-      : null,
-  cuisines: Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [],
-  dietary_tags: Array.isArray(raw.dietary_tags) ? (raw.dietary_tags as string[]) : [],
-  price_tier: raw.price_tier != null ? Number(raw.price_tier) : null,
-  health_score: raw.health_score != null ? Number(raw.health_score) : null,
-  source: (raw.source as Venue["source"]) ?? "tabelog",
-  source_url: raw.source_url ? String(raw.source_url) : undefined,
-  rating: raw.rating != null ? Number(raw.rating) : undefined,
-  review_count: raw.review_count != null ? Number(raw.review_count) : undefined,
-  image_url: raw.image_url
-    ? String(raw.image_url)
-    : pickImage(
-        Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [],
-        ((raw.venue_id ?? raw.id) as string) ?? ""
-      ),
-}));
+/* ─── Fallback inline data (loaded dynamically from canonical venues.json) ─── */
+async function loadFallbackVenues(): Promise<Venue[]> {
+  const { default: venuesJson } = await import("./venues.json");
+  return (venuesJson as Record<string, unknown>[]).map((raw) => ({
+    id: (raw.venue_id ?? raw.id) as string,
+    name: raw.name as string,
+    address: raw.address ? String(raw.address) : undefined,
+    location:
+      raw.lat != null && raw.lng != null
+        ? { lat: Number(raw.lat), lng: Number(raw.lng) }
+        : null,
+    cuisines: Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [],
+    dietary_tags: Array.isArray(raw.dietary_tags) ? (raw.dietary_tags as string[]) : [],
+    price_tier: raw.price_tier != null ? Number(raw.price_tier) : null,
+    health_score: raw.health_score != null ? Number(raw.health_score) : null,
+    source: (raw.source as Venue["source"]) ?? "tabelog",
+    source_url: raw.source_url ? String(raw.source_url) : undefined,
+    rating: raw.rating != null ? Number(raw.rating) : undefined,
+    review_count: raw.review_count != null ? Number(raw.review_count) : undefined,
+    image_url: raw.image_url
+      ? String(raw.image_url)
+      : pickImage(
+          Array.isArray(raw.cuisines) ? (raw.cuisines as string[]) : [],
+          ((raw.venue_id ?? raw.id) as string) ?? ""
+        ),
+  }));
+}
 
 /* ─── Runtime store ─── */
 let _venues: Venue[] = [];
@@ -135,8 +136,8 @@ export async function loadVenues(): Promise<void> {
     }
   }
 
-  // 3️⃣  Inline fallback (no external JSON needed)
-  _venues = FALLBACK_VENUES;
+  // 3️⃣  Inline fallback (loaded dynamically via code-split chunk)
+  _venues = await loadFallbackVenues();
   _loaded = true;
   console.log(`[fallback] loaded ${_venues.length} venues`);
 }

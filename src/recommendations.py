@@ -74,7 +74,13 @@ def _load_venue_pool() -> List[Venue]:
     return venues
 
 
-VENUE_POOL: List[Venue] = _load_venue_pool()
+VENUE_POOL: List[Venue] = []
+
+
+def _ensure_venues_loaded() -> None:
+    global VENUE_POOL
+    if not VENUE_POOL:
+        VENUE_POOL = _load_venue_pool()
 
 
 def _haversine(a: Dict[str, float], b: Dict[str, float]) -> float:
@@ -94,6 +100,7 @@ def _extract_candidate_venues(
     context_id: str,
 ) -> List[Venue]:
     """Return deduplicated venues not already ranked by the user."""
+    _ensure_venues_loaded()
     seen: Set[str] = set(existing_ids)
     candidates: List[Venue] = []
     for v in VENUE_POOL:

@@ -337,22 +337,17 @@ def clear_mock_data_endpoint(
     return {"status": "ok", "cleared_rows": count}
 
 
-# ─── Supabase schema setup (one-time) ───
+# ─── Supabase schema health check (diagnostic only) ───
 
 @app.get("/setup-supabase", include_in_schema=False)
 def setup_supabase(confirm: bool = False):
-    """Preview or execute the Supabase schema migration.
-    
-    Call with no args to preview what will be created.
-    Call with ?confirm=true to actually run.
-    """
-    try:
-        import pg8000
-    except ImportError:
-        return JSONResponse(
-            {"error": "pg8000 not installed"}, status_code=500
-        )
+    """Check whether the Supabase schema is ready.
 
+    This endpoint cannot CREATE tables (DDL is blocked behind a firewall).
+    It only READS from existing tables via the Supabase REST API.
+
+    Call with no args to preview tables and their existence status.
+    """
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_KEY")
     if not url or not key:
@@ -361,89 +356,41 @@ def setup_supabase(confirm: bool = False):
             status_code=500,
         )
 
-    # Load SQL from repo file if present
-    sql_path = os.path.join(
-        os.path.dirname(__file__), "..", "supabase", "000_complete_schema.sql"
-    )
-    if os.path.exists(sql_path):
-        with open(sql_path, "r") as f:
-            sql = f.read()
-    else:
-        return JSONResponse(
-            {"error": f"SQL file not found at {sql_path}"}, status_code=500
+    from supabase import create_client
+    client = create_client(url, key)
+
+    expected_tables = [
+        "profiles",
+        "contexts",
+        "ranked_items",
+        "venues",
+        "feed_posts",
+        "follows",
+    ]
+
+    results = {"tables": {}, "ready": True}
+    for table in expected_tables:
+        try:
+            # A lightweight HEAD-style read to check existence
+            resp = client.table(table).select("*", count="exact", head=True).execute()
+            count = getattr(resp, "count", 0)
+            results["tables"][table] = {"exists": True, "rows": count}
+        except Exception as e:
+            err_text = str(e).lower()
+            if "does not exist" in err_text or "404" in err_text:
+                results["tables"][table] = {"exists": False, "rows": 0}
+                results["ready"] = False
+            else:
+                results["tables"][table] = {"exists": "unknown", "error": str(e)[:120]}
+                results["ready"] = False
+
+    if not results["ready"]:
+        results["instructions"] = (
+            "One or more tables are missing. Open the Supabase SQL Editor, "
+            "paste the contents of supabase/000_complete_schema.sql, and run it."
         )
 
-    # Split SQL into statements (handle $$-quoted functions)
-    statements = []
-    current = ""
-    in_dollar = False
-    for line in sql.split("\n"):
-        stripped = line.strip()
-        if not stripped or stripped.startswith("--"):
-            continue
-        current += line + "\n"
-        if not in_dollar and "$$" in stripped:
-            in_dollar = True
-        elif in_dollar and "$$" in stripped:
-            in_dollar = False
-        if stripped.endswith(";") and not in_dollar:
-            statements.append(current.strip())
-            current = ""
-    if current.strip():
-        statements.append(current.strip())
+    if confirm:
+        results["note"] = "confirm=true has no effect; this endpoint is read-only."
 
-    tables = []
-    for s in statements:
-        up = s.upper()
-        if "CREATE TABLE" in up and "IF NOT EXISTS" in up:
-            name = s.split("EXISTS")[1].split("(")[0].strip()
-            tables.append(name)
-
-    preview = {
-        "tables_to_create": tables,
-        "total_statements": len(statements),
-        "action": "PASS ?confirm=true to execute",
-    }
-
-    if not confirm:
-        return JSONResponse(preview)
-
-    # Execute via pg8000
-    host = url.replace("https://", "").replace(".supabase.co", "")
-    results = {"created": [], "skipped": [], "errors": []}
-    try:
-        conn = pg8000.dbapi.connect(
-            host=f"db.{host}.supabase.co",
-            database="postgres",
-            user="postgres",
-            password=key,
-            port=5432,
-            ssl_context=True,
-        )
-        cur = conn.cursor()
-        for stmt in statements:
-            try:
-                cur.execute(stmt)
-                conn.commit()
-                for t in tables:
-                    if t.replace("public.", "") in stmt.lower():
-                        results["created"].append(t)
-                        break
-            except Exception as e:
-                conn.rollback()
-                err = str(e).lower()
-                if "already exists" in err or "duplicate" in err or "42p07" in err:
-                    results["skipped"].append("already exists")
-                else:
-                    results["errors"].append(str(e)[:120])
-        cur.close()
-        conn.close()
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-    return JSONResponse({
-        "status": "ok",
-        "tables": list(set(results["created"])),
-        "skipped": len(results["skipped"]),
-        "errors": results["errors"][:5],
-    })
+    return JSONResponse(results)

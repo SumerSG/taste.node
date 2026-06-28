@@ -1,5 +1,6 @@
 """taste.node — SQLite persistence layer (SQLAlchemy Core)."""
 
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Generator, List, Optional
 
@@ -401,30 +402,36 @@ def _row_to_venue(row: Any) -> Venue:
 
 def seed_venues_if_empty(conn: Any) -> None:
     """Populate the venues table from the static MVP pool if it is empty."""
-    from src.recommendations import VENUE_POOL
+    import src.recommendations as _rec
+    _rec._ensure_venues_loaded()
     count = conn.execute(select(venues_table)).first()
     if count is not None:
         return
     now = datetime.now(timezone.utc)
-    for v in VENUE_POOL:
-        conn.execute(
-            insert(venues_table).values(
-                id=v.id,
-                name=v.name,
-                address=v.address,
-                location=v.location,
-                cuisines=v.cuisines or [],
-                dietary_tags=v.dietary_tags or [],
-                price_tier=v.price_tier,
-                health_score=v.health_score,
-                source=v.source,
-                source_url=v.source_url,
-                image_url=v.image_url,
-                rating=v.rating,
-                review_count=v.review_count,
-                created_at=now,
-            )
-        )
+    # Cap local SQLite seed to keep first requests fast (full set goes to Supabase)
+    max_local = int(os.environ.get("TASTE_NODE_MAX_LOCAL_VENUES", "2000"))
+    rows = [
+        {
+            "id": v.id,
+            "name": v.name,
+            "address": v.address,
+            "location": v.location,
+            "cuisines": v.cuisines or [],
+            "dietary_tags": v.dietary_tags or [],
+            "price_tier": v.price_tier,
+            "health_score": v.health_score,
+            "source": v.source,
+            "source_url": v.source_url,
+            "image_url": v.image_url,
+            "rating": v.rating,
+            "review_count": v.review_count,
+            "created_at": now,
+        }
+        for v in _rec.VENUE_POOL[:max_local]
+    ]
+    if rows:
+        # executemany is significantly faster than one-by-one inserts
+        conn.execute(insert(venues_table), rows)
 
 
 def get_all_venues(conn: Any) -> List[Venue]:

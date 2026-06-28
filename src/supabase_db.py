@@ -366,11 +366,12 @@ def seed_venues_if_empty(conn: Any) -> None:
     if count:
         return
 
-    from src.recommendations import VENUE_POOL
+    import src.recommendations as _rec
+    _rec._ensure_venues_loaded()
 
     now = datetime.now(timezone.utc)
     rows = []
-    for v in VENUE_POOL:
+    for v in _rec.VENUE_POOL:
         rows.append({
             "id": v.id,
             "name": v.name,

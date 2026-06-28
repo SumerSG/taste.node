@@ -12,14 +12,14 @@ import { SAMPLE_USERS, GENERATED_POSTS } from "./generatedUsers";
 export { SAMPLE_USERS };
 
 export const CLUSTER_PEERS = [
-  "user_000",
-  "user_001",
-  "user_002",
-  "user_003",
-  "user_004",
-  "user_005",
+  "u001",
+  "u002",
+  "u003",
+  "u004",
+  "u005",
+  "u006",
 ];
-export const FOLLOWED_USERS = ["user_000", "user_001", "user_002"];
+export const FOLLOWED_USERS = ["u001", "u002", "u003", "sumer_aiand"];
 
 /* ─── Deterministic random utilities ─── */
 

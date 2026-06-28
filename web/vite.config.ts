@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
+    chunkSizeWarningLimit: 3500, // venues.json chunk is ~3.4MB intentionally
   },
   test: {
     globals: true,
