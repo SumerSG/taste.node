@@ -339,10 +339,28 @@ def get_all_profiles(conn: Any) -> List[TasteProfile]:
     if not _client:
         return []
 
-    prof_resp = _client.table("profiles").select("user_id").execute()
+    # Paginate profile IDs in case the table grows beyond PostgREST default limits
+    all_ids: List[str] = []
+    start = 0
+    batch = 1000
+    while True:
+        prof_resp = (
+            _client.table("profiles")
+            .select("user_id")
+            .range(start, start + batch - 1)
+            .execute()
+        )
+        batch_ids = [r["user_id"] for r in prof_resp.data]
+        if not batch_ids:
+            break
+        all_ids.extend(batch_ids)
+        if len(batch_ids) < batch:
+            break
+        start += batch
+
     profiles: List[TasteProfile] = []
-    for row in prof_resp.data:
-        profile = get_user_profile(conn, row["user_id"])
+    for uid in all_ids:
+        profile = get_user_profile(conn, uid)
         if profile:
             profiles.append(profile)
     return profiles
@@ -354,8 +372,25 @@ def get_all_profiles(conn: Any) -> List[TasteProfile]:
 def get_all_venues(conn: Any) -> List[Venue]:
     if not _client:
         return []
-    resp = _client.table("venues").select("*").execute()
-    return [_venue_from_data(r) for r in resp.data]
+    # Paginate to bypass default PostgREST/supabase-py row limits
+    venues: List[Venue] = []
+    start = 0
+    batch = 1000
+    while True:
+        resp = (
+            _client.table("venues")
+            .select("*")
+            .range(start, start + batch - 1)
+            .execute()
+        )
+        batch_data = resp.data
+        if not batch_data:
+            break
+        venues.extend([_venue_from_data(r) for r in batch_data])
+        if len(batch_data) < batch:
+            break
+        start += batch
+    return venues
 
 
 def seed_venues_if_empty(conn: Any) -> None:
