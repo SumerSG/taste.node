@@ -441,8 +441,8 @@ def get_all_venues(conn: Any) -> List[Venue]:
 
 
 def toggle_like_post(conn: Any, post_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-    """SQLite fallback: no feed likes support."""
-    return None
+    """SQLite fallback: likes are stored only in localStorage on the client."""
+    return {"liked_by_me": False, "likes": 0}
 
 
 # ─── Supabase re-export (overrides SQLite funcs when configured) ───
