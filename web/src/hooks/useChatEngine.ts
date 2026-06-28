@@ -154,10 +154,6 @@ export function useChatEngine(profile: TasteProfile) {
       setTimeout(() => {
         const parsed = parseChatQuery(text);
         const newFilters = mergeFilters(filters, parsed.filters);
-        // If user typed something that looks like a query but parser missed it, treat as text search
-        if (text.length > 2 && !parsed.filters.cuisine && !parsed.filters.query) {
-          newFilters.query = text;
-        }
         setFilters(newFilters);
 
         const results = computeResults(newFilters);

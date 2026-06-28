@@ -511,27 +511,70 @@ G. Backend / API — ensureContext helper (frontend data layer)
     New helper: create context if missing, then switch to it.
     Used by RankingView context dropdown.
 
+H. Frontend — Intelligent chat filter extraction
+    File: web/src/utils/chatParser.ts (rewritten), web/src/hooks/useChatEngine.ts
+    Problem: AI chat used naive keyword matching + fallback to raw text
+      search, causing "just searches instead of filtering" behavior.
+    Fix:
+      - ~160 cuisine keywords with multi-word phrases (e.g. "chicken skewer")
+      - Diet: vegan, vegetarian, pescatarian, meat, gluten-free
+      - Price: dollar signs, yen ranges, "mid-range", "splurge"
+      - Healthiness: organic, clean eating, very healthy tiers
+      - Radius: km, miles, walking minutes, "nearby", "anywhere"
+      - Occasion/vibe: romantic, solo, business, group, comfort
+      - Social: friend name mentions with context
+      - Rating: "highly rated", "michelin", etc.
+      - Removes fallback that dumped entire text as search query
+      - Only sets `query` text if genuinely unmatched tokens remain
+
+I. Frontend — Add from Library inline search (RankingView)
+    File: web/src/views/RankingView.tsx
+    Fix: "Add from Library" no longer navigates away. It toggles an inline
+      search panel under the list header that searches all library contexts
+      (excluding wishlist and current context, deduplicated by venue id).
+      Users can pick a restaurant and it gets moved into the active list.
+      Works for both populated and empty lists.
+
+J. Backend / SQL — `CREATE POLICY IF NOT EXISTS` syntax fix
+    File: supabase/migrations/*.sql, supabase/000_complete_schema.sql
+    Problem: PostgreSQL 15 does not support `CREATE POLICY IF NOT EXISTS`.
+      This keyword only exists for CREATE INDEX, CREATE TABLE, ALTER COLUMN.
+    Fix: All SQL scripts now use `DROP POLICY IF EXISTS <name> ON <table>;`
+      followed by plain `CREATE POLICY ...` which is idempotent and safe
+      to re-run in the Supabase SQL Editor.
+
+K. Supabase backend / Likes migration (BLOCKED → READY)
+    File: supabase/migrations/005_full_likes_schema.sql
+    After applying the `CREATE POLICY` syntax fix (see J above), the
+    migration can now be run successfully in the SQL Editor. It adds:
+      - `likes` column to `feed_posts`
+      - `post_likes` tracking table with RLS
+      - Trigger to auto-sync count on insert/delete
+
 ---
 11. NEXT MAJOR CHANGE (ready to implement)
 ---
 
-A. Apply Supabase likes migration (BLOCKED: requires Supabase SQL Editor)
+A. Apply Supabase likes migration (REQUIRES SQL EDITOR RUN)
     - File: supabase/migrations/005_full_likes_schema.sql
-    - MUST paste into Supabase SQL Editor → Run → apply before the
-      likes features are functional in production.
-    - Seed script created (scripts/seed_likes_to_supabase.py) and
-      validated against live Supabase. Autodetects missing column
-      and prints exact error message if migration hasn't run.
+    - Syntax was fixed (see J above). Ready to paste + run.
+    - Seed script: scripts/seed_likes_to_supabase.py
     - Steps:
         1. Open https://supabase.com/dashboard/project/zhygstfypymsspfinhqc/sql-editor
         2. Paste full contents of supabase/migrations/005_full_likes_schema.sql
         3. Click "Run"
-        4. Verify: `python3 -c "from supabase import create_client; c=create_client(...); c.table('feed_posts').select('id,likes').limit(1).execute()"`
-        5. Run seed script:
+        4. Verify column exists: `python3 -c "from supabase import create_client; c=create_client(url,key); c.table('feed_posts').select('id,likes').limit(1).execute()"`
+        5. Run seed script to populate like counts:
            source .venv/bin/activate
            SUPABASE_URL=https://zhygstfypymsspfinhqc.supabase.co \
            SUPABASE_SERVICE_KEY=... \
            python scripts/seed_likes_to_supabase.py
+
+B. Verify live frontend deploy (circa 2026-06-28 ~16:40 UTC)
+    - Build.io frontend build 74+ should be active (commit with chat fix)
+    - Verify "My Lists" tab label in nav bar
+    - Verify chat: "Italian under 2000 yen" sets cuisine+price, not raw text
+    - Verify RankingView: "Add from Library" opens inline search panel
 
 ---
 END OF HANDOFF

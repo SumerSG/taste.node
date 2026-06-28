@@ -64,7 +64,7 @@ describe('parseChatQuery', () => {
 
   it('detects radius in miles', () => {
     const result = parseChatQuery('Within 2 miles');
-    expect(result.filters.radius_km).toBe(3);
+    expect(result.filters.radius_km).toBe(3.2);
   });
 
   it('detects nearby radius', () => {
@@ -72,9 +72,12 @@ describe('parseChatQuery', () => {
     expect(result.filters.radius_km).toBe(3);
   });
 
-  it('returns empty filters for unmatched query', () => {
+  it('returns no explicit context filters for unmatched generic query', () => {
     const result = parseChatQuery('Hello world');
-    expect(Object.keys(result.filters)).toHaveLength(0);
+    expect(result.filters.cuisine).toBeUndefined();
+    expect(result.filters.diet).toBeUndefined();
+    expect(result.filters.price_tier).toBeUndefined();
+    expect(result.filters.radius_km).toBeUndefined();
   });
 
   it('combines multiple filters', () => {
