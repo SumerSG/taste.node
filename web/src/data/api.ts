@@ -18,7 +18,7 @@ import {
 } from "./backendApi";
 
 const STORAGE_KEY_BASE = "taste.node.profile.v2";
-const FEED_KEY_BASE = "taste.node.feed.v2";
+const FEED_KEY_BASE = "taste.node.feed.v3";
 
 let _currentUserId: string | null = null;
 let _supabaseActive = false;
@@ -73,7 +73,18 @@ function saveLocalProfile(profile: TasteProfile) {
 function loadLocalFeed(): FeedData {
   try {
     const raw = localStorage.getItem(storageKey(FEED_KEY_BASE));
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: FeedData = JSON.parse(raw);
+      // Migration: detect old-format seed data.
+      // Old seeds added `likes` but never `liked_by_me`.
+      // If every post has likes but none have liked_by_me, it is stale old data.
+      const isOldSeedFormat =
+        parsed.posts.length > 0 &&
+        parsed.posts.every((p) => p.likes !== undefined && p.liked_by_me === undefined);
+      if (!isOldSeedFormat) return parsed;
+      // Clear stale v2 key and fall through to re-seed with new distribution
+      localStorage.removeItem("taste.node.feed.v2");
+    }
   } catch {
     // fall through
   }

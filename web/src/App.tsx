@@ -26,8 +26,23 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
+const APP_VERSION = "v3.0.0"; // Bump on every major deploy to bust browser cache
+
 function AppContent() {
   const { user, loading: authLoading } = useAuthState();
+
+  // ─── Cache-busting: force reload when app version changes ───
+  useEffect(() => {
+    const stored = localStorage.getItem("taste.node.app.version");
+    if (stored !== APP_VERSION) {
+      localStorage.setItem("taste.node.app.version", APP_VERSION);
+      localStorage.removeItem("taste.node.feed.v2");
+      if (stored) {
+        // Hard reload to ensure browser fetches the new JS bundle
+        window.location.reload();
+      }
+    }
+  }, []);
   const { logout } = useAuthActions();
   const userId = user?.id ?? null;
 
