@@ -291,9 +291,14 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
               )}
             </div>
             {filteredLibrary.length === 0 ? (
-              <p className="text-sm text-ink-faint text-center py-2">
-                {libraryQuery ? "No matching restaurants in your library." : "Your library is empty."}
-              </p>
+              <div className="text-center py-3 space-y-1">
+                <p className="text-sm text-ink-faint">
+                  {libraryQuery ? "No matching restaurants in your library." : "Your library is empty — save some restaurants in Search first."}
+                </p>
+                <button onClick={onNavigateToSearch} className="text-xs text-sienna-600 hover:text-sienna-700 font-medium">
+                  Browse Search →
+                </button>
+              </div>
             ) : (
               <div className="max-h-64 overflow-y-auto space-y-2">
                 {filteredLibrary.map(({ item, sourceContext }) => (
