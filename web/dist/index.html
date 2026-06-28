@@ -11,10 +11,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Dd_Jd6Kb.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CemzZJiV.css">
+    <script type="module" crossorigin src="/assets/index-BH1zBkKW.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CgWElF2M.css">
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function() {
+        var el = document.getElementById('root');
+        window.onerror = function(msg, url, line, col, err) {
+          if (el) {
+            el.innerHTML = '<div style="padding:40px;font-family:sans-serif"><h1 style="color:red">Runtime Error</h1><pre style="background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto">' + (err && err.stack || msg) + '<br>at ' + (url||'') + ':' + (line||0) + ':' + (col||0) + '</pre><p style="margin-top:16px">Please open browser console (F12) and share the error.</p></div>';
+          }
+          console.error('Uncaught error:', msg, url, line, col, err);
+        };
+      })();
+    </script>
   </body>
 </html>

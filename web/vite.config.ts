@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
+    emptyOutDir: false, // keep previous hashed bundles so cached index.html can still load them
     chunkSizeWarningLimit: 3500, // venues.json chunk is ~3.4MB intentionally
   },
   test: {

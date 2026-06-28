@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Component, type ReactNode } from "react";
 import type { TasteProfile, FeedData, Venue } from "./data/types";
 import { loadProfile, saveProfile, loadFeed, saveFeed, setCurrentUserId } from "./data/api";
 import { loadVenues, getVenueById } from "./data/venues";
@@ -26,15 +26,19 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
-const APP_VERSION = "v3.0.2"; // Bump on every deploy to bust browser cache
+const APP_VERSION = "v3.0.3"; // Bump on every deploy to bust browser cache
 
 function clearOldCaches() {
-  const keys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith("taste.node.")) keys.push(k);
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("taste.node.")) keys.push(k);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch (e) {
+    console.warn("Cache clear failed:", e);
   }
-  keys.forEach((k) => localStorage.removeItem(k));
 }
 
 function AppContent() {
@@ -298,6 +302,41 @@ function AppContent() {
   );
 }
 
+/* ─── Error Boundary to catch render crashes ─── */
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error?: Error }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: any) {
+    console.error("ErrorBoundary caught:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-cream p-8 text-center">
+          <h1 className="mb-4 text-xl font-bold text-red-600">Something went wrong</h1>
+          <pre className="max-w-xl overflow-auto rounded-lg bg-red-50 p-4 text-left text-xs text-red-800">
+            {this.state.error?.stack || this.state.error?.message || "Unknown error"}
+          </pre>
+          <p className="mt-4 text-sm text-ink-muted">Please open the browser console (F12) and share the error details.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-xl bg-sienna-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sienna-600"
+          >
+            Reload page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -310,7 +349,11 @@ function App() {
 
 function AuthKeyWrapper() {
   const { user } = useAuthState();
-  return <AppContent key={user?.id ?? "anon"} />;
+  return (
+    <ErrorBoundary>
+      <AppContent key={user?.id ?? "anon"} />
+    </ErrorBoundary>
+  );
 }
 
 export default App;
