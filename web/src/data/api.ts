@@ -1,5 +1,5 @@
 import type { TasteProfile, RankedItem, Filters, RankStatus, Post, FeedData } from "./types";
-import { getClusterLabel, computeRecommendations, sortRecommendations, buildSeedPosts, getDefaultProfile } from "./mockData";
+import { getClusterLabel, computeRecommendations, sortRecommendations, buildSeedPosts, getDefaultProfile, SAMPLE_USERS } from "./mockData";
 import {
   loadProfileSupabase,
   saveProfileSupabase,
@@ -125,7 +125,13 @@ export async function loadProfile(): Promise<TasteProfile> {
     if (hasRealLocalData) {
       return local;
     }
-    // Start with a truly empty profile so logged-in users never see synthesized demo data
+    // Start with a lively starter profile for first-time sign-in
+    // Auto-follow sumer + a few demo users so feed/followers aren't empty
+    const starterFollowing = ["sumer_aiand"];
+    const otherUsers = SAMPLE_USERS.filter((u) => u.id !== _currentUserId && u.id !== "demo_user" && u.id !== "sumer_aiand");
+    for (let i = 0; i < Math.min(5, otherUsers.length); i++) {
+      starterFollowing.push(otherUsers[i].id);
+    }
     const now = new Date().toISOString();
     const empty: TasteProfile = {
       user_id: _currentUserId!,
@@ -138,7 +144,8 @@ export async function loadProfile(): Promise<TasteProfile> {
         },
       },
       default_context: "default",
-      following: [],
+      following: starterFollowing,
+      followers: [],
       include_in_clustering: true,
     };
     saveLocalProfile(empty);
@@ -149,23 +156,51 @@ export async function loadProfile(): Promise<TasteProfile> {
 }
 
 export async function loadFeed(): Promise<FeedData> {
+  const demoPosts = buildSeedPosts();
+  console.log("[loadFeed] demo posts ready:", demoPosts.length);
+
   // Try Supabase for both authenticated and anonymous users (feed_posts is public-read)
   if (_supabaseActive || hasSupabase()) {
     try {
       const remote = await loadFeedSupabase();
       if (remote && remote.posts.length > 0) {
-        saveLocalFeed(remote);
-        return remote;
+        console.log("[loadFeed] Supabase returned", remote.posts.length, "posts. Merging with demo data.");
+        // Merge: Supabase posts override demo posts by ID (dedupe)
+        const byId = new Map<string, Post>(demoPosts.map((p) => [p.id, p]));
+        for (const p of remote.posts) {
+          byId.set(p.id, p);
+        }
+        const merged = {
+          posts: Array.from(byId.values()).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ),
+        };
+        saveLocalFeed(merged);
+        return merged;
       }
-      if (remote && remote.posts.length === 0) {
-        // Table exists but is genuinely empty
-        return remote;
-      }
+      console.warn("[loadFeed] Supabase returned 0 posts. Using demo data only.");
     } catch (e: any) {
       console.error("[loadFeed] Supabase error:", e?.message || e);
     }
+  } else {
+    console.warn("[loadFeed] Supabase not active. Using demo data only.");
   }
-  return loadLocalFeed();
+
+  // Fallback: demo data + any local cache
+  const local = loadLocalFeed();
+  if (local.posts.length > 0) {
+    // Merge local cache (if any) on top of demo
+    const byId = new Map<string, Post>(demoPosts.map((p) => [p.id, p]));
+    for (const p of local.posts) {
+      byId.set(p.id, p);
+    }
+    return {
+      posts: Array.from(byId.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ),
+    };
+  }
+  return { posts: demoPosts };
 }
 
 /* ─── Save (local + optional cloud) ─── */

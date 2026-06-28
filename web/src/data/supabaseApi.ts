@@ -144,18 +144,33 @@ export async function saveProfileSupabase(
   }
 
   // a. Upsert profiles row
-  const { error: profileError } = await supabase.from("profiles").upsert(
-    {
-      user_id: userId,
-      name,
-      default_context: profile.default_context,
-      include_in_clustering: profile.include_in_clustering ?? true,
-    },
-    { onConflict: "user_id" }
-  );
+  const payload: any = {
+    user_id: userId,
+    default_context: profile.default_context,
+    include_in_clustering: profile.include_in_clustering ?? true,
+  };
+  if (name) payload.name = name;
+
+  let profileError = await supabase.from("profiles").upsert(payload, { onConflict: "user_id" }).then((r) => r.error);
 
   if (profileError) {
-    console.warn("Supabase save profile error:", profileError.message);
+    const msg = profileError.message?.toLowerCase() ?? "";
+    if (msg.includes("name") && (msg.includes("does not exist") || msg.includes("could not find") || msg.includes("schema cache"))) {
+      // Schema doesn't have name column yet — retry without it
+      const { error: retryErr } = await supabase.from("profiles").upsert(
+        {
+          user_id: userId,
+          default_context: profile.default_context,
+          include_in_clustering: profile.include_in_clustering ?? true,
+        },
+        { onConflict: "user_id" }
+      );
+      if (retryErr) {
+        console.warn("Supabase save profile error (retry):", retryErr.message);
+      }
+    } else {
+      console.warn("Supabase save profile error:", profileError.message);
+    }
   }
 
   // b. Upsert all contexts
@@ -270,12 +285,16 @@ export async function deleteContextSupabase(
 /* ─── Feed Posts ─── */
 
 export async function loadFeedSupabase(): Promise<FeedData | null> {
-  if (!supabase) return null;
+  if (!supabase) {
+    console.warn("[loadFeedSupabase] supabase client is null — VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY missing.");
+    return null;
+  }
 
   let data: any[] | null = null;
   let missingLikes = false;
 
   // Try full select first
+  console.log("[loadFeedSupabase] querying feed_posts with likes...");
   const full = await supabase
     .from("feed_posts")
     .select(
@@ -286,7 +305,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
 
   if (full.error) {
     const msg = full.error.message?.toLowerCase() ?? "";
-    console.warn("[Supabase feed] full query failed:", full.error.message);
+    console.warn("[Supabase feed] full query failed:", full.error.message, "code:", full.error.code);
 
     // Retry without likes (schema cache may be stale after migration)
     if (msg.includes("likes")) {
@@ -300,6 +319,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
         .limit(100);
       if (!fallback.error) {
         data = fallback.data;
+        console.log("[loadFeedSupabase] fallback query success, rows:", data?.length ?? 0);
       } else {
         console.warn("[Supabase feed] fallback query also failed:", fallback.error.message);
       }
@@ -314,6 +334,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
         .limit(100);
       if (!minimal.error) {
         data = minimal.data;
+        console.log("[loadFeedSupabase] minimal query success, rows:", data?.length ?? 0);
       } else {
         console.warn("[Supabase feed] minimal query also failed:", minimal.error.message);
         return null;
@@ -321,10 +342,14 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     }
   } else {
     data = full.data;
+    console.log("[loadFeedSupabase] full query success, rows:", data?.length ?? 0);
   }
 
   const rows = data ?? [];
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    console.warn("[loadFeedSupabase] query returned 0 rows.");
+    return null;
+  }
 
   // Build liked-by-me set (gracefully handle missing post_likes table)
   const userId = await currentUserId();
@@ -354,6 +379,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     created_at: row.created_at,
   }));
 
+  console.log("[loadFeedSupabase] returning posts:", posts.length);
   return { posts };
 }
 

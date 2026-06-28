@@ -39,6 +39,16 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
     return () => { cancelled = true; };
   }, [userId]);
 
+  // All derived data here — useMemo hooks must be before any early return
+  const followingUsers = useMemo(() => {
+    if (!profile) return [];
+    return profile.following
+      .map((id) => SAMPLE_USERS.find((u) => u.id === id))
+      .filter(Boolean) as { id: string; name: string }[];
+  }, [profile?.following]);
+
+  const followerUsers = useMemo(() => getFollowers(userId), [userId]);
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 text-center py-20">
@@ -64,14 +74,6 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
   const uniqueCuisines = new Set<string>();
   items.forEach((i) => i.venue.cuisines.forEach((c) => uniqueCuisines.add(c)));
   const cuisineNames = Array.from(uniqueCuisines).slice(0, 3).join(" · ");
-
-  const followingUsers = useMemo(() => {
-    return profile.following
-      .map((id) => SAMPLE_USERS.find((u) => u.id === id))
-      .filter(Boolean) as { id: string; name: string }[];
-  }, [profile.following]);
-
-  const followerUsers = useMemo(() => getFollowers(userId), [userId]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

@@ -93,7 +93,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
     });
   }, [profile.following, followingNames]);
 
-  const resolvedFollowerUsers = followerUsers ?? getFollowers(profile.user_id);
+  const resolvedFollowerUsers = (followerUsers && followerUsers.length > 0) ? followerUsers : getFollowers(profile.user_id);
 
   const handleDateChange = (item: RankedItemWithContext, date: string) => {
     const list = profile.contexts[item.context_id].ranked_list.map((i) =>
