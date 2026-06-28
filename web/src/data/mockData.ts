@@ -234,13 +234,26 @@ function offsetDate(rndVal: number, daysOffset: number): string {
   return d.toISOString();
 }
 
+/* ─── Deterministic like counts for demo posts ─── */
+
+export function computeDemoLikes(postId: string): number {
+  let hash = 0;
+  for (let i = 0; i < postId.length; i++) {
+    hash = ((hash << 5) - hash) + postId.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 500;
+}
+
 /* ─── Post generation ─── */
 
 export function buildSeedPosts(): Post[] {
   // Return the pre-generated realistic posts from generatedUsers.ts
-  return [...GENERATED_POSTS].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  return [...GENERATED_POSTS]
+    .map((p) => ({ ...p, likes: computeDemoLikes(p.id) }))
+    .sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 }
 
 /* ─── Top cuisines ─── */

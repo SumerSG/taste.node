@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import type { FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
 import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing } from "../data/api";
 import { getAllVenues } from "../data/venues";
-import { Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, MapPin } from "lucide-react";
+import { Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, MapPin, Heart } from "lucide-react";
 
 import { useToast } from "../context/ToastContext";
 
@@ -191,13 +191,17 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
                 </div>
               )}
               {/* Actions */}
-              {post.author_id === (getCurrentUserId() ?? "anonymous") && (
-                <div className="mt-3">
+              <div className="mt-3 flex items-center gap-3">
+                <div className="inline-flex items-center gap-1 text-xs text-ink-faint">
+                  <Heart size={14} className="text-rose-400 fill-rose-400" />
+                  <span className="font-medium tabular-nums">{post.likes ?? 0}</span>
+                </div>
+                {post.author_id === (getCurrentUserId() ?? "anonymous") && (
                   <button onClick={() => handleDelete(post.id)} className="rounded-lg p-2 text-ink-faint hover:bg-red-50 hover:text-red-500 transition min-h-[32px] min-w-[44px] inline-flex items-center justify-center" aria-label="Delete post">
                     <Trash2 size={14} />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </div>

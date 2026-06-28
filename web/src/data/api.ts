@@ -1,6 +1,5 @@
 import type { TasteProfile, RankedItem, Filters, RankStatus, Post, FeedData } from "./types";
 import { getClusterLabel, computeRecommendations, sortRecommendations, buildSeedPosts, getDefaultProfile } from "./mockData";
-import { CLUSTER_PEERS } from "./mockData";
 import {
   loadProfileSupabase,
   saveProfileSupabase,
@@ -401,8 +400,10 @@ export function filterFeedPosts(
         (p) => p.author_id === _currentUserId || profile.following.includes(p.author_id)
       );
     case "recommended": {
-      const peerIds = new Set(CLUSTER_PEERS);
-      return feed.posts.filter((p) => p.author_id === _currentUserId || peerIds.has(p.author_id));
+      // "For You" = popular posts sorted by likes (desc), then recency
+      return [...feed.posts].sort(
+        (a, b) => (b.likes ?? 0) - (a.likes ?? 0)
+      );
     }
     case "global":
     default:

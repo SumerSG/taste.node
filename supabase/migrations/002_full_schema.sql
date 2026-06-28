@@ -192,6 +192,7 @@ CREATE TABLE IF NOT EXISTS public.feed_posts (
     venue_id TEXT REFERENCES public.venues(id) ON DELETE SET NULL,
     venue_name TEXT,
     image_url TEXT,
+    likes INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

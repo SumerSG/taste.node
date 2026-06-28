@@ -75,6 +75,7 @@ export interface Post {
   venue_name?: string;
   image_url?: string;
   created_at: string;
+  likes?: number;
 }
 
 export interface FeedData {

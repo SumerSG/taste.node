@@ -240,6 +240,7 @@ def seed_feed_posts(client, profiles: List[Any], venues_json_path: str) -> int:
                     "venue_id": v["venue_id"],
                     "venue_name": v["name"],
                     "image_url": v.get("image_url"),
+                    "likes": rng.randint(0, 500),
                     "created_at": _now(),
                 }
             )

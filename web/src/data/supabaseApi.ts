@@ -250,7 +250,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
   const { data, error } = await supabase
     .from("feed_posts")
     .select(
-      "id, author_id, author_name, text, venue_id, venue_name, image_url, created_at"
+      "id, author_id, author_name, text, venue_id, venue_name, image_url, likes, created_at"
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -268,6 +268,7 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     venue_id: row.venue_id ?? undefined,
     venue_name: row.venue_name ?? undefined,
     image_url: row.image_url ?? undefined,
+    likes: row.likes ?? 0,
     created_at: row.created_at,
   }));
 
@@ -281,8 +282,8 @@ export async function addPostSupabase(post: Post): Promise<boolean> {
   if (!supabase) return false;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, ...rest } = post; // let DB generate uuid
-  const { error } = await supabase.from("feed_posts").insert(rest);
+  const { id, likes, ...rest } = post; // let DB generate uuid
+  const { error } = await supabase.from("feed_posts").insert({ ...rest, likes: likes ?? 0 });
 
   if (error) {
     console.warn("Supabase addPost error:", error.message);

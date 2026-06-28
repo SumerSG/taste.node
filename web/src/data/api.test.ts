@@ -230,18 +230,21 @@ describe('api', () => {
       expect(filtered).toHaveLength(2);
     });
 
-    it('filters feed by recommended mode', () => {
+    it('filters feed by recommended mode (sorted by likes desc)', () => {
       setCurrentUserId('demo_user');
       const feed: FeedData = {
         posts: [
-          { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString() },
-          { id: 'p2', author_id: 'u001', author_name: 'ClusterPeer', text: 'B', created_at: new Date().toISOString() },
-          { id: 'p3', author_id: 'unknown', author_name: 'Unknown', text: 'C', created_at: new Date().toISOString() },
+          { id: 'p1', author_id: 'demo_user', author_name: 'You', text: 'A', created_at: new Date().toISOString(), likes: 10 },
+          { id: 'p2', author_id: 'u001', author_name: 'ClusterPeer', text: 'B', created_at: new Date().toISOString(), likes: 50 },
+          { id: 'p3', author_id: 'unknown', author_name: 'Unknown', text: 'C', created_at: new Date().toISOString(), likes: 30 },
         ],
       };
       const profile = makeProfile([]);
       const filtered = filterFeedPosts(feed, 'recommended', profile);
-      expect(filtered).toHaveLength(2);
+      expect(filtered).toHaveLength(3);
+      expect(filtered[0].id).toBe('p2');
+      expect(filtered[1].id).toBe('p3');
+      expect(filtered[2].id).toBe('p1');
     });
   });
 
