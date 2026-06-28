@@ -545,7 +545,9 @@ export function filterFeedPosts(
     }
     case "global":
     default:
-      return feed.posts;
+      return [...feed.posts].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
   }
 }
 

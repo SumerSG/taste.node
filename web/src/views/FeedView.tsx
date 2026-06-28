@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
 import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing, toggleLikePost } from "../data/api";
-import { getAllVenues } from "../data/venues";
+import { getAllVenues, pickImage } from "../data/venues";
 import { Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, MapPin, Heart } from "lucide-react";
 
 import { useToast } from "../context/ToastContext";
@@ -52,7 +52,13 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
   // DIAGNOSTIC: log what filterFeedPosts returns for each mode
   useEffect(() => {
     console.log("[FeedView] mode:", mode, "feed.posts:", feed.posts.length, "filtered:", filteredPosts.length);
-  }, [mode, feed, filteredPosts]);
+    if (mode === "recommended" && filteredPosts.length > 0) {
+      filteredPosts.slice(0, 5).forEach((p, i) => {
+        const hasImg = !!(p.image_url || (p.venue_id ? venueMap.get(p.venue_id)?.image_url : undefined));
+        console.log(`[FeedView] rec #${i}:`, p.author_name, "likes:", p.likes, "img:", hasImg, "vid:", p.venue_id, "date:", p.created_at);
+      });
+    }
+  }, [mode, feed, filteredPosts, venueMap]);
 
   const handleDelete = (postId: string) => {
     if (!window.confirm("Delete this post?")) return;
@@ -194,14 +200,14 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
                 </button>
               )}
 
-              {/* Image — post image, or venue image as fallback */}
+              {/* Image — post image, venue image, or deterministic fallback */}
               {(() => {
-                const imgUrl = post.image_url || (post.venue_id ? venueMap.get(post.venue_id)?.image_url : undefined);
-                return imgUrl ? (
+                const imgUrl = post.image_url || (post.venue_id ? venueMap.get(post.venue_id)?.image_url : undefined) || pickImage([], post.id);
+                return (
                   <div className="relative w-full overflow-hidden rounded-xl bg-cream-dark" style={{ aspectRatio: "16/10" }}>
                     <img src={imgUrl} alt="Post" className="h-full w-full object-cover" loading="lazy" />
                   </div>
-                ) : null;
+                );
               })()}
               {/* Actions */}
               <div className="mt-3 flex items-center gap-3">
