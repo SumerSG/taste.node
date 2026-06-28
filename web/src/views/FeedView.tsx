@@ -189,12 +189,15 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
                 </button>
               )}
 
-              {/* Image */}
-              {post.image_url && (
-                <div className="relative w-full overflow-hidden rounded-xl bg-cream-dark" style={{ aspectRatio: "16/10" }}>
-                  <img src={post.image_url} alt="Post" className="h-full w-full object-cover" loading="lazy" />
-                </div>
-              )}
+              {/* Image — post image, or venue image as fallback */}
+              {(() => {
+                const imgUrl = post.image_url || (post.venue_id ? venueMap.get(post.venue_id)?.image_url : undefined);
+                return imgUrl ? (
+                  <div className="relative w-full overflow-hidden rounded-xl bg-cream-dark" style={{ aspectRatio: "16/10" }}>
+                    <img src={imgUrl} alt="Post" className="h-full w-full object-cover" loading="lazy" />
+                  </div>
+                ) : null;
+              })()}
               {/* Actions */}
               <div className="mt-3 flex items-center gap-3">
                 <button
