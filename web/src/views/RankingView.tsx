@@ -1,12 +1,12 @@
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types";
-import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext, displayContextName, moveItemToContext, ensureContext } from "../data/api";
+import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, createContext, deleteContext, displayContextName, moveItemToContext, ensureContext } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
-import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen, ArrowRight } from "lucide-react";
+import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen, Search } from "lucide-react";
 
 import { useToast } from "../context/ToastContext";
 
@@ -14,7 +14,6 @@ interface Props {
   profile: TasteProfile;
   onProfileChange: (p: TasteProfile) => void;
   onNavigateToSearch: () => void;
-  onNavigateToLibrary: () => void;
   onNavigateToVenue?: (v: Venue) => void;
 }
 
@@ -143,7 +142,7 @@ function SortableRow({
   );
 }
 
-export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNavigateToLibrary, onNavigateToVenue }: Props) {
+export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNavigateToVenue }: Props) {
   const toast = useToast();
   const activeCtx = profile.default_context;
   // In non-wishlist contexts, filter out items with status === "wishlist"
@@ -153,9 +152,39 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [showNewList, setShowNewList] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [showLibrarySearch, setShowLibrarySearch] = useState(false);
+  const [libraryQuery, setLibraryQuery] = useState("");
   const cluster = getClusterLabel(profile);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Collect all library items not already in the active context
+  const libraryCandidates = useMemo(() => {
+    const existingIds = new Set(items.map((i) => i.venue.id));
+    const candidates: { item: RankedItem; sourceContext: string }[] = [];
+    for (const [ctxId, ctx] of Object.entries(profile.contexts)) {
+      if (ctxId === activeCtx) continue;
+      // skip wishlist context items when adding to a real list
+      if (ctxId === "wishlist") continue;
+      for (const item of ctx.ranked_list) {
+        if (!existingIds.has(item.venue.id)) {
+          candidates.push({ item, sourceContext: ctxId });
+          existingIds.add(item.venue.id); // dedupe across contexts
+        }
+      }
+    }
+    return candidates;
+  }, [profile.contexts, activeCtx, items]);
+
+  const filteredLibrary = useMemo(() => {
+    const q = libraryQuery.trim().toLowerCase();
+    if (!q) return libraryCandidates;
+    return libraryCandidates.filter(
+      ({ item }) =>
+        item.venue.name.toLowerCase().includes(q) ||
+        item.venue.cuisines.some((c) => c.toLowerCase().includes(q))
+    );
+  }, [libraryCandidates, libraryQuery]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -230,24 +259,80 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
               </button>
             )}
           </div>
-                  }
-                }}
-                className="rounded p-1 text-ink-faint hover:bg-red-50 hover:text-red-500 transition"
-                title="Delete this list"
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
           <div className="flex items-center gap-2">
             <button onClick={onNavigateToSearch} className="btn-primary gap-2 text-sm">
               <Plus size={15} /> Add from Search
             </button>
-            <button onClick={onNavigateToLibrary} className="btn-secondary gap-2 text-sm">
-              <Plus size={15} /> Add from Library
+            <button onClick={() => setShowLibrarySearch((s) => !s)} className="btn-secondary gap-2 text-sm">
+              <Search size={15} /> Add from Library
             </button>
           </div>
         </div>
+
+        {/* Library search panel */}
+        {showLibrarySearch && (
+          <div className="rounded-2xl border border-cream-dark bg-cream p-4 space-y-3">
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+              <input
+                autoFocus
+                value={libraryQuery}
+                onChange={(e) => setLibraryQuery(e.target.value)}
+                placeholder="Search your library..."
+                className="w-full rounded-lg border border-cream-dark bg-paper px-3 py-2 pl-9 text-sm shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
+              />
+              {libraryQuery && (
+                <button
+                  onClick={() => setLibraryQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-muted"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {filteredLibrary.length === 0 ? (
+              <p className="text-sm text-ink-faint text-center py-2">
+                {libraryQuery ? "No matching restaurants in your library." : "Your library is empty."}
+              </p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {filteredLibrary.map(({ item, sourceContext }) => (
+                  <div
+                    key={item.venue.id}
+                    className="flex items-center gap-3 rounded-xl border border-cream-dark bg-paper p-2.5"
+                  >
+                    <img
+                      src={item.venue.image_url}
+                      alt={item.venue.name}
+                      className="h-10 w-10 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink truncate">{item.venue.name}</p>
+                      <p className="text-xs text-ink-faint">
+                        {item.venue.cuisines.slice(0, 3).join(" · ")} · from {displayContextName(sourceContext)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onProfileChange(
+                          moveItemToContext(profile, item.venue.id, sourceContext, activeCtx, {
+                            status: activeCtx === "wishlist" ? "wishlist" : "visited",
+                          })
+                        );
+                        toast.show(`Added ${item.venue.name}`, "success");
+                      }}
+                      className="rounded-lg bg-sienna-50 px-2.5 py-1.5 text-xs font-medium text-sienna-700 ring-1 ring-sienna-200 hover:bg-sienna-100 transition shrink-0"
+                    >
+                      <Plus size={12} className="inline mr-1" />
+                      Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {showNewList ? (
           <div className="flex items-center gap-2">
@@ -279,7 +364,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
           <p className="font-serif text-lg text-ink-muted">Your ranking is empty</p>
           <p className="text-sm text-ink-faint mt-1">Browse Search and add places you love.</p>
           <button onClick={onNavigateToSearch} className="btn-primary mt-4 gap-2"><Plus size={15} /> Browse Search</button>
-          <button onClick={onNavigateToLibrary} className="btn-secondary mt-2 gap-2"><Plus size={15} /> Browse Library</button>
+          <button onClick={() => setShowLibrarySearch(true)} className="btn-secondary mt-2 gap-2"><Search size={15} /> Browse Library</button>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

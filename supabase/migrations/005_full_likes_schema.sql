@@ -28,16 +28,19 @@ CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON public.post_likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_post_likes_user_id ON public.post_likes(user_id);
 
 ALTER TABLE public.post_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS post_likes_select_own ON public.post_likes;
 
-CREATE POLICY IF NOT EXISTS post_likes_select_own
+CREATE POLICY post_likes_select_own
     ON public.post_likes FOR SELECT
     USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS post_likes_insert_own ON public.post_likes;
 
-CREATE POLICY IF NOT EXISTS post_likes_insert_own
+CREATE POLICY post_likes_insert_own
     ON public.post_likes FOR INSERT
     WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS post_likes_delete_own ON public.post_likes;
 
-CREATE POLICY IF NOT EXISTS post_likes_delete_own
+CREATE POLICY post_likes_delete_own
     ON public.post_likes FOR DELETE
     USING (auth.uid() = user_id);
 

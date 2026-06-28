@@ -266,10 +266,6 @@ function AppContent() {
                   setNavStack([{ view: "search" }]);
                   setTab("search");
                 }}
-                onNavigateToLibrary={() => {
-                  setNavStack([{ view: "profile" }]);
-                  setTab("profile");
-                }}
                 onNavigateToVenue={navigateToVenue}
               />
             )}

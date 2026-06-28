@@ -14,25 +14,30 @@ COMMENT ON TABLE public.profiles IS 'App user profiles extending Supabase Auth u
 
 -- RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 
-CREATE POLICY IF NOT EXISTS "profiles_select_own"
+CREATE POLICY "profiles_select_own"
     ON public.profiles FOR SELECT
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 
-CREATE POLICY IF NOT EXISTS "profiles_insert_own"
+CREATE POLICY "profiles_insert_own"
     ON public.profiles FOR INSERT
     WITH CHECK (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 
-CREATE POLICY IF NOT EXISTS "profiles_update_own"
+CREATE POLICY "profiles_update_own"
     ON public.profiles FOR UPDATE
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "profiles_delete_own" ON public.profiles;
 
-CREATE POLICY IF NOT EXISTS "profiles_delete_own"
+CREATE POLICY "profiles_delete_own"
     ON public.profiles FOR DELETE
     USING (auth.uid()::text = user_id);
 
 -- Service role bypass (for seed scripts)
-CREATE POLICY IF NOT EXISTS "profiles_service_all"
+DROP POLICY IF EXISTS "profiles_service_all" ON public.profiles;
+CREATE POLICY "profiles_service_all"
     ON public.profiles
     FOR ALL
     TO service_role
@@ -56,24 +61,29 @@ CREATE TABLE IF NOT EXISTS public.contexts (
 COMMENT ON TABLE public.contexts IS 'User taste contexts / ranked lists';
 
 ALTER TABLE public.contexts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "contexts_select_own" ON public.contexts;
 
-CREATE POLICY IF NOT EXISTS "contexts_select_own"
+CREATE POLICY "contexts_select_own"
     ON public.contexts FOR SELECT
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "contexts_insert_own" ON public.contexts;
 
-CREATE POLICY IF NOT EXISTS "contexts_insert_own"
+CREATE POLICY "contexts_insert_own"
     ON public.contexts FOR INSERT
     WITH CHECK (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "contexts_update_own" ON public.contexts;
 
-CREATE POLICY IF NOT EXISTS "contexts_update_own"
+CREATE POLICY "contexts_update_own"
     ON public.contexts FOR UPDATE
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "contexts_delete_own" ON public.contexts;
 
-CREATE POLICY IF NOT EXISTS "contexts_delete_own"
+CREATE POLICY "contexts_delete_own"
     ON public.contexts FOR DELETE
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "contexts_service_all" ON public.contexts;
 
-CREATE POLICY IF NOT EXISTS "contexts_service_all"
+CREATE POLICY "contexts_service_all"
     ON public.contexts
     FOR ALL
     TO service_role
@@ -106,24 +116,29 @@ CREATE TABLE IF NOT EXISTS public.ranked_items (
 COMMENT ON TABLE public.ranked_items IS 'Ranked venue items inside a taste context';
 
 ALTER TABLE public.ranked_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ranked_items_select_own" ON public.ranked_items;
 
-CREATE POLICY IF NOT EXISTS "ranked_items_select_own"
+CREATE POLICY "ranked_items_select_own"
     ON public.ranked_items FOR SELECT
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "ranked_items_insert_own" ON public.ranked_items;
 
-CREATE POLICY IF NOT EXISTS "ranked_items_insert_own"
+CREATE POLICY "ranked_items_insert_own"
     ON public.ranked_items FOR INSERT
     WITH CHECK (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "ranked_items_update_own" ON public.ranked_items;
 
-CREATE POLICY IF NOT EXISTS "ranked_items_update_own"
+CREATE POLICY "ranked_items_update_own"
     ON public.ranked_items FOR UPDATE
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "ranked_items_delete_own" ON public.ranked_items;
 
-CREATE POLICY IF NOT EXISTS "ranked_items_delete_own"
+CREATE POLICY "ranked_items_delete_own"
     ON public.ranked_items FOR DELETE
     USING (auth.uid()::text = user_id);
+DROP POLICY IF EXISTS "ranked_items_service_all" ON public.ranked_items;
 
-CREATE POLICY IF NOT EXISTS "ranked_items_service_all"
+CREATE POLICY "ranked_items_service_all"
     ON public.ranked_items
     FOR ALL
     TO service_role
@@ -163,13 +178,15 @@ COMMENT ON TABLE public.venues IS 'Global venue pool for recommendations';
 
 -- Venues are public read, service-role write
 ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "venues_select_all" ON public.venues;
 
-CREATE POLICY IF NOT EXISTS "venues_select_all"
+CREATE POLICY "venues_select_all"
     ON public.venues FOR SELECT
     TO authenticated, anon
     USING (true);
+DROP POLICY IF EXISTS "venues_service_all" ON public.venues;
 
-CREATE POLICY IF NOT EXISTS "venues_service_all"
+CREATE POLICY "venues_service_all"
     ON public.venues
     FOR ALL
     TO service_role
@@ -199,25 +216,30 @@ CREATE TABLE IF NOT EXISTS public.feed_posts (
 COMMENT ON TABLE public.feed_posts IS 'Social feed posts';
 
 ALTER TABLE public.feed_posts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "feed_posts_select_public" ON public.feed_posts;
 
-CREATE POLICY IF NOT EXISTS "feed_posts_select_public"
+CREATE POLICY "feed_posts_select_public"
     ON public.feed_posts FOR SELECT
     TO authenticated, anon
     USING (true);
+DROP POLICY IF EXISTS "feed_posts_insert_own" ON public.feed_posts;
 
-CREATE POLICY IF NOT EXISTS "feed_posts_insert_own"
+CREATE POLICY "feed_posts_insert_own"
     ON public.feed_posts FOR INSERT
     WITH CHECK (auth.uid()::text = author_id);
+DROP POLICY IF EXISTS "feed_posts_update_own" ON public.feed_posts;
 
-CREATE POLICY IF NOT EXISTS "feed_posts_update_own"
+CREATE POLICY "feed_posts_update_own"
     ON public.feed_posts FOR UPDATE
     USING (auth.uid()::text = author_id);
+DROP POLICY IF EXISTS "feed_posts_delete_own" ON public.feed_posts;
 
-CREATE POLICY IF NOT EXISTS "feed_posts_delete_own"
+CREATE POLICY "feed_posts_delete_own"
     ON public.feed_posts FOR DELETE
     USING (auth.uid()::text = author_id);
+DROP POLICY IF EXISTS "feed_posts_service_all" ON public.feed_posts;
 
-CREATE POLICY IF NOT EXISTS "feed_posts_service_all"
+CREATE POLICY "feed_posts_service_all"
     ON public.feed_posts
     FOR ALL
     TO service_role
@@ -243,22 +265,26 @@ COMMENT ON TABLE public.follows IS 'Social follow relationships';
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see follows they are part of
-CREATE POLICY IF NOT EXISTS "follows_select_own"
+DROP POLICY IF EXISTS "follows_select_own" ON public.follows;
+CREATE POLICY "follows_select_own"
     ON public.follows FOR SELECT
     USING (
         auth.uid()::text = follower_id
         OR auth.uid()::text = following_id
     );
+DROP POLICY IF EXISTS "follows_insert_own" ON public.follows;
 
-CREATE POLICY IF NOT EXISTS "follows_insert_own"
+CREATE POLICY "follows_insert_own"
     ON public.follows FOR INSERT
     WITH CHECK (auth.uid()::text = follower_id);
+DROP POLICY IF EXISTS "follows_delete_own" ON public.follows;
 
-CREATE POLICY IF NOT EXISTS "follows_delete_own"
+CREATE POLICY "follows_delete_own"
     ON public.follows FOR DELETE
     USING (auth.uid()::text = follower_id);
+DROP POLICY IF EXISTS "follows_service_all" ON public.follows;
 
-CREATE POLICY IF NOT EXISTS "follows_service_all"
+CREATE POLICY "follows_service_all"
     ON public.follows
     FOR ALL
     TO service_role
