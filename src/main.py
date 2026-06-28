@@ -33,6 +33,7 @@ from src.db import (
     get_all_profiles,
     get_all_venues,
     seed_venues_if_empty,
+    toggle_like_post,
 )
 from src.similarity import compute_similarity
 from src.clustering import ContextualClusterMap
@@ -335,6 +336,26 @@ def clear_mock_data_endpoint(
 ):
     count = clear_mock_data(conn)
     return {"status": "ok", "cleared_rows": count}
+
+
+# ─── Feed likes ───
+
+@app.post("/feed/{post_id}/like")
+@limiter.limit("30/minute")
+def like_post(
+    request: Request,
+    post_id: str,
+    payload: Dict[str, str] = Body(...),
+    conn: Any = Depends(get_db),
+    _auth: None = Depends(require_api_key),
+):
+    user_id = payload.get("user_id")
+    if not user_id:
+        _error(400, "missing_field", "user_id is required")
+    result = toggle_like_post(conn, post_id, user_id)
+    if result is None:
+        _error(500, "db_error", "Failed to toggle like. Ensure the post_likes table exists.")
+    return result
 
 
 # ─── Supabase schema health check (diagnostic only) ───

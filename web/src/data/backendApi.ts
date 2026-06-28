@@ -11,6 +11,7 @@ import type { Venue, TasteProfile, Filters, Recommendation, RankedItem } from ".
 import { pickImage } from "./venues";
 
 const API_BASE = import.meta.env.VITE_API_URL;
+const API_KEY = import.meta.env.VITE_API_KEY as string | undefined;
 
 export function hasBackend(): boolean {
   return !!API_BASE;
@@ -28,8 +29,10 @@ function normalizeVenue(v: Venue): Venue {
 async function _fetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   if (!API_BASE) return null;
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (API_KEY) headers["X-API-Key"] = API_KEY;
     const resp = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      headers,
       ...init,
     });
     if (!resp.ok) {
@@ -83,6 +86,17 @@ export async function saveContextBackend(
   return _fetch(`/users/${encodeURIComponent(userId)}/contexts/${encodeURIComponent(contextId)}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+/** Toggle like/unlike on a post via backend (uses service role). */
+export async function toggleLikeBackend(
+  postId: string,
+  userId: string
+): Promise<{ liked_by_me: boolean; likes: number } | null> {
+  return _fetch<{ liked_by_me: boolean; likes: number }>(`/feed/${encodeURIComponent(postId)}/like`, {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
   });
 }
 

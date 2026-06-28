@@ -440,6 +440,11 @@ def get_all_venues(conn: Any) -> List[Venue]:
     return [_row_to_venue(r) for r in rows]
 
 
+def toggle_like_post(conn: Any, post_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """SQLite fallback: no feed likes support."""
+    return None
+
+
 # ─── Supabase re-export (overrides SQLite funcs when configured) ───
 
 try:
@@ -456,6 +461,7 @@ try:
             get_all_venues,
             seed_venues_if_empty,
             init_db,
+            toggle_like_post,
         )
 
         __all__ = [
@@ -468,6 +474,7 @@ try:
             "get_all_venues",
             "seed_venues_if_empty",
             "init_db",
+            "toggle_like_post",
             "metadata",
             "_engine",
         ]

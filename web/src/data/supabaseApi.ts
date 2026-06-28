@@ -256,11 +256,35 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     .limit(100);
 
   if (error) {
-    console.warn("Supabase loadFeed error:", error.message);
+    // Missing likes column → migration not applied yet; fall back to local seed
+    if (error.message?.toLowerCase().includes("likes") &&
+        error.message?.toLowerCase().includes("does not exist")) {
+      console.warn("Supabase likes column missing; falling back to local feed");
+    } else {
+      console.warn("Supabase loadFeed error:", error.message);
+    }
     return null;
   }
 
-  const posts: Post[] = (data ?? []).map((row) => ({
+  const rows = data ?? [];
+  if (rows.length === 0) return null;
+
+  // Build liked-by-me set (gracefully handle missing post_likes table)
+  const userId = await currentUserId();
+  let likedSet = new Set<string>();
+  if (userId) {
+    try {
+      const { data: likeData } = await supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", userId);
+      likedSet = new Set((likeData ?? []).map((l) => l.post_id));
+    } catch {
+      // post_likes table may not exist yet; ignore
+    }
+  }
+
+  const posts: Post[] = rows.map((row) => ({
     id: row.id,
     author_id: row.author_id,
     author_name: row.author_name,
@@ -269,11 +293,9 @@ export async function loadFeedSupabase(): Promise<FeedData | null> {
     venue_name: row.venue_name ?? undefined,
     image_url: row.image_url ?? undefined,
     likes: row.likes ?? 0,
+    liked_by_me: likedSet.has(row.id),
     created_at: row.created_at,
   }));
-
-  // If Supabase has no posts yet, fall back to localStorage/demo feed
-  if (posts.length === 0) return null;
 
   return { posts };
 }
@@ -309,4 +331,50 @@ export async function deletePostSupabase(postId: string): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+export async function toggleLikeSupabase(
+  postId: string
+): Promise<{ liked_by_me: boolean; likes: number } | null> {
+  if (!supabase) return null;
+  const userId = await currentUserId();
+  if (!userId) return null;
+
+  try {
+    const { data: existing } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .eq("user_id", userId)
+      .eq("post_id", postId)
+      .single();
+
+    if (existing) {
+      // Unlike
+      await supabase
+        .from("post_likes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("post_id", postId);
+      const { data: post } = await supabase
+        .from("feed_posts")
+        .select("likes")
+        .eq("id", postId)
+        .single();
+      return { liked_by_me: false, likes: Math.max(0, (post?.likes ?? 0) - 1) };
+    } else {
+      // Like
+      await supabase
+        .from("post_likes")
+        .insert({ user_id: userId, post_id: postId });
+      const { data: post } = await supabase
+        .from("feed_posts")
+        .select("likes")
+        .eq("id", postId)
+        .single();
+      return { liked_by_me: true, likes: (post?.likes ?? 0) + 1 };
+    }
+  } catch {
+    // post_likes table may not exist yet → let caller fall back to localStorage
+    return null;
+  }
 }

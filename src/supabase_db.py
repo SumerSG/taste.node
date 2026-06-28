@@ -391,3 +391,48 @@ def seed_venues_if_empty(conn: Any) -> None:
 
     if rows:
         _client.table("venues").insert(rows).execute()
+
+
+# ─── Feed / Likes ───
+
+
+def toggle_like_post(conn: Any, post_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """Toggle like/unlike on a post. Returns {liked_by_me, likes} or None on error."""
+    if not _client:
+        return None
+
+    try:
+        # Check existing like
+        existing = (
+            _client.table("post_likes")
+            .select("post_id")
+            .eq("user_id", user_id)
+            .eq("post_id", post_id)
+            .execute()
+        )
+        has_liked = bool(existing.data)
+
+        post_resp = (
+            _client.table("feed_posts")
+            .select("likes")
+            .eq("id", post_id)
+            .single()
+            .execute()
+        )
+        current_likes = post_resp.data.get("likes", 0) if post_resp.data else 0
+
+        if has_liked:
+            # Unlike
+            _client.table("post_likes").delete().eq("user_id", user_id).eq("post_id", post_id).execute()
+            new_likes = max(0, current_likes - 1)
+            _client.table("feed_posts").update({"likes": new_likes}).eq("id", post_id).execute()
+            return {"liked_by_me": False, "likes": new_likes}
+        else:
+            # Like
+            _client.table("post_likes").insert({"user_id": user_id, "post_id": post_id}).execute()
+            new_likes = current_likes + 1
+            _client.table("feed_posts").update({"likes": new_likes}).eq("id", post_id).execute()
+            return {"liked_by_me": True, "likes": new_likes}
+    except Exception as e:
+        print("[supabase_db] toggle_like_post error:", e)
+        return None

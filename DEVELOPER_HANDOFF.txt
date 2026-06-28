@@ -80,7 +80,11 @@ C. Enable Google OAuth       — DONE (Supabase dashboard config)
 D. Seed venue data           — DONE (Seed script written; requires live DB)
 E. Test sign-in flow         — PENDING (Frontend API shape REFACTORED by
     prior dev and looks correct now; needs end-to-end test against live DB)
-F. Integrate 100 demo users  — DONE (generatedUsers.ts + mockData.ts updated)
+F. Integrate 100 demo users           — DONE (generatedUsers.ts + mockData.ts updated)
+G. DB-backed likes (feed_posts.likes) — DONE (code deployed, schema NOT yet applied)
+     - Migration file: supabase/migrations/005_full_likes_schema.sql
+     - Must be run in Supabase SQL Editor before likes appear in production
+     - After schema is applied, re-run seed script to populate power-law likes
 
 ---
 3. HOW TO FIX EACH TASK

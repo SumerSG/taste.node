@@ -7,6 +7,7 @@ import {
   loadFeedSupabase,
   addPostSupabase,
   deletePostSupabase,
+  toggleLikeSupabase,
 } from "./supabaseApi";
 import { hasSupabase } from "../lib/supabase";
 import {
@@ -15,6 +16,7 @@ import {
   createUserBackend,
   saveContextBackend,
   getRecommendationsBackend,
+  toggleLikeBackend,
 } from "./backendApi";
 
 const STORAGE_KEY_BASE = "taste.node.profile.v2";
@@ -117,7 +119,8 @@ export async function loadProfile(): Promise<TasteProfile> {
 }
 
 export async function loadFeed(): Promise<FeedData> {
-  if (_supabaseActive) {
+  // Try Supabase for both authenticated and anonymous users (feed_posts is public-read)
+  if (_supabaseActive || hasSupabase()) {
     const remote = await loadFeedSupabase();
     if (remote) {
       saveLocalFeed(remote);
@@ -413,6 +416,14 @@ export function toggleLikePost(feed: FeedData, postId: string): FeedData {
     }),
   };
   saveLocalFeed(next);
+
+  // Background sync to cloud (fire-and-forget; count reconciles on next load)
+  if (_backendActive && _currentUserId) {
+    toggleLikeBackend(postId, _currentUserId).catch(() => {});
+  } else if (_supabaseActive && _currentUserId) {
+    toggleLikeSupabase(postId).catch(() => {});
+  }
+
   return next;
 }
 
