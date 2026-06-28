@@ -38,7 +38,7 @@ const MODES: { id: FeedMode; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavigateToSearch, onNavigateToVenue, onNavigateToProfile }: Props) {
-  const [mode, setMode] = useState<FeedMode>("recommended");
+  const [mode, setMode] = useState<FeedMode>("global");
   const toast = useToast();
 
   const venueMap = useMemo(() => {

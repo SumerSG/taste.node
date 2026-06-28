@@ -36,7 +36,7 @@ from src.db import (
 )
 from src.similarity import compute_similarity
 from src.clustering import ContextualClusterMap
-from src.recommendations import score_recommendations, _set_cached_cluster
+from src.recommendations import score_recommendations, _set_cached_cluster, _invalidate_cluster_cache
 from src.mock_database import get_mock_users, seed_synthetic_profiles, clear_mock_data
 
 # ─── Rate limiting ───
@@ -131,6 +131,10 @@ def patch_user_settings(
     if not profile:
         _error(404, "user_not_found", "User not found", detail={"user_id": user_id})
     update_user_settings(conn, user_id, payload.include_in_clustering)
+    # Invalidate all cluster caches since opt-in status changed
+    _invalidate_cluster_cache("default")
+    _invalidate_cluster_cache("date_night")
+    _invalidate_cluster_cache("solo_comfort")
     # Return updated profile
     updated = get_user_profile(conn, user_id)
     return updated
@@ -159,7 +163,9 @@ def update_context(
                 "venue_id is required",
                 detail={"invalid_item_index": idx},
             )
-    return upsert_context(conn, user_id, context_id, items)
+    result = upsert_context(conn, user_id, context_id, items)
+    _invalidate_cluster_cache(context_id)
+    return result
 
 
 # ─── Similarity ───

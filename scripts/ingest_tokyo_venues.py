@@ -1,15 +1,15 @@
-"""taste.node — Ingest ~10,000 real Tokyo restaurants via Overpass API (OpenStreetMap).
+"""taste.node — Ingest real Japan restaurants via Overpass API (OpenStreetMap).
 
-This script queries the Overpass API for real amenity=restaurant data in the
-Tokyo metropolis. No scraping, no third-party API keys required — Overpass is a
-public open-data API.
+Queries the public Overpass API for amenity=restaurant data across Japan's
+major metropolitan areas, deduplicates, supplements with generated data to hit
+the target count, and writes to both frontend and backend JSON files.
 
 Usage:
     python scripts/ingest_tokyo_venues.py
 
 Output:
-    web/src/data/venues.json   (frontend)
-    src/data/venues.json       (backend)
+    web/src/data/venues.json   (frontend fallback)
+    src/data/venues.json       (backend fallback)
 """
 import hashlib
 import json
@@ -28,26 +28,56 @@ from src.models import Venue
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-# Split Greater Tokyo into a 4x2 grid to avoid timeouts.
-# Each cell roughly 0.1° lat (~11 km) x 0.14° lon (~12 km).
-GRID_CELLS = [
-    (35.50, 139.40, 35.60, 139.54),
-    (35.50, 139.54, 35.60, 139.68),
-    (35.50, 139.68, 35.60, 139.82),
-    (35.50, 139.82, 35.60, 139.96),
-    (35.60, 139.40, 35.70, 139.54),
-    (35.60, 139.54, 35.70, 139.68),
-    (35.60, 139.68, 35.70, 139.82),
-    (35.60, 139.82, 35.70, 139.96),
-    (35.70, 139.40, 35.80, 139.54),
-    (35.70, 139.54, 35.80, 139.68),
-    (35.70, 139.68, 35.80, 139.82),
-    (35.70, 139.82, 35.80, 139.96),
-    (35.80, 139.40, 35.90, 139.54),
-    (35.80, 139.54, 35.90, 139.68),
-    (35.80, 139.68, 35.90, 139.82),
-    (35.80, 139.82, 35.90, 139.96),
+# Regions to cover (south, west, north, east, lat_step, lon_step)
+# High-resolution for dense metros, lower for surrounding prefectures.
+_REGIONS = [
+    # Tokyo / Yokohama / Saitama / Chiba (dense)
+    (35.30, 139.20, 35.90, 139.96, 0.10, 0.14),
+    # North Kanto (Utsunomiya, Maebashi)
+    (36.00, 138.80, 36.70, 139.60, 0.18, 0.20),
+    # Nagoya / Toyota / Gifu
+    (34.80, 136.50, 35.50, 137.50, 0.15, 0.18),
+    # Osaka / Kyoto / Kobe
+    (34.30, 135.00, 35.00, 136.00, 0.12, 0.14),
+    # Hiroshima
+    (34.20, 132.20, 34.60, 132.60, 0.18, 0.18),
+    # Fukuoka / Kitakyushu
+    (33.40, 130.20, 33.80, 130.80, 0.15, 0.18),
+    # Sapporo
+    (42.80, 141.10, 43.40, 141.60, 0.18, 0.18),
+    # Sendai
+    (38.10, 140.70, 38.50, 141.20, 0.18, 0.18),
+    # Niigata
+    (37.70, 138.80, 38.20, 139.20, 0.20, 0.20),
+    # Shizuoka / Hamamatsu
+    (34.60, 137.50, 35.20, 138.50, 0.18, 0.20),
+    # Okayama
+    (34.50, 133.70, 34.80, 134.10, 0.20, 0.20),
+    # Kumamoto
+    (32.60, 130.50, 33.00, 130.90, 0.20, 0.20),
+    # Kagoshima
+    (31.40, 130.40, 31.80, 130.80, 0.20, 0.20),
+    # Okinawa (Naha)
+    (26.00, 127.50, 26.50, 128.00, 0.20, 0.20),
 ]
+
+
+def _generate_grid_cells() -> List[tuple[float, float, float, float]]:
+    cells: list[tuple[float, float, float, float]] = []
+    for south, west, north, east, lat_step, lon_step in _REGIONS:
+        lat = south
+        while lat < north:
+            lng = west
+            while lng < east:
+                cells.append(
+                    (round(lat, 2), round(lng, 2), round(min(lat + lat_step, north), 2), round(min(lng + lon_step, east), 2))
+                )
+                lng += lon_step
+            lat += lat_step
+    return cells
+
+
+GRID_CELLS = _generate_grid_cells()
 
 _CUISINE_MAP: Dict[str, str] = {
     "ramen": "ラーメン",
@@ -411,7 +441,7 @@ def main() -> None:
 
     print(f"[ingest] Parsed {len(venues)} venues, deduplicated to {len(deduped)}")
 
-    target = 10000
+    target = 100000
     if len(deduped) >= target:
         deduped = deduped[:target]
         print(f"[ingest] Trimmed to {target} venues")

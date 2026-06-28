@@ -4,7 +4,7 @@
 -- ─── profiles ───
 -- Extends auth.users with app-specific settings.
 CREATE TABLE IF NOT EXISTS public.profiles (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT PRIMARY KEY,
     default_context TEXT NOT NULL DEFAULT 'default',
     include_in_clustering BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -17,19 +17,19 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY IF NOT EXISTS "profiles_select_own"
     ON public.profiles FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "profiles_insert_own"
     ON public.profiles FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "profiles_update_own"
     ON public.profiles FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "profiles_delete_own"
     ON public.profiles FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 -- Service role bypass (for seed scripts)
 CREATE POLICY IF NOT EXISTS "profiles_service_all"
@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 -- A "list" owned by a user. Composite PK on (context_id, user_id).
 CREATE TABLE IF NOT EXISTS public.contexts (
     context_id TEXT NOT NULL,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     name TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -59,19 +59,19 @@ ALTER TABLE public.contexts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY IF NOT EXISTS "contexts_select_own"
     ON public.contexts FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "contexts_insert_own"
     ON public.contexts FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "contexts_update_own"
     ON public.contexts FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "contexts_delete_own"
     ON public.contexts FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "contexts_service_all"
     ON public.contexts
@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_contexts_updated_at ON public.contexts(updated_at
 CREATE TABLE IF NOT EXISTS public.ranked_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     context_id TEXT NOT NULL,
-    user_id UUID NOT NULL,
+    user_id TEXT NOT NULL,
     venue JSONB NOT NULL DEFAULT '{}',
     visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -109,19 +109,19 @@ ALTER TABLE public.ranked_items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY IF NOT EXISTS "ranked_items_select_own"
     ON public.ranked_items FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "ranked_items_insert_own"
     ON public.ranked_items FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "ranked_items_update_own"
     ON public.ranked_items FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "ranked_items_delete_own"
     ON public.ranked_items FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (auth.uid()::text = user_id);
 
 CREATE POLICY IF NOT EXISTS "ranked_items_service_all"
     ON public.ranked_items
@@ -186,7 +186,7 @@ CREATE INDEX IF NOT EXISTS idx_venues_source ON public.venues(source);
 -- Social feed. Public read; authors can CRUD their own.
 CREATE TABLE IF NOT EXISTS public.feed_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    author_id TEXT NOT NULL,
     author_name TEXT NOT NULL,
     text TEXT NOT NULL,
     venue_id TEXT REFERENCES public.venues(id) ON DELETE SET NULL,
@@ -206,15 +206,15 @@ CREATE POLICY IF NOT EXISTS "feed_posts_select_public"
 
 CREATE POLICY IF NOT EXISTS "feed_posts_insert_own"
     ON public.feed_posts FOR INSERT
-    WITH CHECK (auth.uid() = author_id);
+    WITH CHECK (auth.uid()::text = author_id);
 
 CREATE POLICY IF NOT EXISTS "feed_posts_update_own"
     ON public.feed_posts FOR UPDATE
-    USING (auth.uid() = author_id);
+    USING (auth.uid()::text = author_id);
 
 CREATE POLICY IF NOT EXISTS "feed_posts_delete_own"
     ON public.feed_posts FOR DELETE
-    USING (auth.uid() = author_id);
+    USING (auth.uid()::text = author_id);
 
 CREATE POLICY IF NOT EXISTS "feed_posts_service_all"
     ON public.feed_posts
@@ -231,8 +231,8 @@ CREATE INDEX IF NOT EXISTS idx_feed_posts_venue_id ON public.feed_posts(venue_id
 -- ─── follows ───
 -- Social graph: follower_id -> following_id.
 CREATE TABLE IF NOT EXISTS public.follows (
-    follower_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    following_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    follower_id TEXT NOT NULL,
+    following_id TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (follower_id, following_id)
 );
@@ -245,17 +245,17 @@ ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 CREATE POLICY IF NOT EXISTS "follows_select_own"
     ON public.follows FOR SELECT
     USING (
-        auth.uid() = follower_id
-        OR auth.uid() = following_id
+        auth.uid()::text = follower_id
+        OR auth.uid()::text = following_id
     );
 
 CREATE POLICY IF NOT EXISTS "follows_insert_own"
     ON public.follows FOR INSERT
-    WITH CHECK (auth.uid() = follower_id);
+    WITH CHECK (auth.uid()::text = follower_id);
 
 CREATE POLICY IF NOT EXISTS "follows_delete_own"
     ON public.follows FOR DELETE
-    USING (auth.uid() = follower_id);
+    USING (auth.uid()::text = follower_id);
 
 CREATE POLICY IF NOT EXISTS "follows_service_all"
     ON public.follows

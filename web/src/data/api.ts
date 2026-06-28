@@ -15,6 +15,7 @@ import {
   loadProfileBackend,
   createUserBackend,
   saveContextBackend,
+  getRecommendationsBackend,
 } from "./backendApi";
 
 const STORAGE_KEY_BASE = "taste.node.profile.v2";
@@ -346,12 +347,23 @@ export function getCluster(profile: TasteProfile) {
   return getClusterLabel(profile);
 }
 
-export function getRecommendations(profile: TasteProfile, filters: Filters) {
+export async function getRecommendations(profile: TasteProfile, filters: Filters) {
+  if (_backendActive && _currentUserId) {
+    try {
+      const remote = await getRecommendationsBackend(_currentUserId, filters);
+      if (remote && remote.length > 0) {
+        return remote;
+      }
+    } catch (err) {
+      console.warn("[backend] recommendations fetch failed:", err);
+    }
+  }
   return computeRecommendations(profile, filters);
 }
 
-export function getSortedRecommendations(profile: TasteProfile, filters: Filters, sortBy: string) {
-  return sortRecommendations(computeRecommendations(profile, filters), sortBy);
+export async function getSortedRecommendations(profile: TasteProfile, filters: Filters, sortBy: string) {
+  const recs = await getRecommendations(profile, filters);
+  return sortRecommendations(recs, sortBy);
 }
 
 export function getCurrentUserId(): string | null {

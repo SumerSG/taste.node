@@ -21,7 +21,7 @@ from src.models import Venue, RankedItem, TasteContext, TasteProfile
 
 
 SEED = 42
-N_USERS = 100
+N_USERS = 1000
 CONTEXT_NAMES = ["default", "date_night", "solo_comfort"]
 
 OCCASION_TAGS = ["solo", "date", "business", "group", "comfort"]

@@ -28,6 +28,10 @@ def _get_cached_cluster(context_id: str) -> Optional[ClusterResult]:
 def _set_cached_cluster(context_id: str, result: ClusterResult) -> None:
     _cluster_cache[context_id] = (result, datetime.now(timezone.utc))
 
+
+def _invalidate_cluster_cache(context_id: str) -> None:
+    _cluster_cache.pop(context_id, None)
+
 # ─── Load venue pool from JSON (shared with frontend) ───
 
 _VENUE_JSON_PATH = Path(__file__).resolve().parent / "data" / "venues.json"

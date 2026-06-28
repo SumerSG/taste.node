@@ -11,7 +11,14 @@ import { SAMPLE_USERS, GENERATED_POSTS } from "./generatedUsers";
 
 export { SAMPLE_USERS };
 
-export const CLUSTER_PEERS = SAMPLE_USERS.slice(0, 6).map((u) => u.id);
+export const CLUSTER_PEERS = [
+  "u001",
+  "u002",
+  "u003",
+  "u004",
+  "u005",
+  "u006",
+];
 export const FOLLOWED_USERS = SAMPLE_USERS.slice(0, 3).map((u) => u.id);
 
 /* ─── Deterministic random utilities ─── */
