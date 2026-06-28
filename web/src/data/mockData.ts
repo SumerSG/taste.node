@@ -250,7 +250,7 @@ export function computeDemoLikes(postId: string): number {
 export function buildSeedPosts(): Post[] {
   // Return the pre-generated realistic posts from generatedUsers.ts
   return [...GENERATED_POSTS]
-    .map((p) => ({ ...p, likes: computeDemoLikes(p.id) }))
+    .map((p) => ({ ...p, likes: computeDemoLikes(p.id), liked_by_me: false }))
     .sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );

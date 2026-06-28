@@ -389,6 +389,22 @@ export function deletePost(feed: FeedData, postId: string): FeedData {
   return next;
 }
 
+export function toggleLikePost(feed: FeedData, postId: string): FeedData {
+  const next = {
+    posts: feed.posts.map((p) => {
+      if (p.id !== postId) return p;
+      const liked = !p.liked_by_me;
+      return {
+        ...p,
+        liked_by_me: liked,
+        likes: Math.max(0, (p.likes ?? 0) + (liked ? 1 : -1)),
+      };
+    }),
+  };
+  saveLocalFeed(next);
+  return next;
+}
+
 export function filterFeedPosts(
   feed: FeedData,
   mode: import("./types").FeedMode,

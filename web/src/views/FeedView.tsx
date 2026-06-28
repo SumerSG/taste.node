@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
-import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing } from "../data/api";
+import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing, toggleLikePost } from "../data/api";
 import { getAllVenues } from "../data/venues";
 import { Trash2, Camera, Users, Globe, Sparkles, UserPlus, UserCheck, MapPin, Heart } from "lucide-react";
 
@@ -56,6 +56,11 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
       onFeedChange(next);
       toast.show("Post deleted", "success");
     }
+  };
+
+  const handleLike = (postId: string) => {
+    const next = toggleLikePost(feed, postId);
+    onFeedChange(next);
   };
 
   return (
@@ -192,10 +197,17 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
               )}
               {/* Actions */}
               <div className="mt-3 flex items-center gap-3">
-                <div className="inline-flex items-center gap-1 text-xs text-ink-faint">
-                  <Heart size={14} className="text-rose-400 fill-rose-400" />
+                <button
+                  onClick={() => handleLike(post.id)}
+                  className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-rose-500 transition"
+                  aria-label={post.liked_by_me ? "Unlike post" : "Like post"}
+                >
+                  <Heart
+                    size={14}
+                    className={post.liked_by_me ? "text-rose-400 fill-rose-400" : "text-ink-faint"}
+                  />
                   <span className="font-medium tabular-nums">{post.likes ?? 0}</span>
-                </div>
+                </button>
                 {post.author_id === (getCurrentUserId() ?? "anonymous") && (
                   <button onClick={() => handleDelete(post.id)} className="rounded-lg p-2 text-ink-faint hover:bg-red-50 hover:text-red-500 transition min-h-[32px] min-w-[44px] inline-flex items-center justify-center" aria-label="Delete post">
                     <Trash2 size={14} />

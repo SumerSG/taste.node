@@ -76,6 +76,7 @@ export interface Post {
   image_url?: string;
   created_at: string;
   likes?: number;
+  liked_by_me?: boolean;
 }
 
 export interface FeedData {
