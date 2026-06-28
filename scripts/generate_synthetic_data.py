@@ -3,7 +3,7 @@
 Usage:
     python scripts/generate_synthetic_data.py > data/synthetic_profiles.jsonl
 
-Generates 100 users, 3 contexts each, with 5-12 RankedItem instances per context.
+Generates 1000 users, 3 contexts each, with 5-12 RankedItem instances per context.
 Uses a seeded PRNG for deterministic output.
 Each line is a JSON representation of a TasteProfile.
 """
@@ -13,6 +13,7 @@ import random
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from typing import Dict, List
 
 # Allow imports from repo root when running script directly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -25,6 +26,57 @@ N_USERS = 1000
 CONTEXT_NAMES = ["default", "date_night", "solo_comfort"]
 
 OCCASION_TAGS = ["solo", "date", "business", "group", "comfort"]
+
+_FIRST_NAMES = [
+    "Yuki", "Kenji", "Hana", "Takeshi", "Sakura", "Ryo", "Mei", "Daichi", "Aiko", "Hiroshi",
+    "Yumi", "Kaito", "Nao", "Shin", "Mika", "Takumi", "Haruto", "Rin", "Yuta", "Sora",
+    "Asuka", "Ren", "Koharu", "Minato", "Yui", "Sosuke", "Akari", "Hayato", "Rei", "Itsuki",
+    "Kokoro", "Yamato", "Mio", "Haruki", "Tsubasa", "Kazuki", "Nanami", "Ryota", "Hotaru", "Taiga",
+    "Emi", "Shota", "Ayaka", "Kenta", "Yuna", "Kohei", "Honoka", "Riku", "Arisa", "Jun",
+    "Mao", "Satoshi", "Nana", "Takashi", "Nozomi", "Subaru", "Erika", "Kei", "Hitomi", "Masaki",
+    "Miyu", "Toru", "Saki", "Kenshin", "Sayaka", "Naoki", "Kanna", "Daiki", "Riko", "Genta",
+    "Maki", "Kosuke", "Yoko", "Sho", "Fumiko", "Yusuke", "Chihiro", "Aoi", "Risa", "Toshi",
+    "Mami", "Keita", "Ema", "Go", "Fuka", "Shinji", "Miri", "Issei", "Karin", "Tatsuya",
+    "Misa", "Koki", "Natsuki", "Tomoya", "Suzu", "Akito", "Alex", "Jordan", "Sam", "Taylor",
+    "Casey", "Morgan", "Riley", "Quinn", "Avery", "Jules", "Priya", "Luca", "Sofia", "Hugo",
+    "Mei-Lin", "Omar", "Inara", "Dmitri", "Eloise", "Rafael", "Zara", "Nico", "Wei", "Minji",
+    "Diego", "Kaia", "Amir", "Chloe", "Kaz", "Layla", "Ethan", "Nuwa", "Igor", "Freya",
+    "Anika", "Soren", "Mira", "Tomas", "Aya", "Vik", "Esme", "Jin", "Cleo", "Bogdan",
+    "Lina", "Leo", "Indra", "Faye", "Raul", "Momo", "Cyrus", "Asha", "Yuuto", "Nadia",
+    "Cormac", "Teo", "Vera", "Xiang", "Ilse", "Noa", "Tariq", "Suki", "Aldo", "Rona",
+    "Kito", "Isla", "Farhan", "Umi", "Bran", "Solana", "Taro", "Anya", "Joao", "Sai",
+    "Keira", "Oskar", "Reina", "Zian", "Calla", "Dante", "Kira", "Ludo", "Mana", "Elio",
+    "Yuna", "Fizan", "Tove", "Ryo", "Azesha", "Piotr", "Sena", "Henri", "Marin", "Khaled",
+    "Romy", "Tae", "Ebele", "Arkady", "Nori", "Omori", "Leila", "Henning", "Suri", "Jari",
+    "Stella", "Jasper", "Xiu", "Filo", "Zelda", "Benja", "Ami", "Dario", "Juno", "Kai",
+    "Lena", "Milo", "Nia", "Orion", "Pia", "Remy", "Sasha", "Theo", "Uma", "Vera",
+    "Wren", "Xena", "Yara", "Zane", "Ada", "Beau", "Cara", "Dean", "Elle", "Finn",
+    "Gia", "Hugo", "Iris", "Jace", "Kara", "Leo", "Mae", "Nash", "Olive", "Pax",
+    "Quinn", "Reese", "Stella", "Tate", "Uma", "Vince", "Willa", "Xander", "Yara", "Zack",
+    "Aria", "Blake", "Cora", "Drew", "Eva", "Felix", "Grace", "Hank", "Ivy", "Jack",
+    "Kira", "Liam", "Mia", "Noah", "Olivia", "Parker", "Quinn", "Ryan", "Sofia", "Tyler",
+    "Uma", "Violet", "Will", "Ximena", "Yosef", "Zoe", "Adam", "Bella", "Caleb", "Diana",
+    "Eli", "Faith", "Gabriel", "Hannah", "Isaac", "Julia", "Kevin", "Luna", "Mason", "Nora",
+    "Oscar", "Penelope", "Quentin", "Ruby", "Sebastian", "Tessa", "Uriel", "Victoria", "Wyatt", "Xena",
+    "Yasmine", "Zachary",
+]
+
+_LAST_INITIALS = [
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+]
+
+
+def _get_user_name(user_id: str) -> str:
+    """Deterministic display name for a synthetic user_id (e.g. user_000 → 'Haruto T.')."""
+    try:
+        idx = int(user_id.split("_")[1])
+    except (IndexError, ValueError):
+        idx = 0
+    rng = random.Random(SEED + idx)
+    first = rng.choice(_FIRST_NAMES)
+    last_initial = rng.choice(_LAST_INITIALS)
+    return f"{first} {last_initial}."
 
 CUISINES_POOL = [
     "Italian",

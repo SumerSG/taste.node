@@ -149,7 +149,7 @@ export function FilterPanel({ profile, filters, onChange, open, onClose }: Props
       diet: "",
       price_tier: null,
       healthiness_min: 0,
-      radius_km: 50,
+      radius_km: 99999,
       rating_min: 0,
       review_count_min: 0,
       visit_status: "any",

@@ -85,11 +85,13 @@ export function filterVenues(
     pool = pool.filter((v) => (v.review_count ?? 0) >= filters.review_count_min);
   }
 
-  // Radius
-  pool = pool.filter((v) => {
-    if (!v.location) return false;
-    return haversine(userLoc, v.location) <= filters.radius_km;
-  });
+  // Radius — only apply when user explicitly narrowed it (slider max is 20)
+  if (filters.radius_km > 0 && filters.radius_km <= 20) {
+    pool = pool.filter((v) => {
+      if (!v.location) return false;
+      return haversine(userLoc, v.location) <= filters.radius_km;
+    });
+  }
 
   // Visit status filter
   if (filters.visit_status !== "any") {
@@ -244,7 +246,7 @@ export function filterAndSortVenues(
       diet: dietaryTags[0] ?? "",
       price_tier: priceTiers[0] ?? null,
       healthiness_min: minHealthScore,
-      radius_km: 50,
+    radius_km: 99999,
       rating_min: 0,
       review_count_min: 0,
       visit_status: "any",
