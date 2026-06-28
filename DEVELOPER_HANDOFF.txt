@@ -456,5 +456,83 @@ u. Environment / credentials
       (50 passed, 1 skipped).
 
 ---
+10. RECENT CHANGES (2026-06-28  ~  handoff round 4)
+---
+
+All changes committed under `d33d7c6..67e6449` range. Build.io deploy of
+frontend succeeded (build 73). Backend build 28 is current.
+
+A. Frontend — Synthesized demo data won't show for logged-in users
+    File: web/src/data/api.ts (loadProfile)
+    Problem: first-time sign-in fell through to loadLocalProfile →
+      getDefaultProfile, which returned hard-coded 5 synthetic venues.
+    Fix: when _supabaseActive is true but Supabase has no profile row,
+      create an empty profile (empty default context) instead of demo
+      data. Auto-seeds the empty profile to Supabase via
+      saveProfileSupabase.
+
+B. Frontend — Demo users now overwhelmingly follow sumer_aiand
+    File: web/src/data/mockData.ts (getSampleUserProfile)
+    Fix: deterministic special-cased rule so ~80% of synthetic demo
+      users follow "sumer_aiand". Hash-based per user, stable across
+      reloads.
+
+C. Frontend — UserProfileView loads real backend profile first
+    File: web/src/views/UserProfileView.tsx
+    Fix: added async loading state. On mount, attempts
+      loadProfileBackend(userId) if VITE_API_URL is configured.
+      Only falls back to getSampleUserProfile when backend is absent.
+
+D. Frontend — RankingView context dropdown fixes
+    File: web/src/views/RankingView.tsx
+    - Context dropdown now ALWAYS lists "default", "wishlist", then
+      custom lists alphabetically. Uses ensureContext() so selecting
+      wishlist for the first time auto-creates an empty context.
+    - In non-wishlist contexts, items with status === "wishlist" are
+      filtered out (never shown in Favs/My Lists).
+    - Status selector in non-wishlist contexts removed "wishlist"
+      option. Wishlist list shows "Add to Library" button instead,
+      which moves the item to default context with status "visited".
+    - Pre-existing bug fixed: drag-reorder and up/down buttons were
+      always modifying the "default" context even when a custom
+      context was active. Now passes activeCtx correctly.
+
+E. Frontend — Tab label renamed Top Picks → My Lists
+    File: web/src/components/Layout.tsx
+    The navigation tab for RankingView now reads "My Lists".
+
+F. Backend / API — moveItemToContext helper (frontend data layer)
+    File: web/src/data/api.ts
+    New helper: remove from source context + add to target context,
+      optionally updating any RankedItem fields.
+
+G. Backend / API — ensureContext helper (frontend data layer)
+    File: web/src/data/api.ts
+    New helper: create context if missing, then switch to it.
+    Used by RankingView context dropdown.
+
+---
+11. NEXT MAJOR CHANGE (ready to implement)
+---
+
+A. Apply Supabase likes migration (BLOCKED: requires Supabase SQL Editor)
+    - File: supabase/migrations/005_full_likes_schema.sql
+    - MUST paste into Supabase SQL Editor → Run → apply before the
+      likes features are functional in production.
+    - Seed script created (scripts/seed_likes_to_supabase.py) and
+      validated against live Supabase. Autodetects missing column
+      and prints exact error message if migration hasn't run.
+    - Steps:
+        1. Open https://supabase.com/dashboard/project/zhygstfypymsspfinhqc/sql-editor
+        2. Paste full contents of supabase/migrations/005_full_likes_schema.sql
+        3. Click "Run"
+        4. Verify: `python3 -c "from supabase import create_client; c=create_client(...); c.table('feed_posts').select('id,likes').limit(1).execute()"`
+        5. Run seed script:
+           source .venv/bin/activate
+           SUPABASE_URL=https://zhygstfypymsspfinhqc.supabase.co \
+           SUPABASE_SERVICE_KEY=... \
+           python scripts/seed_likes_to_supabase.py
+
+---
 END OF HANDOFF
 ================================================================================

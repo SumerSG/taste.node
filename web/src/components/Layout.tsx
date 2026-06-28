@@ -41,7 +41,7 @@ export function Layout({
     { id: "feed", label: "For You", icon: <Home size={16} /> },
     { id: "search", label: "Search", icon: <Search size={16} /> },
     { id: "profile", label: "Profile", icon: <UserCircle size={16} /> },
-    { id: "ranking", label: "Top Picks", icon: <ListOrdered size={16} /> },
+    { id: "ranking", label: "My Lists", icon: <ListOrdered size={16} /> },
   ];
 
   const handleWantSubmit = (e: React.FormEvent) => {

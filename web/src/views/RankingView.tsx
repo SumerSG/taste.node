@@ -3,10 +3,10 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import type { TasteProfile, RankedItem, Venue, RankStatus } from "../data/types";
-import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext, displayContextName } from "../data/api";
+import { removeRankedItem, updateItemStatus, updateRankedList, addRankedItem, switchContext, createContext, deleteContext, displayContextName, moveItemToContext, ensureContext } from "../data/api";
 import { getClusterLabel, statusLabel, statusColor } from "../data/mockData";
 import { VenueDetailModal } from "../components/VenueDetailModal";
-import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen } from "lucide-react";
+import { Trash2, ChevronUp, ChevronDown, Plus, ListOrdered, ExternalLink, FolderPlus, X, FolderOpen, ArrowRight } from "lucide-react";
 
 import { useToast } from "../context/ToastContext";
 
@@ -33,14 +33,16 @@ function rankNumberStyle(index: number) {
 }
 
 function SortableRow({
-  item, index, onRemove, onMoveUp, onMoveDown, onStatusChange, onClick, onNavigateToVenue,
+  item, index, contextId, onRemove, onMoveUp, onMoveDown, onStatusChange, onAddToLibrary, onClick, onNavigateToVenue,
 }: {
   item: RankedItem;
   index: number;
+  contextId: string;
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onStatusChange: (s: RankStatus) => void;
+  onAddToLibrary?: () => void;
   onClick: () => void;
   onNavigateToVenue?: (v: Venue) => void;
 }) {
@@ -109,17 +111,27 @@ function SortableRow({
         </div>
       </div>
 
-      {/* Status selector */}
+      {/* Action column: Add to Library in wishlist, else status selector */}
       <div className="hidden sm:block" onPointerDown={(e) => e.stopPropagation()}>
-        <select
-          value={item.status ?? "visited"}
-          onChange={(e) => onStatusChange(e.target.value as RankStatus)}
-          className={`rounded-lg px-2 py-1 text-xs font-medium ring-1 outline-none ${statusColor(item.status)}`}
-        >
-          {["wishlist", "visited", "favourite", "not_for_me"].map((s) => (
-            <option key={s} value={s}>{statusLabel(s as RankStatus)}</option>
-          ))}
-        </select>
+        {contextId === "wishlist" ? (
+          <button
+            onClick={onAddToLibrary}
+            className="flex items-center gap-1 rounded-lg bg-sienna-50 px-2 py-1 text-xs font-medium text-sienna-700 ring-1 ring-sienna-200 hover:bg-sienna-100 transition"
+          >
+            <Plus size={12} />
+            Add to library
+          </button>
+        ) : (
+          <select
+            value={item.status ?? "visited"}
+            onChange={(e) => onStatusChange(e.target.value as RankStatus)}
+            className={`rounded-lg px-2 py-1 text-xs font-medium ring-1 outline-none ${statusColor(item.status)}`}
+          >
+            {(["visited", "favourite", "not_for_me"] as RankStatus[]).map((s) => (
+              <option key={s} value={s}>{statusLabel(s)}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Reorder buttons */}
@@ -134,7 +146,10 @@ function SortableRow({
 export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNavigateToLibrary, onNavigateToVenue }: Props) {
   const toast = useToast();
   const activeCtx = profile.default_context;
-  const items = profile.contexts[activeCtx]?.ranked_list ?? [];
+  // In non-wishlist contexts, filter out items with status === "wishlist"
+  const items = (profile.contexts[activeCtx]?.ranked_list ?? []).filter(
+    (item) => activeCtx === "wishlist" || item.status !== "wishlist"
+  );
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [showNewList, setShowNewList] = useState(false);
   const [newListName, setNewListName] = useState("");
@@ -147,8 +162,9 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((i) => i.venue.id === active.id);
       const newIndex = items.findIndex((i) => i.venue.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
       const newList = arrayMove(items, oldIndex, newIndex);
-      onProfileChange(updateRankedList(profile, newList));
+      onProfileChange(updateRankedList(profile, newList, activeCtx));
     }
   };
 
@@ -156,7 +172,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
     const newIndex = index + dir;
     if (newIndex < 0 || newIndex >= items.length) return;
     const newList = arrayMove(items, index, newIndex);
-    onProfileChange(updateRankedList(profile, newList));
+    onProfileChange(updateRankedList(profile, newList, activeCtx));
   };
 
   const handleCreateList = () => {
@@ -168,7 +184,11 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
     setShowNewList(false);
   };
 
-  const contextNames = Object.keys(profile.contexts);
+  // Build ordered option list: default & wishlist always first, then custom lists A-Z
+  const customContexts = Object.keys(profile.contexts)
+    .filter((id) => id !== "default" && id !== "wishlist")
+    .sort();
+  const contextOptions = ["default", "wishlist", ...customContexts];
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -188,10 +208,10 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
             <FolderOpen size={18} className="text-ink-muted" />
             <select
               value={activeCtx}
-              onChange={(e) => onProfileChange(switchContext(profile, e.target.value))}
+              onChange={(e) => onProfileChange(ensureContext(profile, e.target.value))}
               className="rounded-lg border border-cream-dark bg-cream px-3 py-1.5 text-sm font-medium text-ink shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-2 focus:ring-sienna-100"
             >
-              {contextNames.map((id) => (
+              {contextOptions.map((id) => (
                 <option key={id} value={id}>{displayContextName(id)}</option>
               ))}
             </select>
@@ -201,6 +221,15 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
                   if (window.confirm("Delete this list and all its restaurants?")) {
                     onProfileChange(deleteContext(profile, activeCtx));
                     toast.show("List deleted", "success");
+                  }
+                }}
+                className="rounded p-1 text-ink-faint hover:bg-red-50 hover:text-red-500 transition"
+                title="Delete this list"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
                   }
                 }}
                 className="rounded p-1 text-ink-faint hover:bg-red-50 hover:text-red-500 transition"
@@ -261,14 +290,20 @@ export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNa
                   key={item.venue.id}
                   item={item}
                   index={idx}
+                  contextId={activeCtx}
                   onRemove={() => {
                     if (!window.confirm("Remove this restaurant from your ranking?")) return;
-                    onProfileChange(removeRankedItem(profile, item.venue.id));
+                    onProfileChange(removeRankedItem(profile, item.venue.id, activeCtx));
                     toast.show("Removed from ranking", "success");
                   }}
                   onMoveUp={() => move(idx, -1)}
                   onMoveDown={() => move(idx, 1)}
-                  onStatusChange={(s) => onProfileChange(updateItemStatus(profile, item.venue.id, s))}
+                  onStatusChange={(s) => onProfileChange(updateItemStatus(profile, item.venue.id, s, activeCtx))}
+                  onAddToLibrary={() => {
+                    const next = moveItemToContext(profile, item.venue.id, "wishlist", "default", { status: "visited" });
+                    onProfileChange(next);
+                    toast.show("Added to library", "success");
+                  }}
                   onClick={() => setSelectedVenue(item.venue)}
                   onNavigateToVenue={onNavigateToVenue}
                 />

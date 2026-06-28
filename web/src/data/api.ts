@@ -314,6 +314,25 @@ export function updateItemDishes(
   return updateRankedList(profile, list, ctxId);
 }
 
+/* Move an item from one context to another (e.g. wishlist -> default) */
+export function moveItemToContext(
+  profile: TasteProfile,
+  venueId: string,
+  fromContextId: string,
+  toContextId: string,
+  updates?: Partial<RankedItem>
+): TasteProfile {
+  const fromCtx = profile.contexts[fromContextId];
+  if (!fromCtx) return profile;
+  const item = fromCtx.ranked_list.find((i) => i.venue.id === venueId);
+  if (!item) return profile;
+
+  let p = removeRankedItem(profile, venueId, fromContextId);
+  const newItem: RankedItem = { ...item, ...updates, added_at: new Date().toISOString() };
+  p = addRankedItem(p, newItem, undefined, toContextId);
+  return p;
+}
+
 /* ─── Context management ─── */
 
 export function createContext(profile: TasteProfile, contextId: string): TasteProfile {
@@ -356,6 +375,14 @@ export function switchContext(profile: TasteProfile, contextId: string): TastePr
   const next = { ...profile, default_context: contextId };
   saveProfile(next);
   return next;
+}
+
+/** Create context if it doesn't exist, then switch to it */
+export function ensureContext(profile: TasteProfile, contextId: string): TasteProfile {
+  if (!profile.contexts[contextId]) {
+    return createContext(profile, contextId);
+  }
+  return switchContext(profile, contextId);
 }
 
 /* ─── Following ─── */
