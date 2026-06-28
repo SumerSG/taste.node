@@ -6,6 +6,7 @@
 -- Supabase Auth UUIDs both work without casting friction.
 CREATE TABLE IF NOT EXISTS public.profiles (
     user_id TEXT PRIMARY KEY,
+    name TEXT,
     default_context TEXT NOT NULL DEFAULT 'default',
     include_in_clustering BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -224,3 +225,6 @@ DROP TRIGGER IF EXISTS update_contexts_updated_at ON public.contexts;
 CREATE TRIGGER update_contexts_updated_at
     BEFORE UPDATE ON public.contexts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ─── Backwards-compatible column additions (safe to re-run) ───
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS name TEXT;

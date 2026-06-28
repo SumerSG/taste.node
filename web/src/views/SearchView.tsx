@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Venue, TasteProfile, RankedItem } from "../data/types";
 import { useChatEngine } from "../hooks/useChatEngine";
 import { defaultFilters } from "../data/filterEngine";
@@ -64,6 +64,15 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
   );
 
   const displayResults = results;
+
+  const existing = useMemo(() => {
+    if (!selectedVenue) return undefined;
+    for (const ctx of Object.values(profile.contexts)) {
+      const found = ctx.ranked_list.find((r) => r.venue.id === selectedVenue.id);
+      if (found) return found;
+    }
+    return undefined;
+  }, [profile, selectedVenue]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-0 overflow-hidden rounded-2xl border border-cream-dark bg-paper shadow-card sm:h-[calc(100vh-9rem)]">
@@ -179,6 +188,7 @@ export function SearchView({ profile, onProfileChange, initialQuery = "", onNavi
           open={!!selectedVenue}
           onClose={() => setSelectedVenue(null)}
           onAdd={handleAdd}
+          existingData={existing}
         />
       )}
     </div>

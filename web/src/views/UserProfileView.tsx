@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { TasteProfile } from "../data/types";
-import { getSampleUserProfile, SAMPLE_USERS } from "../data/mockData";
-import { Star, UserCircle, ListOrdered, Users } from "lucide-react";
+import { getSampleUserProfile, getFollowers, SAMPLE_USERS } from "../data/mockData";
+import { Star, UserCircle, ListOrdered, Users, Heart } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -14,6 +14,8 @@ interface Props {
 export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigateToProfile, onBack }: Props) {
   const profile = useMemo(() => getSampleUserProfile(userId), [userId]);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showRanked, setShowRanked] = useState(false);
 
   if (!profile) {
     return (
@@ -37,6 +39,8 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
       .map((id) => SAMPLE_USERS.find((u) => u.id === id))
       .filter(Boolean) as { id: string; name: string }[];
   }, [profile.following]);
+
+  const followerUsers = useMemo(() => getFollowers(userId), [userId]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -62,8 +66,11 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 cursor-default">
+        <div className="mt-5 grid grid-cols-4 gap-3">
+          <div
+            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 cursor-pointer hover:bg-cream-dark transition"
+            onClick={() => totalPlaces > 0 && setShowRanked((s) => !s)}
+          >
             <ListOrdered size={16} className="text-sienna-500 mb-1" />
             <span className="text-lg font-bold text-ink">{totalPlaces}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Ranked</span>
@@ -83,6 +90,14 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
             <Users size={16} className="text-olive-500 mb-1" />
             <span className="text-lg font-bold text-ink">{profile.following.length}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Following</span>
+          </div>
+          <div
+            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 cursor-pointer hover:bg-cream-dark transition"
+            onClick={() => followerUsers.length > 0 && setShowFollowers((s) => !s)}
+          >
+            <Heart size={16} className="text-rose-500 mb-1" />
+            <span className="text-lg font-bold text-ink">{followerUsers.length}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Followers</span>
           </div>
         </div>
       </div>
@@ -105,6 +120,64 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Followers list */}
+      {showFollowers && followerUsers.length > 0 && (
+        <div className="rounded-2xl border border-cream-dark bg-paper p-4 shadow-sm space-y-3">
+          <h3 className="font-serif text-lg text-ink">Followers</h3>
+          <div className="flex flex-wrap gap-2">
+            {followerUsers.map((u) => (
+              <button
+                key={u.id}
+                onClick={() => onNavigateToProfile(u.id)}
+                className="flex items-center gap-2 rounded-xl bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-cream-dark transition"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
+                  {u.name.split(" ")[0][0]}
+                </div>
+                {u.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Full ranked lists */}
+      {showRanked && totalPlaces > 0 && (
+        <div className="space-y-4">
+          <h3 className="font-serif text-lg text-ink">Ranked lists</h3>
+          {Object.values(profile.contexts).map((ctx) => (
+            <div key={ctx.context_id} className="rounded-2xl border border-cream-dark bg-paper p-4 shadow-sm space-y-3">
+              <h4 className="text-sm font-semibold text-ink-faint uppercase tracking-wider">
+                {ctx.context_id === "default" ? "Recent visits" : ctx.context_id.replace(/_/g, " ")}
+              </h4>
+              <div className="space-y-2">
+                {ctx.ranked_list.map((item, idx) => (
+                  <button
+                    key={item.venue.id}
+                    onClick={() => onNavigateToVenue(item.venue)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-cream-dark bg-paper p-3 text-left hover:bg-cream transition"
+                  >
+                    <span className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold ring-1 bg-cream text-ink-faint">
+                      {idx + 1}
+                    </span>
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-cream-dark">
+                      <img src={item.venue.image_url} alt={item.venue.name} className="h-full w-full object-cover" loading="lazy" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">{item.venue.name}</p>
+                      <p className="text-xs text-ink-faint">{item.venue.cuisines.slice(0, 3).join(" · ")}</p>
+                    </div>
+                    {item.status === "favourite" && (
+                      <Star size={14} className="text-amber-400 shrink-0" fill="currentColor" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

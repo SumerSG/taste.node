@@ -396,10 +396,64 @@ m. Service key conflict resolved
    - /setup-supabase now returns `{"ready": true}` on the live API.
 
 n. End-to-end smoke test (live backend)
-   - POST /users           → creates user in Supabase (Z timestamp ✅)
-   - GET  /venues          → returns 10,000 venues ✅
-   - GET  /setup-supabase  → confirms all tables + row counts ✅
-   - Backend URL: https://taste-node-api-97114760.onbld.com
+    - POST /users           → creates user in Supabase (Z timestamp ✅)
+    - GET  /venues          → returns 10,000 venues ✅
+    - GET  /setup-supabase  → confirms all tables + row counts ✅
+    - Backend URL: https://taste-node-api-97114760.onbld.com
+
+---
+9. FIXES APPLIED (2026-06-28 — round 3)
+---
+
+o. Library / Profile View (web/src/views/LibraryView.tsx)
+    - Library now aggregates ALL contexts except "wishlist".
+      Previously it only showed `profile.default_context`, which went
+      empty when switching active lists. Now every visited/favourite
+      restaurant appears regardless of which list it's in.
+    - Removed "Ranked" and "Favourites" stat tiles from profile header.
+      Only "Following" and "Followers" remain.
+    - Following names now resolve from Supabase `profiles.name` when
+      signed-in. Falls back to `SAMPLE_USERS` or truncated user-id.
+    - Followers now load from Supabase `follows` table when signed-in,
+      with name resolution via `profiles.name`. Falls back to mock
+      `getFollowers()` for guest mode.
+    - "Remove from library" now deletes the venue from ALL contexts.
+
+p. Ranking / Lists (web/src/views/RankingView.tsx)
+    - Delete guard now protects BOTH "default" (fav) and "wishlist"
+      (save for later). Any other custom list can be deleted with
+      confirmation.
+    - Added "Add from Search" and "Add from Library" buttons in the
+      list header and empty state.
+
+q. Save for later → real wishlist context (web/src/components/VenueDetailModal.tsx)
+    - Step-1 "Save for later" button now creates/saves the item into
+      the "wishlist" context instead of adding a "wishlist" status to
+      the current list. This makes "Save for later" a first-class list.
+
+r. Search existingData pass-through (web/src/views/SearchView.tsx)
+    - `VenueDetailModal` now receives `existingData` when opened from
+      Search results. Already-visited venues open directly to the
+      "relationship" step with the list selector visible.
+
+s. Supabase schema update (supabase/000_complete_schema.sql)
+    - Added `name TEXT` column to `profiles` table so follower/following
+      names can be resolved from the database instead of mock data.
+    - Includes backwards-compatible `ADD COLUMN IF NOT EXISTS` at end.
+      MUST be run in Supabase SQL Editor before names appear in prod.
+
+t. Supabase name resolution (web/src/data/supabaseApi.ts)
+    - `saveProfileSupabase` now upserts `name` from Supabase Auth
+      user_metadata (Google OAuth full_name) into `profiles`.
+    - New helper `resolveUserNamesSupabase(userIds)` batch-fetches
+      names from `profiles`.
+    - `getFollowersSupabase` now resolves follower names via `profiles`.
+
+u. Environment / credentials
+    - `.env.local` created in project root with `SUPABASE_SERVICE_KEY`.
+      File is `.gitignored` and will never be committed.
+    - Frontend build passes (tsc + vite); backend tests pass
+      (50 passed, 1 skipped).
 
 ---
 END OF HANDOFF

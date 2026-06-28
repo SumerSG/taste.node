@@ -220,6 +220,24 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
   return profile;
 }
 
+/* ─── Followers (computed from other users' following lists) ─── */
+
+export function getFollowers(userId: string): { id: string; name: string }[] {
+  return SAMPLE_USERS
+    .filter((u) => u.id !== userId && (getSampleUserProfile(u.id)?.following ?? []).includes(userId))
+    .map((u) => ({ id: u.id, name: u.name }));
+}
+
+export function getFollowersCount(userId: string): number {
+  let count = 0;
+  for (const u of SAMPLE_USERS) {
+    if (u.id !== userId && (getSampleUserProfile(u.id)?.following ?? []).includes(userId)) {
+      count++;
+    }
+  }
+  return count;
+}
+
 const STATUS_WEIGHTS: RankStatus[] = [
   "favourite", "favourite", "favourite",
   "favourite", "favourite",

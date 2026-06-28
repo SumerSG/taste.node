@@ -262,9 +262,13 @@ function AppContent() {
               <RankingView
                 profile={profile}
                 onProfileChange={handleProfileChange}
-                onNavigateToLibrary={() => {
+                onNavigateToSearch={() => {
                   setNavStack([{ view: "search" }]);
                   setTab("search");
+                }}
+                onNavigateToLibrary={() => {
+                  setNavStack([{ view: "profile" }]);
+                  setTab("profile");
                 }}
                 onNavigateToVenue={navigateToVenue}
               />

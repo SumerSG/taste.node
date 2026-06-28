@@ -145,8 +145,17 @@ export function VenueDetailModal({
                 <p className="text-sm text-ink-muted text-center">What would you like to do?</p>
                 <button
                   onClick={() => {
-                    setStatus("wishlist");
-                    handleSave();
+                    const item: RankedItem = {
+                      venue,
+                      visited_at: `${new Date().toISOString().slice(0, 10)}T12:00:00+00:00`,
+                      added_at: new Date().toISOString(),
+                      occasion_tag: "solo",
+                      is_classic: false,
+                      status: "wishlist",
+                    };
+                    onAdd(item, "wishlist");
+                    toast.show("Saved for later", "success");
+                    onClose();
                   }}
                   className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 hover:bg-amber-100 transition"
                 >

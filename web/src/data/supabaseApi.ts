@@ -119,10 +119,23 @@ export async function saveProfileSupabase(
   const userId = await currentUserId();
   if (!userId) return;
 
+  // Resolve display name from Supabase auth metadata (Google OAuth, etc.)
+  let name = "";
+  try {
+    const { data: authUser } = await supabase.auth.getUser();
+    name =
+      authUser.user?.user_metadata?.full_name ||
+      authUser.user?.user_metadata?.name ||
+      "";
+  } catch {
+    /* ignore */
+  }
+
   // a. Upsert profiles row
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       user_id: userId,
+      name,
       default_context: profile.default_context,
       include_in_clustering: profile.include_in_clustering ?? true,
     },
@@ -408,4 +421,55 @@ export async function toggleLikeSupabase(
     // post_likes table may not exist yet → let caller fall back to localStorage
     return null;
   }
+}
+
+/* ─── Followers (who follows a given user) ─── */
+
+export async function getFollowersSupabase(
+  userId: string
+): Promise<{ id: string; name: string }[] | null> {
+  if (!supabase) return null;
+  const current = await currentUserId();
+  if (!current) return null;
+
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("following_id", userId);
+
+  if (error) {
+    console.warn("Supabase getFollowers error:", error.message);
+    return null;
+  }
+  const ids = (data ?? []).map((row) => row.follower_id);
+  if (ids.length === 0) return [];
+
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("user_id, name")
+    .in("user_id", ids);
+  const nameMap = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p.name]));
+  return ids.map((id) => ({
+    id,
+    name: nameMap[id] || id.slice(0, 8) + "...",
+  }));
+}
+
+export async function resolveUserNamesSupabase(
+  userIds: string[]
+): Promise<Record<string, string>> {
+  if (!supabase || userIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id, name")
+    .in("user_id", userIds);
+  if (error) {
+    console.warn("Supabase resolveUserNames error:", error.message);
+    return {};
+  }
+  const map: Record<string, string> = {};
+  data?.forEach((p) => {
+    map[p.user_id] = p.name || p.user_id.slice(0, 8) + "...";
+  });
+  return map;
 }

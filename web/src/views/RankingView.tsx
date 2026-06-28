@@ -13,6 +13,7 @@ import { useToast } from "../context/ToastContext";
 interface Props {
   profile: TasteProfile;
   onProfileChange: (p: TasteProfile) => void;
+  onNavigateToSearch: () => void;
   onNavigateToLibrary: () => void;
   onNavigateToVenue?: (v: Venue) => void;
 }
@@ -130,7 +131,7 @@ function SortableRow({
   );
 }
 
-export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onNavigateToVenue }: Props) {
+export function RankingView({ profile, onProfileChange, onNavigateToSearch, onNavigateToLibrary, onNavigateToVenue }: Props) {
   const toast = useToast();
   const activeCtx = profile.default_context;
   const items = profile.contexts[activeCtx]?.ranked_list ?? [];
@@ -194,7 +195,7 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onN
                 <option key={id} value={id}>{displayContextName(id)}</option>
               ))}
             </select>
-            {activeCtx !== "default" && (
+            {activeCtx !== "default" && activeCtx !== "wishlist" && (
               <button
                 onClick={() => {
                   if (window.confirm("Delete this list and all its restaurants?")) {
@@ -209,9 +210,14 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onN
               </button>
             )}
           </div>
-          <button onClick={onNavigateToLibrary} className="btn-primary gap-2 text-sm">
-            <Plus size={15} /> Add from Search
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={onNavigateToSearch} className="btn-primary gap-2 text-sm">
+              <Plus size={15} /> Add from Search
+            </button>
+            <button onClick={onNavigateToLibrary} className="btn-secondary gap-2 text-sm">
+              <Plus size={15} /> Add from Library
+            </button>
+          </div>
         </div>
 
         {showNewList ? (
@@ -243,7 +249,8 @@ export function RankingView({ profile, onProfileChange, onNavigateToLibrary, onN
           <ListOrdered size={40} className="mb-3 text-ink-faint" />
           <p className="font-serif text-lg text-ink-muted">Your ranking is empty</p>
           <p className="text-sm text-ink-faint mt-1">Browse Search and add places you love.</p>
-          <button onClick={onNavigateToLibrary} className="btn-primary mt-4 gap-2"><Plus size={15} /> Browse Search</button>
+          <button onClick={onNavigateToSearch} className="btn-primary mt-4 gap-2"><Plus size={15} /> Browse Search</button>
+          <button onClick={onNavigateToLibrary} className="btn-secondary mt-2 gap-2"><Plus size={15} /> Browse Library</button>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

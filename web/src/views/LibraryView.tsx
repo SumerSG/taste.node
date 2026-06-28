@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { TasteProfile, RankedItem } from "../data/types";
-import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList } from "../data/api";
-import { SAMPLE_USERS } from "../data/mockData";
-import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, ListOrdered, Users } from "lucide-react";
+import { updateItemRating, updateItemReaction, updateItemMealType, updateItemDishes, updateRankedList, removeRankedItem } from "../data/api";
+import { SAMPLE_USERS, getFollowers } from "../data/mockData";
+import { getFollowersSupabase, resolveUserNamesSupabase } from "../data/supabaseApi";
+import { Star, Sun, Moon, Calendar, Trash2, UtensilsCrossed, MessageSquare, ChevronDown, UserCircle, Users, Heart } from "lucide-react";
+import { hasSupabase } from "../lib/supabase";
 
 import { useToast } from "../context/ToastContext";
 
@@ -11,6 +13,10 @@ interface Props {
   onProfileChange: (p: TasteProfile) => void;
   onNavigateToVenue?: (v: RankedItem["venue"]) => void;
   onNavigateToProfile?: (userId: string, userName: string) => void;
+}
+
+interface RankedItemWithContext extends RankedItem {
+  context_id: string;
 }
 
 function StarRating({ value, onChange }: { value?: number; onChange?: (n: number) => void }) {
@@ -39,56 +45,83 @@ function StarRating({ value, onChange }: { value?: number; onChange?: (n: number
 
 export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNavigateToProfile }: Props) {
   const toast = useToast();
-  const items = profile.contexts[profile.default_context].ranked_list;
+  const items = useMemo<RankedItemWithContext[]>(() => {
+    const result: RankedItemWithContext[] = [];
+    for (const [ctxId, ctx] of Object.entries(profile.contexts)) {
+      if (ctxId === "wishlist") continue;
+      for (const item of ctx.ranked_list) {
+        if (item.status === "wishlist") continue;
+        result.push({ ...item, context_id: ctxId });
+      }
+    }
+    return result.sort(
+      (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime()
+    );
+  }, [profile.contexts]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingDishes, setEditingDishes] = useState<string | null>(null);
   const [dishesDraft, setDishesDraft] = useState("");
   const [editingReaction, setEditingReaction] = useState<string | null>(null);
   const [reactionDraft, setReactionDraft] = useState("");
   const [showFollowing, setShowFollowing] = useState(false);
-
-  const sorted = useMemo(() => {
-    return [...items].sort(
-      (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime()
-    );
-  }, [items]);
+  const [showFollowers, setShowFollowers] = useState(false);
 
   // Profile stats
-  const allContexts = Object.values(profile.contexts);
-  const totalPlaces = allContexts.reduce((sum, ctx) => sum + ctx.ranked_list.length, 0);
-  const favCount = items.filter((i) => i.status === "favourite").length;
   const uniqueCuisines = new Set<string>();
   items.forEach((i) => i.venue.cuisines.forEach((c) => uniqueCuisines.add(c)));
   const cuisineNames = Array.from(uniqueCuisines).slice(0, 3).join(" · ");
 
+  // Resolve names from Supabase when available; fallback to SAMPLE_USERS or truncated id
+  const [followingNames, setFollowingNames] = useState<Record<string, string>>({});
+  const [followerUsers, setFollowerUsers] = useState<{ id: string; name: string }[] | null>(null);
+
+  useEffect(() => {
+    if (!hasSupabase()) return;
+    if (profile.following.length > 0) {
+      resolveUserNamesSupabase(profile.following).then(setFollowingNames);
+    }
+    getFollowersSupabase(profile.user_id).then((data) => {
+      if (data) setFollowerUsers(data);
+    });
+  }, [profile.following, profile.user_id]);
+
   const followingUsers = useMemo(() => {
-    return profile.following
-      .map((id) => SAMPLE_USERS.find((u) => u.id === id))
-      .filter(Boolean) as { id: string; name: string }[];
-  }, [profile.following]);
+    return profile.following.map((id) => {
+      if (followingNames[id]) return { id, name: followingNames[id] };
+      const known = SAMPLE_USERS.find((u) => u.id === id);
+      return known ?? { id, name: id.slice(0, 8) + "..." };
+    });
+  }, [profile.following, followingNames]);
 
-  const favItems = useMemo(() => items.filter((i) => i.status === "favourite"), [items]);
+  const resolvedFollowerUsers = followerUsers ?? getFollowers(profile.user_id);
 
-  const handleDateChange = (item: RankedItem, date: string) => {
-    const list = items.map((i) => (i.venue.id === item.venue.id ? { ...i, visited_at: `${date}T12:00:00+00:00` } : i));
-    onProfileChange(updateRankedList(profile, list));
+  const handleDateChange = (item: RankedItemWithContext, date: string) => {
+    const list = profile.contexts[item.context_id].ranked_list.map((i) =>
+      i.venue.id === item.venue.id ? { ...i, visited_at: `${date}T12:00:00+00:00` } : i
+    );
+    onProfileChange(updateRankedList(profile, list, item.context_id));
   };
 
   const handleRemove = (venueId: string) => {
     if (!window.confirm("Remove this restaurant from your library?")) return;
-    const list = items.filter((i) => i.venue.id !== venueId);
-    onProfileChange(updateRankedList(profile, list));
+    let p = profile;
+    for (const [ctxId, ctx] of Object.entries(profile.contexts)) {
+      if (ctx.ranked_list.some((r) => r.venue.id === venueId)) {
+        p = removeRankedItem(p, venueId, ctxId);
+      }
+    }
+    onProfileChange(p);
     toast.show("Removed from library", "success");
   };
 
-  const saveDishes = (venueId: string) => {
+  const saveDishes = (venueId: string, contextId: string) => {
     const dishes = dishesDraft.split(",").map((d) => d.trim()).filter(Boolean);
-    onProfileChange(updateItemDishes(profile, venueId, dishes));
+    onProfileChange(updateItemDishes(profile, venueId, dishes, contextId));
     setEditingDishes(null);
   };
 
-  const saveReaction = (venueId: string) => {
-    onProfileChange(updateItemReaction(profile, venueId, reactionDraft.trim()));
+  const saveReaction = (venueId: string, contextId: string) => {
+    onProfileChange(updateItemReaction(profile, venueId, reactionDraft.trim(), contextId));
     setEditingReaction(null);
   };
 
@@ -107,24 +140,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
             </p>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3">
-            <ListOrdered size={16} className="text-sienna-500 mb-1" />
-            <span className="text-lg font-bold text-ink">{totalPlaces}</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Ranked</span>
-          </div>
-          <button
-            onClick={() => {
-              if (favItems.length > 0 && onNavigateToVenue) {
-                onNavigateToVenue(favItems[0].venue);
-              }
-            }}
-            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 hover:bg-cream-dark transition"
-          >
-            <Star size={16} className="text-amber-500 mb-1" />
-            <span className="text-lg font-bold text-ink">{favCount}</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Favourites</span>
-          </button>
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <button
             onClick={() => setShowFollowing((s) => !s)}
             className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 hover:bg-cream-dark transition"
@@ -132,6 +148,14 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
             <Users size={16} className="text-olive-500 mb-1" />
             <span className="text-lg font-bold text-ink">{profile.following.length}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Following</span>
+          </button>
+          <button
+            onClick={() => setShowFollowers((s) => !s)}
+            className="flex flex-col items-center rounded-2xl bg-cream px-4 py-3 hover:bg-cream-dark transition"
+          >
+            <Heart size={16} className="text-rose-500 mb-1" />
+            <span className="text-lg font-bold text-ink">{resolvedFollowerUsers.length}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">Followers</span>
           </button>
         </div>
 
@@ -155,6 +179,27 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
             </div>
           </div>
         )}
+
+        {/* Followers list */}
+        {showFollowers && resolvedFollowerUsers.length > 0 && (
+          <div className="mt-4 rounded-xl bg-cream px-4 py-3 space-y-2">
+            <h4 className="text-sm font-medium text-ink">Followers</h4>
+            <div className="flex flex-wrap gap-2">
+              {resolvedFollowerUsers.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => onNavigateToProfile?.(u.id, u.name)}
+                  className="flex items-center gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-dark transition"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-rose-700">
+                    {u.name.split(" ")[0][0]}
+                  </div>
+                  {u.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Section header */}
@@ -165,10 +210,10 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
             Every place you've saved. Tap a card to expand and rate, react, or note what you ate.
           </p>
         </div>
-        <div className="text-sm text-ink-faint">{sorted.length} visited</div>
+        <div className="text-sm text-ink-faint">{items.length} visited</div>
       </div>
 
-      {sorted.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cream-dark py-20 text-center">
           <UserCircle size={40} className="mb-3 text-ink-faint" />
           <p className="font-serif text-lg text-ink-muted">Your library is empty</p>
@@ -176,7 +221,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((item) => {
+          {items.map((item) => {
             const isExpanded = expandedId === item.venue.id;
             return (
               <div
@@ -209,7 +254,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
                   <div className="flex items-center justify-between">
                     <StarRating
                       value={item.personal_rating}
-                      onChange={(n) => onProfileChange(updateItemRating(profile, item.venue.id, n || undefined))}
+                      onChange={(n) => onProfileChange(updateItemRating(profile, item.venue.id, n || undefined, item.context_id))}
                     />
                     <span className="rounded-full bg-cream px-2 py-0.5 text-[10px] font-bold uppercase text-ink-muted">
                       {item.status ?? "visited"}
@@ -250,7 +295,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
                       </div>
                       <div className="flex gap-1">
                         <button
-                          onClick={() => onProfileChange(updateItemMealType(profile, item.venue.id, item.meal_type === "lunch" ? undefined : "lunch"))}
+                          onClick={() => onProfileChange(updateItemMealType(profile, item.venue.id, item.meal_type === "lunch" ? undefined : "lunch", item.context_id))}
                           className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-medium ring-1 transition ${
                             item.meal_type === "lunch"
                               ? "bg-amber-50 text-amber-700 ring-amber-200"
@@ -260,7 +305,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
                           <Sun size={10} /> Lunch
                         </button>
                         <button
-                          onClick={() => onProfileChange(updateItemMealType(profile, item.venue.id, item.meal_type === "dinner" ? undefined : "dinner"))}
+                          onClick={() => onProfileChange(updateItemMealType(profile, item.venue.id, item.meal_type === "dinner" ? undefined : "dinner", item.context_id))}
                           className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-medium ring-1 transition ${
                             item.meal_type === "dinner"
                               ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
@@ -287,7 +332,7 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
                             />
                             <div className="mt-1 flex justify-end gap-1">
                               <button onClick={() => setEditingReaction(null)} className="rounded px-2 py-0.5 text-[10px] text-ink-faint hover:bg-cream">Cancel</button>
-                              <button onClick={() => saveReaction(item.venue.id)} className="rounded bg-sienna-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-sienna-600">Save</button>
+                              <button onClick={() => saveReaction(item.venue.id, item.context_id)} className="rounded bg-sienna-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-sienna-600">Save</button>
                             </div>
                           </div>
                         </div>
@@ -315,11 +360,11 @@ export function ProfileView({ profile, onProfileChange, onNavigateToVenue, onNav
                               placeholder="Ramen, gyoza..."
                               className="w-full rounded-lg border border-cream-dark bg-paper px-2 py-1 text-xs shadow-sm focus:border-sienna-400 focus:outline-none focus:ring-1 focus:ring-sienna-100"
                               autoFocus
-                              onKeyDown={(e) => { if (e.key === "Enter") saveDishes(item.venue.id); if (e.key === "Escape") setEditingDishes(null); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveDishes(item.venue.id, item.context_id); if (e.key === "Escape") setEditingDishes(null); }}
                             />
                             <div className="mt-1 flex justify-end gap-1">
                               <button onClick={() => setEditingDishes(null)} className="rounded px-2 py-0.5 text-[10px] text-ink-faint hover:bg-cream">Cancel</button>
-                              <button onClick={() => saveDishes(item.venue.id)} className="rounded bg-sienna-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-sienna-600">Save</button>
+                              <button onClick={() => saveDishes(item.venue.id, item.context_id)} className="rounded bg-sienna-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-sienna-600">Save</button>
                             </div>
                           </div>
                         </div>
