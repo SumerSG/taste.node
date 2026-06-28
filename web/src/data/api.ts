@@ -45,6 +45,8 @@ function loadLocalProfile(): TasteProfile {
       const parsed = JSON.parse(raw) as TasteProfile;
       // Migrate old profiles without following
       if (!parsed.following) parsed.following = [];
+      // Migrate old profiles without followers
+      if (!parsed.followers) parsed.followers = [];
       // Migrate old profiles without include_in_clustering (default true)
       if (parsed.include_in_clustering === undefined) parsed.include_in_clustering = true;
       Object.values(parsed.contexts).forEach((ctx) => {
@@ -149,16 +151,18 @@ export async function loadProfile(): Promise<TasteProfile> {
 export async function loadFeed(): Promise<FeedData> {
   // Try Supabase for both authenticated and anonymous users (feed_posts is public-read)
   if (_supabaseActive || hasSupabase()) {
-    const remote = await loadFeedSupabase();
-    if (remote) {
-      saveLocalFeed(remote);
-      return remote;
-    }
-    // Supabase is configured but we got nothing (network/schema error).
-    // For authenticated users, show an empty feed rather than synthesized demo data.
-    if (_supabaseActive) {
-      console.warn("[loadFeed] Supabase returned null for authenticated user; showing empty feed.");
-      return { posts: [] };
+    try {
+      const remote = await loadFeedSupabase();
+      if (remote && remote.posts.length > 0) {
+        saveLocalFeed(remote);
+        return remote;
+      }
+      if (remote && remote.posts.length === 0) {
+        // Table exists but is genuinely empty
+        return remote;
+      }
+    } catch (e: any) {
+      console.error("[loadFeed] Supabase error:", e?.message || e);
     }
   }
   return loadLocalFeed();

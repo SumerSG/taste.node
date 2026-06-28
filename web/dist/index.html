@@ -11,15 +11,39 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-BH1zBkKW.js"></script>
+    <script type="module" crossorigin src="/assets/index-D4Whmq_9.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CgWElF2M.css">
   </head>
   <body>
     <div id="root"></div>
     <script>
       (function() {
+        // Guard against stale cached HTML referencing deleted JS bundles.
+        // If the main module fails to execute after 5s, hard-reload once.
+        var alreadyReloaded = sessionStorage.getItem('taste_stale_reload');
+        var root = document.getElementById('root');
+        setTimeout(function() {
+          if (root && !root.firstElementChild && !alreadyReloaded) {
+            sessionStorage.setItem('taste_stale_reload', '1');
+            window.location.reload(true);
+          }
+        }, 5000);
+
+        // Clear the reload guard after a successful load
+        window.addEventListener('load', function() {
+          sessionStorage.removeItem('taste_stale_reload');
+        });
+
+        // Error display fallback
         var el = document.getElementById('root');
         window.onerror = function(msg, url, line, col, err) {
+          if (typeof msg === 'string' && msg.indexOf('MIME') !== -1) {
+            if (!alreadyReloaded) {
+              sessionStorage.setItem('taste_stale_reload', '1');
+              window.location.reload(true);
+              return;
+            }
+          }
           if (el) {
             el.innerHTML = '<div style="padding:40px;font-family:sans-serif"><h1 style="color:red">Runtime Error</h1><pre style="background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto">' + (err && err.stack || msg) + '<br>at ' + (url||'') + ':' + (line||0) + ':' + (col||0) + '</pre><p style="margin-top:16px">Please open browser console (F12) and share the error.</p></div>';
           }

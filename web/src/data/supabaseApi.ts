@@ -60,7 +60,7 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
     console.warn("Supabase load ranked_items error:", itemsError.message);
   }
 
-  // 4. Load follows
+  // 4. Load follows (who I follow)
   const { data: followsData, error: followsError } = await supabase
     .from("follows")
     .select("following_id")
@@ -68,6 +68,16 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
 
   if (followsError) {
     console.warn("Supabase load follows error:", followsError.message);
+  }
+
+  // 4b. Load followers (who follows me)
+  const { data: followersData, error: followersError } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("following_id", userId);
+
+  if (followersError) {
+    console.warn("Supabase load followers error:", followersError.message);
   }
 
   // 5. Group ranked_items by context_id
@@ -102,6 +112,7 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
   });
 
   const following = (followsData ?? []).map((f) => f.following_id);
+  const followers = (followersData ?? []).map((f) => f.follower_id);
 
   return {
     user_id: userId,
@@ -109,6 +120,7 @@ export async function loadProfileSupabase(): Promise<TasteProfile | null> {
     default_context: profileData.default_context,
     include_in_clustering: profileData.include_in_clustering,
     following,
+    followers,
   };
 }
 

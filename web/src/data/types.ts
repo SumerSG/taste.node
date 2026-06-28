@@ -42,6 +42,7 @@ export interface TasteProfile {
   contexts: Record<string, TasteContext>;
   default_context: string;
   following: string[];
+  followers?: string[];
   include_in_clustering?: boolean;
 }
 

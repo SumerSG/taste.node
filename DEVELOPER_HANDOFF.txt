@@ -552,8 +552,154 @@ K. Supabase backend / Likes migration (BLOCKED → READY)
       - Trigger to auto-sync count on insert/delete
 
 ---
-11. NEXT MAJOR CHANGE (ready to implement)
+10. FIXES APPLIED (2026-06-28 — round 4)
 ---
+
+L. Frontend — Chat Filter Controller (complete rewrite)
+    Files: web/src/hooks/useChatEngine.ts, web/src/data/chatFilterEngine.ts (new),
+           web/src/components/ChatPanel.tsx, web/src/views/SearchView.tsx
+    Problem: AI chat silently merged parsed filters into filter state.
+      No visual confirmation. No ability to remove filters. Results just
+      appeared without showing what constraints were active.
+    Fix:
+      - New module `chatFilterEngine.ts` extracts intent (~160 keyword patterns)
+        and produces a FilterDiff ({ ops, nextFilters, confidence })
+      - Every AI response now shows interactive filter chips:
+        "＋ 🍝 Italian" (add), "− 🗑️ cuisine" (remove)
+      - Sticky "Active Filters" bar above input shows current selection
+        with X buttons to remove individual filters
+      - Clicking a chip in Active Filters removes it and re-runs search
+      - FilterPanel, ChatPanel, and Grid results stay perfectly synced
+    Details:
+      - Cuisine: 160 keyword patterns (English → Japanese labels)
+      - Price: $/$$/$$$/$$$$, yen ranges, "affordable", "splurge"
+      - Health: very healthy (0.9), healthy (0.7), light (0.6)
+      - Radius: km, miles, "nearby", "walking distance", "anywhere"
+      - Rating: "michelin" → 4.0+, "well reviewed" → 3.5+
+      - Social: friend mentions parsed from `SAMPLE_USERS`
+      - Power feature: "reset|clear all" wipes all filters
+
+M. Frontend — Search results ranked by taste cluster
+    File: web/src/data/filterEngine.ts
+    Problem: Relevance sort was a naive cuisine-overlap counter (user only).
+      Recommendations tab had proper cluster scoring; Search used a weaker one.
+    Fix:
+      - Extracted unified `scoreVenue()` used by BOTH Search and Chat
+      - Boosts shared cuisines with user's own ranked list (+0.18 per, max 0.35)
+      - Cluster peer popularity: if peers ranked a venue high, up to +0.25 bonus
+      - Friend overlap: shared cuisines with tagged friends
+      - Friend ranking bonus: friend #1 → +0.15, #2 → +0.075, etc.
+      - Query/cuisine text match bonuses
+      - Quality signals: rating ≥4.0 (+0.05), 50+ reviews (+0.03)
+    Note: `scoreVenueForChat()` now delegates to `scoreVenue()` so there's
+      one source of truth for ranking.
+
+N. Frontend — Feed / Profile hardening against Supabase failures
+    File: web/src/data/api.ts (loadFeed, loadProfile), web/src/App.tsx,
+           web/src/data/supabaseApi.ts (loadFeedSupabase)
+    Problem: logged-in users with Supabase errors got empty feed/library
+      instead of graceful fallback. Also, `loadFeedSupabase()` could hit
+      PostgREST schema cache staleness after DDL (likes column) and
+      return null even though fallback queries should recover.
+    Fix:
+      - `loadFeed()`: wrap Supabase call in try/catch, always fall back to
+        `loadLocalFeed()` on any error. Removes the auth-only empty return.
+      - `loadFeedSupabase()`: multi-stage retry (full → without likes → minimal)
+        with `console.warn` logs for diagnostics. Catches unexpected errors.
+      - `loadProfile()`: when Supabase fails, check local cache for real data
+        before creating an empty profile.
+      - App.tsx: aggressive cache clear on version bump — deletes ALL
+        `localStorage` keys prefixed with `taste.node.*`.
+
+O. Frontend — ErrorBoundary + runtime error display
+    File: web/src/App.tsx, web/src/main.tsx, web/index.html
+    Problem: white screen on JS crash; user sees nothing.
+    Fix:
+      - Added React ErrorBoundary wrapping AppContent
+      - Shows stack trace + "Reload page" button on render crashes
+      - Added `window.onerror` handler in index.html to catch module-load
+        MIME errors (stale cached HTML → 404 bundles → text/html response)
+      - Added reload guard: if #root is still empty after 5s and no reload
+        was attempted yet, force a hard reload once (prevents stale bundle)
+
+P. Supabase — Followers field loaded from DB
+    Files: web/src/data/types.ts, web/src/data/supabaseApi.ts, web/src/data/api.ts
+    Problem: TasteProfile only tracked `following` (who you follow).
+      There was no way to show "who follows me" (sumer's followers).
+    Fix:
+      - Added `followers?: string[]` to TasteProfile type
+      - `loadProfileSupabase()` now queries `follows` table TWO ways:
+        • `.eq("follower_id", userId)` → who I follow
+        • `.eq("following_id", userId)` → who follows me
+      - `loadLocalProfile()` migrates old cached profiles (adds `followers: []`)
+      - `getDefaultProfile()` unaffected (followers optional)
+
+Q. Frontend — build config fix for stale hashed bundles
+    File: web/vite.config.ts
+    Problem: Vite `build.emptyOutDir` defaults to true, wiping old hashed
+      JS/CSS bundles on rebuild. Deployed apps with CDN-cached old `index.html`
+      would request deleted bundles → Build.io SPA fallback serves `index.html`
+      for `.js` requests → browser MIME type error → white screen.
+    Fix:
+      - Set `emptyOutDir: false` in vite.config.ts
+      - Old and new hashed bundles coexist in `dist/assets/`
+      - Restored `index-BUb6GLYB.js` and `index-DuU_AjJ4.css` from git
+
+R. Frontend — version bump + cache clear v3.0.4
+    File: web/src/App.tsx
+    - Bumped APP_VERSION from v3.0.1 → v3.0.2 → v3.0.3 → v3.0.4
+    - Each bump clears all `localStorage` and forces reload
+    - v3.0.2 added comprehensive cache clear; v3.0.3 added ErrorBoundary;
+      v3.0.4 adds reload guard for stale bundles
+
+---
+11. KNOWN ISSUES & WARNINGS (updated 2026-06-28)
+---
+
+1. PostgREST schema cache staleness after DDL
+   After running migrations like `005_full_likes_schema.sql` in SQL Editor,
+   PostgREST may not know about new columns for ~1 min. The frontend now has
+   multi-stage retry (without offending columns, then minimal columns), but
+   if ALL queries fail, feed will show demo data (or empty, depending on auth).
+   WORKAROUND: After any DDL, wait 60s before testing the frontend,
+   or restart PostgREST from Supabase Dashboard.
+
+2. Build.io propagation lag
+   After `git push bld main:master`, Build.io edge cache takes ~1-3 minutes
+   to serve the new `index.html` and bundles. During this window, old cached
+   HTML references deleted bundles → MIME error → white screen. The v3.0.3+
+   builds include a reload guard script that detects empty #root after 5s
+   and hard-reloads once. If user STILL sees white screen, advise hard reload
+   (Cmd+Shift+R / Ctrl+Shift+R).
+
+3. Backend app name mismatch
+   `git remote -v` shows `bld-backend` points to `taste-node-api`.
+   The deploy command for backend:
+     git push bld-backend backend-release:main
+   (NOT `git push bld-backend main` — uses `backend-release` branch
+   which has the correct Procfile with `web: uvicorn`).
+
+---
+12. NEXT STEPS
+---
+
+A. Verify chat filter chips in production
+    - "Italian under $$" → ＋ 🍝 Italian chip + 💰 $$ chip
+    - "nearby" → ＋ 📍 Nearby chip
+    - Click X on cuisine chip → cuisine removed → results refresh
+
+B. Verify feed shows posts from Supabase (not demo data)
+    - Global tab should show 3,100+ posts with timestamps and like counts
+    - Following tab: empty until user follows someone
+    - Recommended tab: sorted by likes descending
+
+C. Verify sumer's followers appear
+    - Go to sumer's profile → "Followers" section should show Supabase data
+
+D. Backend verification (if backend changes needed)
+    - Build.io push: `git push bld-backend backend-release:main`
+    - Verify: `curl https://taste-node-api-97114760.onbld.com/setup-supabase`
+
 
 A. Apply Supabase likes migration (REQUIRES SQL EDITOR RUN)
     - File: supabase/migrations/005_full_likes_schema.sql
