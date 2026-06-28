@@ -16,6 +16,7 @@ import { LandingView } from "./views/LandingView";
 import { UserProfileView } from "./views/UserProfileView";
 import { FabOverlay } from "./components/FabOverlay";
 import { SAMPLE_USERS } from "./data/mockData";
+import { sampleUserProfileCacheClear } from "./data/mockData";
 
 type NavEntry =
   | { view: "landing" }
@@ -26,7 +27,7 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
-const APP_VERSION = "v3.0.8"; // Bump on every deploy to bust browser cache
+const APP_VERSION = "v3.0.9"; // Bump on every deploy to bust browser cache
 
 function clearOldCaches() {
   try {
@@ -79,6 +80,7 @@ function AppContent() {
   // Load venues + profile + feed on mount (user-scoped state reset happens via key on wrapper)
   useEffect(() => {
     let cancelled = false;
+    sampleUserProfileCacheClear(); // bust stale generator cache on every boot
     loadVenues().then(async () => {
       if (cancelled) return;
       const [p, f] = await Promise.all([loadProfile(), loadFeed()]);

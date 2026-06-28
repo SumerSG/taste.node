@@ -25,20 +25,24 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
       try {
         if (hasBackend()) {
           const remote = await loadProfileBackend(userId);
-          if (remote && !cancelled) {
+          const hasRealData = remote && Object.values(remote.contexts).some((c) => c.ranked_list.length > 0);
+          if (hasRealData && !cancelled) {
             setProfile(remote);
             setLoading(false);
             return;
           }
+          // backend returned empty profile — fall through to demo generator
         }
+        const demo = getSampleUserProfile(userId);
         if (!cancelled) {
-          setProfile(getSampleUserProfile(userId));
+          setProfile(demo);
           setLoading(false);
         }
       } catch (err) {
         console.error("[UserProfileView] load error:", err);
+        const demo = getSampleUserProfile(userId);
         if (!cancelled) {
-          setProfile(getSampleUserProfile(userId));
+          setProfile(demo);
           setLoading(false);
         }
       }

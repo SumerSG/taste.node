@@ -133,14 +133,27 @@ function getPersonalRating(rnd: () => number): number | undefined {
 
 const _profileCache = new Map<string, TasteProfile>();
 
-export function getSampleUserProfile(userId: string): TasteProfile | null {
-  if (_profileCache.has(userId)) return _profileCache.get(userId)!;
+export function sampleUserProfileCacheClear() {
+  _profileCache.clear();
+  console.log("[mockData] profile cache cleared");
+}
 
+export function getSampleUserProfile(userId: string): TasteProfile | null {
   const pool = getAllVenues();
-  console.log("[getSampleUserProfile] userId:", userId, "pool.length:", pool.length);
+  // If venues haven't loaded yet, don't cache a null — try again next call
   if (pool.length === 0) {
-    console.warn("[getSampleUserProfile] venue pool empty — returning null. Call loadVenues() first.");
+    console.warn("[getSampleUserProfile] venue pool empty for", userId, "— returning null. Load venues first.");
     return null;
+  }
+
+  // If pool is loaded but cache has a stale null/empty entry, regenerate
+  if (_profileCache.has(userId)) {
+    const cached = _profileCache.get(userId)!;
+    if (cached && Object.values(cached.contexts).some((c) => c.ranked_list.length > 0)) {
+      return cached;
+    }
+    // stale empty cache — delete and regenerate
+    _profileCache.delete(userId);
   }
 
   const seed = hashString(userId);
