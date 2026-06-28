@@ -114,6 +114,34 @@ export async function loadProfile(): Promise<TasteProfile> {
       saveLocalProfile(remote);
       return remote;
     }
+    // Authenticated user with no Supabase profile row yet.
+    // Check local cache for THIS user before falling back to demo data.
+    const local = loadLocalProfile();
+    const hasRealLocalData =
+      local.user_id === _currentUserId &&
+      Object.values(local.contexts).some((ctx) => ctx.ranked_list.length > 0);
+    if (hasRealLocalData) {
+      return local;
+    }
+    // Start with a truly empty profile so logged-in users never see synthesized demo data
+    const now = new Date().toISOString();
+    const empty: TasteProfile = {
+      user_id: _currentUserId!,
+      contexts: {
+        default: {
+          context_id: "default",
+          ranked_list: [],
+          created_at: now,
+          updated_at: now,
+        },
+      },
+      default_context: "default",
+      following: [],
+      include_in_clustering: true,
+    };
+    saveLocalProfile(empty);
+    saveProfileSupabase(empty).catch(() => {});
+    return empty;
   }
   return loadLocalProfile();
 }

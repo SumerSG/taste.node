@@ -179,6 +179,13 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
   const following: string[] = [];
   for (const u of SAMPLE_USERS) {
     if (u.id === userId) continue;
+    // Demo visibility: ~80% of synthetic users follow sumer
+    if (u.id === "sumer_aiand") {
+      if (Math.abs(hashString(userId + "follow_sumer") % 100) < 80) {
+        following.push(u.id);
+      }
+      continue;
+    }
     const affinity = Math.abs(hashString(u.id) % 100);
     // 15-30% chance of following another user, weighted by taste overlap via hash
     if (affinity < 25) following.push(u.id);

@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { TasteProfile } from "../data/types";
 import { getSampleUserProfile, getFollowers, SAMPLE_USERS } from "../data/mockData";
+import { loadProfileBackend, hasBackend } from "../data/backendApi";
 import { Star, UserCircle, ListOrdered, Users, Heart } from "lucide-react";
 
 interface Props {
@@ -12,10 +13,40 @@ interface Props {
 }
 
 export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigateToProfile, onBack }: Props) {
-  const profile = useMemo(() => getSampleUserProfile(userId), [userId]);
+  const [profile, setProfile] = useState<TasteProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showFollowing, setShowFollowing] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (hasBackend()) {
+        const remote = await loadProfileBackend(userId);
+        if (remote && !cancelled) {
+          setProfile(remote);
+          setLoading(false);
+          return;
+        }
+      }
+      if (!cancelled) {
+        setProfile(getSampleUserProfile(userId));
+        setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6 text-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-sienna-500 border-t-transparent mx-auto mb-4" />
+        <p className="text-sm text-ink-muted">Loading profile…</p>
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
