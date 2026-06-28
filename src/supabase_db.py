@@ -372,15 +372,20 @@ def get_all_profiles(conn: Any) -> List[TasteProfile]:
 def get_all_venues(conn: Any) -> List[Venue]:
     if not _client:
         return []
-    # Paginate to bypass default PostgREST/supabase-py row limits
+    # Paginate to bypass default PostgREST/supabase-py row limits.
+    # Cap to avoid timeouts on massive catalogues (mirrors local SQLite default).
+    max_remote = int(os.environ.get("TASTE_NODE_MAX_REMOTE_VENUES", "10000"))
     venues: List[Venue] = []
     start = 0
     batch = 1000
     while True:
+        if start >= max_remote:
+            break
+        end = min(start + batch - 1, max_remote - 1)
         resp = (
             _client.table("venues")
             .select("*")
-            .range(start, start + batch - 1)
+            .range(start, end)
             .execute()
         )
         batch_data = resp.data
