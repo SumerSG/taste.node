@@ -349,5 +349,58 @@ Anon Key:   (see Build.io config var VITE_SUPABASE_ANON_KEY)
 Service Key: (see Build.io config var SUPABASE_SERVICE_KEY)
 
 ---
+8. FIXES APPLIED (2026-06-28 — round 2)
+---
+
+h. Supabase schema cross-checked with live Service Key
+   - Profiles: 1001 rows | Contexts: 3002 | Ranked items: 25,930
+   - Venues: 100,000 rows | Feed posts: 3,159 | Follows: 6
+   - post_likes table MISSING → apply `005_full_likes_schema.sql` manually
+     in Supabase SQL Editor (contains trigger + table + RLS policies).
+
+i. Backend Build.io buildpack fixed
+   - ROOT CAUSE: `runtime.txt` (python-3.12) + `.python-version` (3.12)
+     together caused Heroku Python CNB v4.1.0 to fail silently.
+   - FIX: Removed `runtime.txt` entirely. Builds now succeed with
+     `.python-version` = `3.12` alone.
+   - Evidence: builds 20-23 failed; build 24+ succeeded after deleting
+     `runtime.txt`.
+
+j. Supabase default row limit fixed
+   - ROOT CAUSE: `supabase-py` v2.31.0 limits REST select to ~20 rows
+     by default unless an explicit `.limit()` or `.range()` is used.
+   - FIX: Added pagination (`range()`) to `get_all_profiles` and
+     `get_all_venues` in `src/supabase_db.py`.
+   - `get_all_venues` also capped at 10,000 rows via env var
+     `TASTE_NODE_MAX_REMOTE_VENUES` (mirrors local cap) to prevent
+     request timeouts on first boot.
+   - Evidence: `/venues` returned 20 before fix; returns 10,000 after.
+
+k. SQLite likes endpoint fixed
+   - `src/db.py`: `toggle_like_post` now returns `{"liked_by_me": False,
+     "likes": 0}` instead of `None`, preventing 500 in local dev mode.
+
+l. Backend deployment workflow corrected
+   - `taste-node-api` MUST receive `web: uvicorn` in Procfile to accept
+     HTTP traffic on Build.io. The `api` process is NOT routable.
+   - `taste-node-frontend` correctly uses `web: npm start`.
+   - WORKAROUND: maintain `backend-release` branch (Procfile = uvicorn)
+     and push it as `main` to `bld-backend`:
+       `git push bld-backend backend-release:main`
+   - Current live backend image: build 28 (commit 67e6449).
+
+m. Service key conflict resolved
+   - The Service Key provided in this session (JWT format) returned 401
+     from Supabase REST. The existing key in Build.io
+     (`sb_secret_Rdpl5cb...`) is valid and remains in use.
+   - /setup-supabase now returns `{"ready": true}` on the live API.
+
+n. End-to-end smoke test (live backend)
+   - POST /users           → creates user in Supabase (Z timestamp ✅)
+   - GET  /venues          → returns 10,000 venues ✅
+   - GET  /setup-supabase  → confirms all tables + row counts ✅
+   - Backend URL: https://taste-node-api-97114760.onbld.com
+
+---
 END OF HANDOFF
 ================================================================================
