@@ -22,17 +22,25 @@ export function UserProfileView({ userId, userName, onNavigateToVenue, onNavigat
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (hasBackend()) {
-        const remote = await loadProfileBackend(userId);
-        if (remote && !cancelled) {
-          setProfile(remote);
-          setLoading(false);
-          return;
+      try {
+        if (hasBackend()) {
+          const remote = await loadProfileBackend(userId);
+          if (remote && !cancelled) {
+            setProfile(remote);
+            setLoading(false);
+            return;
+          }
         }
-      }
-      if (!cancelled) {
-        setProfile(getSampleUserProfile(userId));
-        setLoading(false);
+        if (!cancelled) {
+          setProfile(getSampleUserProfile(userId));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("[UserProfileView] load error:", err);
+        if (!cancelled) {
+          setProfile(getSampleUserProfile(userId));
+          setLoading(false);
+        }
       }
     }
     load();

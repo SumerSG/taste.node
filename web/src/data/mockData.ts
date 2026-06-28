@@ -141,8 +141,10 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
 
   const seed = hashString(userId);
   const rnd = seededRandom(seed);
-  const count = 8 + (rnd() % 7); // 8 to 14 venues
-  const selected: RankedItem[] = [];
+
+  // ─── Sumer gets a superstar profile (~153 venues across 6 lists) ───
+  const isSumer = userId === "sumer_aiand";
+  const count = isSumer ? 153 : 8 + (rnd() % 7);
 
   // Deterministic shuffle
   const indices: number[] = [];
@@ -152,16 +154,17 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
     if (!indices.includes(idx)) indices.push(idx);
   }
 
+  const selected: RankedItem[] = [];
   for (let i = 0; i < indices.length && selected.length < count; i++) {
     const venue = pool[indices[i]];
     if (!selected.find((r) => r.venue.id === venue.id)) {
       const status = STATUS_WEIGHTS[rnd() % STATUS_WEIGHTS.length];
       selected.push({
         venue,
-        visited_at: offsetDate(rnd(), -90 - (rnd() % 180)),
+        visited_at: offsetDate(rnd(), isSumer ? -14 - (rnd() % 90) : -90 - (rnd() % 180)),
         added_at: "2026-06-22T10:00:00+00:00",
         occasion_tag: OCCASIONS[rnd() % OCCASIONS.length],
-        is_classic: (rnd() % 100) < 15,
+        is_classic: (rnd() % 100) < (isSumer ? 8 : 15),
         status,
         personal_rating: getPersonalRating(rnd),
         reaction: status === "favourite" || status === "visited" ? getReaction(venue, rnd) : undefined,
@@ -187,32 +190,75 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
       continue;
     }
     const affinity = Math.abs(hashString(u.id) % 100);
-    // 15-30% chance of following another user, weighted by taste overlap via hash
+    // 15-30% chance of following another user
     if (affinity < 25) following.push(u.id);
   }
 
-  // Build extra contexts (personal lists)
-  const contexts: Record<string, TasteProfile["contexts"][string]> = {
-    default: {
-      context_id: "default",
-      ranked_list: selected.filter((_, i) => i < Math.ceil(selected.length * 0.7)),
-      created_at: "2026-01-01T00:00:00+00:00",
-      updated_at: "2026-01-01T00:00:00+00:00",
-    },
-  };
+  // ─── Context assembly ───
+  let contexts: Record<string, TasteProfile["contexts"][string]>;
 
-  // Add 1-2 extra contexts for ~40% of users
-  if ((rnd() % 100) < 40) {
-    const extraNames = ["date_nights", "solo_spots", "group_dinners", "lunch_hunts", "cheap_eats", "splurge_worthy"];
-    const ctxName = extraNames[rnd() % extraNames.length];
-    if (!contexts[ctxName]) {
-      const subset = selected.filter((_, i) => i % 3 === 0).slice(0, 5 + (rnd() % 4));
-      contexts[ctxName] = {
-        context_id: ctxName,
-        ranked_list: subset,
+  if (isSumer) {
+    // Split sumer's 153 into 6 curated lists
+    contexts = {
+      default: {
+        context_id: "default",
+        ranked_list: selected.slice(0, 50),
+        created_at: "2026-01-01T00:00:00+00:00",
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+      date_nights: {
+        context_id: "date_nights",
+        ranked_list: selected.slice(50, 70),
+        created_at: "2026-01-15T00:00:00+00:00",
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+      lunch_hunts: {
+        context_id: "lunch_hunts",
+        ranked_list: selected.slice(70, 90),
         created_at: "2026-02-01T00:00:00+00:00",
-        updated_at: "2026-02-01T00:00:00+00:00",
-      };
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+      solo_spots: {
+        context_id: "solo_spots",
+        ranked_list: selected.slice(90, 110),
+        created_at: "2026-02-15T00:00:00+00:00",
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+      group_dinners: {
+        context_id: "group_dinners",
+        ranked_list: selected.slice(110, 133),
+        created_at: "2026-03-01T00:00:00+00:00",
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+      cheap_eats: {
+        context_id: "cheap_eats",
+        ranked_list: selected.slice(133, 153),
+        created_at: "2026-03-15T00:00:00+00:00",
+        updated_at: "2026-06-28T00:00:00+00:00",
+      },
+    };
+  } else {
+    contexts = {
+      default: {
+        context_id: "default",
+        ranked_list: selected.filter((_, i) => i < Math.ceil(selected.length * 0.7)),
+        created_at: "2026-01-01T00:00:00+00:00",
+        updated_at: "2026-01-01T00:00:00+00:00",
+      },
+    };
+    // Add 1-2 extra contexts for ~40% of users
+    if ((rnd() % 100) < 40) {
+      const extraNames = ["date_nights", "solo_spots", "group_dinners", "lunch_hunts", "cheap_eats", "splurge_worthy"];
+      const ctxName = extraNames[rnd() % extraNames.length];
+      if (!contexts[ctxName]) {
+        const subset = selected.filter((_, i) => i % 3 === 0).slice(0, 5 + (rnd() % 4));
+        contexts[ctxName] = {
+          context_id: ctxName,
+          ranked_list: subset,
+          created_at: "2026-02-01T00:00:00+00:00",
+          updated_at: "2026-02-01T00:00:00+00:00",
+        };
+      }
     }
   }
 
@@ -302,9 +348,16 @@ export function computeDemoLikes(postId: string): number {
 /* ─── Post generation ─── */
 
 export function buildSeedPosts(): Post[] {
-  // Return the pre-generated realistic posts from generatedUsers.ts
+  // Rewrite hardcoded dates to recent ones (last 0-48h) so demo feed feels alive
+  const now = Date.now();
   return [...GENERATED_POSTS]
-    .map((p) => ({ ...p, likes: computeDemoLikes(p.id), liked_by_me: false }))
+    .map((p) => {
+      // Deterministic offset from post id hash (0 - 48 hours ago)
+      const h = seededHash(p.id);
+      const offsetMs = (h % 48) * 3600_000; // 0 - 48 hours in ms
+      const recentDate = new Date(now - offsetMs).toISOString();
+      return { ...p, likes: computeDemoLikes(p.id), liked_by_me: false, created_at: recentDate };
+    })
     .sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
