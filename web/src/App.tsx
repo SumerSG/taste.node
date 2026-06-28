@@ -26,7 +26,7 @@ type NavEntry =
   | { view: "venue"; venueId: string }
   | { view: "userProfile"; userId: string; userName: string };
 
-const APP_VERSION = "v3.0.0"; // Bump on every major deploy to bust browser cache
+const APP_VERSION = "v3.0.1"; // Bump on every deploy to bust browser cache
 
 function AppContent() {
   const { user, loading: authLoading } = useAuthState();
