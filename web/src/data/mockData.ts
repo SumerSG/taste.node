@@ -135,16 +135,11 @@ const _profileCache = new Map<string, TasteProfile>();
 
 export function sampleUserProfileCacheClear() {
   _profileCache.clear();
-  console.log("[mockData] profile cache cleared");
 }
 
 export function getSampleUserProfile(userId: string): TasteProfile | null {
   const pool = getAllVenues();
-  // If venues haven't loaded yet, don't cache a null — try again next call
-  if (pool.length === 0) {
-    console.warn("[getSampleUserProfile] venue pool empty for", userId, "— returning null. Load venues first.");
-    return null;
-  }
+  if (pool.length === 0) return null;
 
   // If pool is loaded but cache has a stale null/empty entry, regenerate
   if (_profileCache.has(userId)) {
@@ -152,7 +147,6 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
     if (cached && Object.values(cached.contexts).some((c) => c.ranked_list.length > 0)) {
       return cached;
     }
-    // stale empty cache — delete and regenerate
     _profileCache.delete(userId);
   }
 
@@ -285,9 +279,6 @@ export function getSampleUserProfile(userId: string): TasteProfile | null {
     default_context: "default",
     following,
   };
-
-  const totalItems = Object.values(contexts).reduce((sum, ctx) => sum + ctx.ranked_list.length, 0);
-  console.log("[getSampleUserProfile] built profile for", userId, "contexts:", Object.keys(contexts).join(","), "total items:", totalItems);
 
   _profileCache.set(userId, profile);
   return profile;

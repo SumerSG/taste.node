@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { FeedData, Venue, FeedMode, TasteProfile } from "../data/types";
 import { deletePost, filterFeedPosts, getCurrentUserId, followUser, unfollowUser, isFollowing, toggleLikePost } from "../data/api";
 import { getAllVenues, pickImage } from "../data/venues";
@@ -48,17 +48,6 @@ export function FeedView({ profile, onProfileChange, feed, onFeedChange, onNavig
   }, []);
 
   const filteredPosts = useMemo(() => filterFeedPosts(feed, mode, profile), [feed, mode, profile]);
-
-  // DIAGNOSTIC: log what filterFeedPosts returns for each mode
-  useEffect(() => {
-    console.log("[FeedView] mode:", mode, "feed.posts:", feed.posts.length, "filtered:", filteredPosts.length);
-    if (mode === "recommended" && filteredPosts.length > 0) {
-      filteredPosts.slice(0, 5).forEach((p, i) => {
-        const hasImg = !!(p.image_url || (p.venue_id ? venueMap.get(p.venue_id)?.image_url : undefined));
-        console.log(`[FeedView] rec #${i}:`, p.author_name, "likes:", p.likes, "img:", hasImg, "vid:", p.venue_id, "date:", p.created_at);
-      });
-    }
-  }, [mode, feed, filteredPosts, venueMap]);
 
   const handleDelete = (postId: string) => {
     if (!window.confirm("Delete this post?")) return;

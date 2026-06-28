@@ -481,30 +481,34 @@ export async function getFollowersSupabase(
   userId: string
 ): Promise<{ id: string; name: string }[] | null> {
   if (!supabase) return null;
-  const current = await currentUserId();
-  if (!current) return null;
+  // NOTE: follows RLS is SELECT for follower_id=following_id owner;
+  // anonymous users get nothing. We just try and let the caller fall back.
+  try {
+    const { data, error } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("following_id", userId);
 
-  const { data, error } = await supabase
-    .from("follows")
-    .select("follower_id")
-    .eq("following_id", userId);
+    if (error) {
+      console.warn("Supabase getFollowers error:", error.message);
+      return null;
+    }
+    const ids = (data ?? []).map((row) => row.follower_id);
+    if (ids.length === 0) return [];
 
-  if (error) {
-    console.warn("Supabase getFollowers error:", error.message);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, name")
+      .in("user_id", ids);
+    const nameMap = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p.name]));
+    return ids.map((id) => ({
+      id,
+      name: nameMap[id] || id.slice(0, 8) + "...",
+    }));
+  } catch (e: any) {
+    console.warn("Supabase getFollowers exception:", e?.message);
     return null;
   }
-  const ids = (data ?? []).map((row) => row.follower_id);
-  if (ids.length === 0) return [];
-
-  const { data: profs } = await supabase
-    .from("profiles")
-    .select("user_id, name")
-    .in("user_id", ids);
-  const nameMap = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p.name]));
-  return ids.map((id) => ({
-    id,
-    name: nameMap[id] || id.slice(0, 8) + "...",
-  }));
 }
 
 export async function resolveUserNamesSupabase(
